@@ -87,3 +87,7 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+
+# Ignore Mac OS generated files
+.DS_Store
