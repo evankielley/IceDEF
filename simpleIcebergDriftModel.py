@@ -22,7 +22,7 @@ def Fa(iceberg, Vx, Vy, t):
     """
     
     # air velocity, "wind"
-    Vax = 0*60.0*np.cos(1*np.pi*t/86400) # nominal value
+    Vax = 0*60.0*np.cos(1*np.pi*t/86400) # nominal value (diurnal? wind for 24 hr cycle)
     Vay = 0
     
     # calculate air density
