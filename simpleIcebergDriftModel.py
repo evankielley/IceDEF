@@ -22,7 +22,9 @@ def Fa(iceberg, Vx, Vy, t):
     """
     
     # air velocity, "wind"
-    Vax = 0*60.0*np.cos(1*np.pi*t/86400) # nominal value (diurnal? wind for 24 hr cycle)
+    # nominal value (diurnal? wind for 24 hr cycle)
+    #Vax = 0*60.0*np.cos(1*np.pi*t/86400)
+    Vax = 5*np.cos((2*np.pi*t)/86400) + 10 + random.gauss(0, 1)  # mean, std
     Vay = 0
     
     # calculate air density
@@ -130,8 +132,10 @@ def solve(iceberg, dt=60.0):
     # initial values
     x[0] = 0
     y[0] = 0
-    vx[0] = 0.4 + random.gauss(0, 0.02)  # mean, std 
-    vy[0] = 0.4 + random.gauss(0, 0.02)
+    #vx[0] = 0
+    #vy[0] = 0
+    vx[0] = 0.1 + random.gauss(0, 0.01)  # mean, std 
+    vy[0] = 0.1 + random.gauss(0, 0.01)
     ax[0], ay[0] = calc_acceleration(iceberg, vx[0], vy[0], t[0])
     t[0] = 0
 
@@ -181,10 +185,12 @@ def plot(x, y, label=''):
 fig, ax = plt.subplots( nrows=1, ncols=1 )  # create figure & 1 axis
 
 for i in range(0, 10):
+    iceberg = Iceberg()
     x, y, t = solve(iceberg)
     ax.plot(x,y)
 
-fig.savefig('./driftTrack.png')   # save the figure to file
+plt.title("Varying Iceberg Size, Initial Drift, and Air Speed")
+fig.savefig('./driftTrack_2.png')   # save the figure to file
 plt.close(fig)
 
 #fig, axes = plt.subplots()
