@@ -32,7 +32,7 @@ def Fa(iceberg, Vx, Vy, t):
     ρa = 1.225 # kg/m^3
     
     Ca = 0.1
-    As = 72 * 22 # (maximum width (m) * sail height (m))
+    As = iceberg.sailWidth * iceberg.sailHeight # (maximum width (m) * sail height (m))
     
     # TODO: add skin drag
     Fax = (0.5 * ρa * Ca * As) * abs(Vax - Vx) * (Vax - Vx)
@@ -49,7 +49,7 @@ def Fw(iceberg, Vx, Vy, t):
     
     ρw = 1027.5 # kg/m^3
     Cw = 2.5 #
-    Ak = 7*110 # width (m) * keel depth (m)
+    Ak = iceberg.keelWidth * iceberg.keelHeight # width (m) * keel depth (m)
     
     Cdw = 5.0e-4 #
     
@@ -100,7 +100,7 @@ def calc_acceleration(iceberg, Vx, Vy, t):
     Fwpx, Fwpy = Fwp(iceberg, Vx, Vy, t)
     
     # added mass
-    Ma = 0.5*iceberg.mass
+    Ma = 0.5 * iceberg.mass
                 
     ax = (Fax + Fcx + Fwx + Fwpx) / (iceberg.mass + Ma)
     ay = (Fay + Fcy + Fwy + Fwpy) / (iceberg.mass + Ma)
@@ -171,10 +171,6 @@ def solve(iceberg, dt=60.0):
         x[i+1] = x[i] + dt*vx[i+1]
         y[i+1] = y[i] + dt*vy[i+1]
   
-
-        
-        #print("{:8.1f} {:12.1f} {:12.1f} {:12.1f}".format(t[i+1], x[i+1], vx[i+1], ax[i+1]))
-    
     return x, y, t
 
 def plot(x, y, label=''):
@@ -190,9 +186,6 @@ for i in range(0, 10):
     ax.plot(x,y)
 
 plt.title("Varying Iceberg Size, Initial Drift, and Air Speed")
-fig.savefig('./driftTrack_2.png')   # save the figure to file
+fig.savefig('./driftTrack.png')   # save the figure to file
 plt.close(fig)
 
-#fig, axes = plt.subplots()
-#plot(x,y, label='')
-#plt.axis('equal')
