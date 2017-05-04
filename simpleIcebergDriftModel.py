@@ -85,8 +85,8 @@ def Fwp(iceberg, Vx, Vy, t):
     
     f = coriolis_parameter()
     
-    Fwpx = iceberg.mass*(Amwx + f*Vwmx)
-    Fwpy = iceberg.mass*(Amwy - f*Vwmy)
+    Fwpx = iceberg.mass*(Amwx + f*Vwmy)
+    Fwpy = iceberg.mass*(Amwy - f*Vwmx)
     
     return Fwpx, Fwpy
 
