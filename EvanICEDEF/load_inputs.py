@@ -50,8 +50,8 @@ def load_melt_params():
     return Ti0,Cs1,Cs2,Cs3,CMv1,CMv2,CMe1,CMb1,CMb2,CMb3
 
 def load_run_params():
-    bvec = np.linspace(1,2)
-    trajnum = 1#25            # total number of iceberg trajectories to compute
+    bvec = range(1,11)
+    trajnum = 25            # total number of iceberg trajectories to compute
     final_t = 122           # number of input field time steps
     startrange = final_t / 2  # input field start range
     tres = 3                # time resoln such that "model Dt"="input DT"/tres
@@ -61,6 +61,6 @@ def load_run_params():
     R = 6378 * 1e3            # earth radius in m
     dtR = dt/R * 180/np.pi       # need this ratio for distances in "drifting.m"
     t = range(0, final_t)      # how long is the run
-    nt = len(t)*tres #(t.size) * tres             # number of model timesteps
-    tt = np.linspace(0, len(t)-1,nt)#t.size-1, nt) # model time
+    nt = len(t)*tres            # number of model timesteps
+    tt = np.linspace(0, len(t)-1,nt)  # model time
     return bvec,trajnum,final_t,startrange,tres,DT,Dt,dt,R,dtR,t,nt,tt

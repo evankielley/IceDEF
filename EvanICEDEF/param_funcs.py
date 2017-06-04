@@ -17,7 +17,8 @@ def b(U):
 
 def S(l, w):
     # Harmonic mean length
-    S = np.pi*(np.multiply(l, np.divide(w,(l+w))))
+    #S = np.pi*(np.multiply(l, np.divide(w,(l+w))))
+    S = np.pi*(np.divide(np.multiply(l,w),l+w))
     return S
 
 def ff(lati,om):
@@ -29,8 +30,3 @@ def Ut(u, lati, S, Cw, g, om):
     # \Lambda in the papers
     Ut = np.sqrt(2)*Cw*g/ff(lati,om)*u/S
     return Ut
-
-
-def find_nearest(array,value):
-    idx = (np.abs(array-value)).argmin()
-    return idx
