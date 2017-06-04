@@ -14,7 +14,6 @@ def b(U):
         b = 0
     return b
 
-
 def S(l, w):
     # Harmonic mean length
     #S = np.pi*(np.multiply(l, np.divide(w,(l+w))))

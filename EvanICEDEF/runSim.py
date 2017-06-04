@@ -1,7 +1,6 @@
 from iceberg import Iceberg
 from load_inputs import *
 from param_funcs import *
-#from funcs import *
 from find_neighbours import *
 from make_plots import *
 from store_objects import *
@@ -9,6 +8,7 @@ from load_objects import *
 from compare_outputs import *
 from test import *
 from load_mat_vars import *
+from analysis import *
 
 # INPUTS ##############################################################
 # Paths
