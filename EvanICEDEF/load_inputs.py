@@ -9,7 +9,7 @@ def load_paths():
     condloc = root + '/conditions/' + modelfull + '/'
     outloc = root + '/output/' + modelfull + '/'
     modelloc = root + '/Model/'
-    pyOutloc = '/home/evankielley/EvanICEDEF/'
+    pyOutloc = '/home/evankielley/IceDEF/EvanICEDEF/'
     return modelfull,modelshort,root,condloc,outloc,modelloc,pyOutloc
 
 def load_fields(condloc,modelshort,modelloc,t):
