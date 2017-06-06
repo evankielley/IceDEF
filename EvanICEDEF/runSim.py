@@ -62,21 +62,10 @@ for bb in bvec:
             # Find nearest neighbour
             XI = find_nearest(LON, berg.location[I,0])+1
             YI = find_nearest(LAT, berg.location[I,1])+1
-            #XI = mXI[z]
-            #YI = mYI[z]
-            
-            #assert_tol(XI,mXI[z],z)
-            #assert_tol(YI,mYI[z],z)
             
             # Interpolate fields linearly between timesteps
             timestep = tt[tts + I]+1
-            #timestep = mtimestep[z]
-            
             t1  = np.floor(timestep); t2 = t1 + 1   
-            #t1 = mt1[z]; t2 = t1+1
-
-            #assert_tol(t1,mt1[z],z)    
-    
             dt1 = timestep - t1; dt2 = t2 - timestep
             XI = int(XI)-1; YI = int(YI)-1 
             t1 = int(t1)-1; t2 = int(t2)-1
@@ -91,17 +80,13 @@ for bb in bvec:
             va = assert_tol(va,mVA[bb-1,j,z],z,corrector,ignorer)
             uw = assert_tol(uw,mUW[bb-1,j,z],z,corrector,ignorer)
             vw = assert_tol(vw,mVW[bb-1,j,z],z,corrector,ignorer)
-            #assert_tol(SST,mSST[z],z)
 
-            #ua = mua[z]; va = mva[z]; uw = muw[z]; vw = mvw[z]; SST = mSST[z]
             # Compute wind speed and "U tilde" at location for a given iceberg size
             Ua = np.sqrt(ua**2 + va**2)
             UT = Ut(Ua,berg.location[I,1], S(berg.dims[I,0],berg.dims[I,1]),Cw,g,om)
 
-            #assert_tol(Ua,mUa[z],z)            
             berg.location[I,1] = assert_tol(berg.location[I,1],mYIL[bb-1,j,z],z,corrector,ignorer)
             berg.location[I,0] = assert_tol(berg.location[I,0],mXIL[bb-1,j,z],z,corrector,ignorer)
-            #assert_tol(UT,mUT[z],z)
 
             # now compute analytic iceberg velocity solution
             ui = uw-g*a(UT)*va+g*b(UT)*ua
@@ -109,8 +94,6 @@ for bb in bvec:
 
             ui = assert_tol(ui,mUI[bb-1,j,z],z,corrector,ignorer)
             vi = assert_tol(vi,mVI[bb-1,j,z],z,corrector,ignorer)
-
-            #ui = mui[z]; vi = mvi[z]
 
             # Iceberg translation -- Note the conversion from meters to degrees lon/lat   
             dlon = ui * dtR 
@@ -122,9 +105,7 @@ for bb in bvec:
             if berg.location[I+1,0]>max(LON) or berg.location[I+1,0]<min(LON) or berg.location[I+1,1]>max(LAT) or berg.location[I+1,1]<min(LAT):
                 berg.outOfBounds = True
             else:
-                #xi2,yi2 = find_berg_grid(LAT,LON,berg.location[I+1,0], berg.location[I+1,1])
                 xi2a,xi2b,yi2a,yi2b = find_berg_grid(LAT,LON,berg.location[I+1,0], berg.location[I+1,1])
-                #if any(msk[xi2, yi2]) is 0:
                 if msk[xi2a,yi2a]==0 or msk[xi2a,yi2b]==0 or msk[xi2b,yi2a]==0 or msk[xi2b,yi2b]==0:
                     berg.location[I+1,0] = berg.location[I,0]
                     berg.location[I+1,1] = berg.location[I,1]
@@ -178,5 +159,5 @@ for bb in bvec:
 
     XIL,YIL = load_objects(pyOutloc + 'bergClass{}.pkl'.format(bb),trajnum,nt)
     dXIL, dYIL = compare_outputs(mXIL,mYIL,bb,pyOutloc+'bergClass{}.pkl'.format(bb),trajnum,nt)
-    make_plots(dXIL)
-    make_plots(dYIL)
+    plot_model_diff(dXIL,dYIL)
+    plot_berg_location(XIL,YIL)
