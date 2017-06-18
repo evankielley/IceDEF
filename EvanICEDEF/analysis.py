@@ -45,12 +45,12 @@ def plot_model_diff(xDiff,yDiff):
     plt.plot(xDiff.transpose())
     plt.ylabel('Difference in X Location')
     plt.xlabel('Timestep')
-    plt.title('Comparing Matlab and Python Models')
+    #plt.title('Comparing Matlab and Python Models')
     plt.subplot(122)
     plt.plot(yDiff.transpose())
     plt.ylabel('Difference in Y Location')
     plt.xlabel('Timestep')
-    plt.title('Comparing Matlab and Python Models')
+    #plt.title('Comparing Matlab and Python Models')
     plt.show()
 
 def plot_berg_location(xil,yil):
