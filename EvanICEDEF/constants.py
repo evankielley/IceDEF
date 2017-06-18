@@ -37,7 +37,7 @@ root = '/home/evankielley/WagnerModel'
 condloc = root + '/conditions/' + modelfull + '/'
 outloc = root + '/output/' + modelfull + '/'
 modelloc = root + '/Model/'
-pyOutloc = '/home/evankielley/EvanICEDEF2/'
+pyOutloc = '/home/evankielley/IceDEF/EvanICEDEF/'
 
 msk = sio.loadmat(condloc + 'mask.mat'); msk = msk['msk'] 
 vel = sio.loadmat(condloc + modelshort + '_vels_1992.mat'); vel = vel['vel']
