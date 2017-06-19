@@ -8,7 +8,7 @@ import pickle
 import scipy.io as sio                                                  
 from load_objects import *                                              
                                                                         
-def compare_outputs(mXIL,mYIL,bb,pyOutloc,trajnum,nt):                  
+def compare_outputs(mXIL,mYIL,bb,pyOutloc,trajnum,nt,relative=False):                  
     """
     This function compares the output of two separate models.
 
@@ -26,9 +26,21 @@ def compare_outputs(mXIL,mYIL,bb,pyOutloc,trajnum,nt):
         dYIL (list): Difference between Y locations between model outputs.
     """
     pyXIL, pyYIL = load_objects(pyOutloc,trajnum,nt)                    
-    dXIL = mXIL[bb-1,:,:] - pyXIL[:,:]                                  
-    dYIL = mYIL[bb-1,:,:] - pyYIL[:,:]                                  
-    return dXIL, dYIL 
+    dXIL = np.empty([trajnum,nt])*np.nan    
+    dYIL = np.empty([trajnum,nt])*np.nan    
+
+    if relative:
+        for j in range(0,nt):
+            #xlen = np.where(np.isnan(pyXIL[i,:]))[0][-1]
+            #ylen = np.where(np.isnan(pyYIL[i,:]))[0][-1]
+            dXIL[:,j] = np.divide(mXIL[bb-1,:,j]-pyXIL[:,j],j)                                  
+            dYIL[:,j] = np.divide(mYIL[bb-1,:,j]-pyYIL[:,j],j)                                  
+        return dXIL, dYIL
+
+    else:
+        dXIL = mXIL[bb-1,:,:] - pyXIL[:,:]                                  
+        dYIL = mYIL[bb-1,:,:] - pyYIL[:,:]                                  
+        return dXIL, dYIL 
 
 def plot_model_diff(xDiff,yDiff):
     """
@@ -43,14 +55,14 @@ def plot_model_diff(xDiff,yDiff):
     """
     plt.subplot(121)
     plt.plot(xDiff.transpose())
-    plt.ylabel('Difference in X Location')
+    plt.ylabel('Difference in Location')
     plt.xlabel('Timestep')
-    #plt.title('Comparing Matlab and Python Models')
+    plt.title('X')
     plt.subplot(122)
     plt.plot(yDiff.transpose())
-    plt.ylabel('Difference in Y Location')
+    #plt.ylabel('Difference in Y Location')
     plt.xlabel('Timestep')
-    #plt.title('Comparing Matlab and Python Models')
+    plt.title('Y')
     plt.show()
 
 def plot_berg_location(xil,yil):

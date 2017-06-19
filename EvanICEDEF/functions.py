@@ -30,7 +30,8 @@ def Ut(u, lati, S, Cw, g, om):
     return Ut
 
 def find_nearest(array,value):
-    idx = (np.abs(array-value)).argmin()
+    value = float(value)
+    idx = (abs(array-value)).argmin()
     return idx
 
 def find_berg_grid(LAT,LON,x,y):

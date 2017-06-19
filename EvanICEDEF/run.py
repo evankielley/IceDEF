@@ -4,14 +4,21 @@ from functions import *
 from store_objects import *
 from load_objects import *
 from analysis import *
+from test import *
+import numpy as np
 
 def main():
-
+    global bb
     for bb in bvec:
+        print("Iceberg size class: {}".format(bb))
         silent_remove('bergClass{}.pkl'.format(bb))
-        L, W, H = bergdims[bb-1,0]*1.0,bergdims[bb-1,1]*1.0,bergdims[bb-1,2]*1.0
+        L, W, H = bergdims[bb-1,0],bergdims[bb-1,1],bergdims[bb-1,2]
         VOL = L*W*H; dL,dW,dH,dVOL = 0,0,0,0
+        global j
         for j in range(0,trajnum):
+            assert_tol_matrix(LAT,np.ravel(mLAT),0,j)
+            assert_tol_matrix(LON,np.ravel(mLON),0,j)
+            assert_tol_matrix(msk,mmsk,0,j)
             berg = Iceberg(nt)
             berg.dims[0,:] = L,W,H,VOL
             berg.dimsChange[0,:] = dL,dW,dH,dVOL
@@ -42,9 +49,13 @@ def drift(I,loc,dims):
     OB = False
 
     # Find nearest neighbour
-    XI = int(find_nearest(LON, loc[I,0]))
-    YI = int(find_nearest(LAT, loc[I,1]))
-    
+    XI = find_nearest(LON, loc[I,0])
+    YI = find_nearest(LAT, loc[I,1])
+    #print("X: {}, Y: {}".format(loc[I,0],loc[I,1]))
+    #print("XI: {}, YI: {}".format(XI,YI))
+    assert_tol(XI,mXI[bb-1,j,I]-1,I,j)     
+    assert_tol(YI,mYI[bb-1,j,I]-1,I,j)     
+
     # Interpolate fields linearly between timesteps
     timestep = tt[tts + I]
     t1  = int(np.floor(timestep)); t2 = t1 + 1   
@@ -56,6 +67,11 @@ def drift(I,loc,dims):
     vw = vwF[XI,YI,t1] * dt1 + vwF[XI,YI,t2] * dt2 
     SST = sst[XI,YI,t1] * dt1 + sst[XI,YI,t2] * dt2
 
+    assert_tol(ua,mUA[bb-1,j,I],I,j)
+    assert_tol(va,mVA[bb-1,j,I],I,j)
+    assert_tol(uw,mUW[bb-1,j,I],I,j)
+    assert_tol(vw,mVW[bb-1,j,I],I,j)
+
     # Compute wind speed and "U tilde" at location for a given icesize
     Ua = np.sqrt(ua**2 + va**2)
     UT = Ut(Ua,loc[I,1], S(dims[I,0],dims[I,1]),Cw,g,om)
@@ -63,6 +79,9 @@ def drift(I,loc,dims):
     # now compute analytic icevelocity solution
     ui = uw-g*a(UT)*va+g*b(UT)*ua
     vi = vw+g*a(UT)*ua+g*b(UT)*va
+
+    assert_tol(ui,mUI[bb-1,j,I],I,j)
+    assert_tol(vi,mVI[bb-1,j,I],I,j)
 
     # Icetranslation -- Note the conversion from meters to degrees lon/lat   
     dlon = ui*dtR 
@@ -79,11 +98,16 @@ def drift(I,loc,dims):
             loc[I+1,0] = loc[I,0]
             loc[I+1,1] = loc[I,1]
 
+    assert_tol(loc[I+1,0],mXIL[bb-1,j,I+1],I,j)
+    assert_tol(loc[I+1,1],mYIL[bb-1,j,I+1],I,j)
+
     return loc,OB,Ua,SST,ui,uw,vi,vw
 
 
 def melt(I,dims,ddims,Ua,SST,ui,uw,vi,vw):
+
     melted = False
+
     # Melt terms
     Me = CMe1 * (Cs1 * Ua**Cs2 + Cs3 * Ua)  ## Wind driven erosion
     Mv = CMv1 * SST + CMv2 * SST**2  ## Thermal side wall erosion 
@@ -98,28 +122,33 @@ def melt(I,dims,ddims,Ua,SST,ui,uw,vi,vw):
     dims[I+1,2] = dims[I,2]+ddims[I,2]*Dt 
 
     # Check if iceberg size is negative
+    
     if dims[I+1,0]<0 or dims[I+1,1]<0 or dims[I+1,2]<0:
         dims[I+1,0] = 0; dims[I+1,1] = 0; dims[I+1,2] = 0
         melted = True
 
-    # Rollover
-    if dims[I+1,1] < (0.85*dims[I+1,2]):
-        hn = dims[I+1,1]  ## new height
-        dims[I+1,1] = dims[I+1,2] 
-        dims[I+1,2] = hn
+    else:
+        # Rollover
+        if dims[I+1,1] < (0.85*dims[I+1,2]):
+            hn = dims[I+1,1]  ## new height
+            dims[I+1,1] = dims[I+1,2] 
+            dims[I+1,2] = hn
 
-    # Check if length is greater than width
-    if dims[I+1,1] > dims[I+1,0]:
-        wn = dims[I+1,0] 
-        dims[I+1,0] = dims[I+1,1] 
-        dims[I+1,1] = wn
+        # Check if length is greater than width
+        if dims[I+1,1] > dims[I+1,0]:
+            wn = dims[I+1,0] 
+            dims[I+1,0] = dims[I+1,1] 
+            dims[I+1,1] = wn
 
     # New volume and change in volume (dv)
     dims[I+1,3] = dims[I+1,0]*dims[I+1,1]*dims[I+1,2]
     ddims[I+1,3] = dims[I,3] - dims[I+1,3]
 
-    # Store melt rates
-    Mev = Me; Mvv = Mv; Mbv = Mb            
+    #assert_tol(dims[I+1,0],mL[bb-1,j,I+1],I,j,correct=True,tol=1e-9)
+    #assert_tol(dims[I+1,1],mW[bb-1,j,I+1],I,j,correct=True,tol=1e-9)
+    #assert_tol(dims[I+1,2],mH[bb-1,j,I+1],I,j,correct=True,tol=1e-9)
+    #assert_tol(dims[I+1,3],mVOL[bb-1,j,I+1],I,j,correct=True)
+    #assert_tol(ddims[I+1,3],mDVOL[bb-1,j,I+1],I,j,correct=True)
 
     return dims,ddims,melted
 

@@ -23,8 +23,9 @@ class Iceberg(object):
     """
     def __init__(self, nt):
         """The constructor of the Iceberg class."""
-        self.dims = np.empty([nt,4])*np.nan
-        self.dimsChange = np.empty([nt,4])*np.nan
-        self.location = np.empty([nt,2])*np.nan
+        nt = int(nt)
+        self.dims = np.multiply(np.empty([nt,4]),np.nan)
+        self.dimsChange = np.multiply(np.empty([nt,4]),np.nan)
+        self.location = np.multiply(np.empty([nt,2]),np.nan)
         self.melted = False
         self.outOfBounds = False 
