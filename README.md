@@ -1,9 +1,7 @@
 # IceDEF
-
 Iceberg Drift Ensemble Forecasting
 
 ## Getting Started
-
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
 
 ### Prerequisites
@@ -20,54 +18,38 @@ These data files were too large to be stored on Github so they will have to be o
 #### WagnerModel
 1. MATLAB 2016a or higher
 2. Data for sea-surface temperature, wind, and ocean velocities
-
 ```
 file:///<your path>/IceDEF/WagnerModel/conditions/ECCO_20th/E2_sst_1992.mat
-```
-```
-file:///<your path>/evankielley/IceDEF/WagnerModel/conditions/ECCO_20th/E2_sst_1992.mat
+file:///<your path>/IceDEF/WagnerModel/conditions/ECCO_20th/E2_sst_1992.mat
 ```
 Again, these data files were too large to be stored on Github so they will have to be obtained by contacting one of the authors.
 
-
 ### Installation
-
 The following instructions are tailored for Ubuntu 16.04.
 
 #### EvanIceDEF
-
 Enter the following to install Anaconda for Python 3.6:
-
 ```
 bash ~/Downloads/Anaconda3-4.4.0-Linux-x86_64.sh
 ```
-
 ```
 source ~/.bashrc
 ```
-
 Change the root path in constants.py to:
-
 ```
 root = /<your path>/WagnerModel
 ```
-
 Run the program using Python 3:
-
 ```
 python run.py
 ```
 
 #### WagnerModel
-
 With MATLAB 2016a or higher installed, change the root path in iceberg_shell.m to:
-
 ```
 root = /<your path>/WagnerModel
 ```
-
 Then simply execute iceberg_shell.m in the command window by typing:
-
 ```
 iceberg_shell
 ```
