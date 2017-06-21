@@ -35,20 +35,8 @@ def find_nearest(array,value):
     return idx
 
 def find_berg_grid(LAT,LON,x,y):
-    for indice, lon in reversed(list(enumerate(LON))):
-        if lon <= x:
-            xi2a = indice
-            break
-    for indice, lon in list(enumerate(LON)):
-        if lon > x:
-            xi2b = indice
-            break
-    for indice, lat in reversed(list(enumerate(LAT))):
-        if lat <= y:
-            yi2a = indice
-            break
-    for indice, lat in list(enumerate(LAT)):
-        if lat > y:
-            yi2b = indice
-            break
+    xi2a = np.where(LON <= x)[0][-1]
+    xi2b = np.where(LON > x)[0][0]
+    yi2a = np.where(LAT <= y)[0][-1]
+    yi2b = np.where(LAT > y)[0][0]
     return xi2a,xi2b,yi2a,yi2b

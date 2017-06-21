@@ -2,7 +2,6 @@
 This module does analyis on the output of an Iceberg simulation.
 """
 
-
 import matplotlib.pyplot as plt                                         
 import pickle                                                           
 import scipy.io as sio                                                  
@@ -42,7 +41,7 @@ def compare_outputs(mXIL,mYIL,bb,pyOutloc,trajnum,nt,relative=False):
         dYIL = mYIL[bb-1,:,:] - pyYIL[:,:]                                  
         return dXIL, dYIL 
 
-def plot_model_diff(xDiff,yDiff):
+def plot_model_diff(xDiff,yDiff,show=False):
     """
     This function plot the X and Y location difference between models.
 
@@ -53,6 +52,7 @@ def plot_model_diff(xDiff,yDiff):
     Generates:
         A plot with two subplots; one for x and y differences; respectively.
     """
+    f = plt.figure()
     plt.subplot(121)
     plt.plot(xDiff.transpose())
     plt.ylabel('Difference in Location')
@@ -63,7 +63,10 @@ def plot_model_diff(xDiff,yDiff):
     #plt.ylabel('Difference in Y Location')
     plt.xlabel('Timestep')
     plt.title('Y')
-    plt.show()
+    if show:
+        plt.show()
+    else:
+        return f        
 
 def plot_berg_location(xil,yil):
     """

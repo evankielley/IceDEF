@@ -6,9 +6,14 @@ from load_objects import *
 from analysis import *
 from test import *
 import numpy as np
+from scipy.interpolate import interpn
+from matplotlib.backends.backend_pdf import PdfPages
+
 
 def main():
     global bb
+    plot_list = []
+    save_plots = True
     for bb in bvec:
         print("Iceberg size class: {}".format(bb))
         silent_remove('bergClass{}.pkl'.format(bb))
@@ -41,36 +46,76 @@ def main():
             store_objects(berg, 'bergClass{}.pkl'.format(bb))
         XIL,YIL = load_objects(pyOutloc + 'bergClass{}.pkl'.format(bb),trajnum,nt)
         dXIL, dYIL = compare_outputs(mXIL,mYIL,bb,pyOutloc+'bergClass{}.pkl'.format(bb),trajnum,nt)
-        plot_model_diff(dXIL,dYIL)
+        plot_name = 'plot' + str(bb)
+        plot_name = plot_model_diff(dXIL,dYIL)
+        plot_list.append(plot_name)
+    
+    if save_plots:
+        with PdfPages('plots.pdf') as pdf:
+            for plot in plot_list:
+                pdf.savefig(plot)
 
-
+        
 def drift(I,loc,dims):
 
     OB = False
+    interpolate = False
 
-    # Find nearest neighbour
-    XI = find_nearest(LON, loc[I,0])
-    YI = find_nearest(LAT, loc[I,1])
-    #print("X: {}, Y: {}".format(loc[I,0],loc[I,1]))
-    #print("XI: {}, YI: {}".format(XI,YI))
-    assert_tol(XI,mXI[bb-1,j,I]-1,I,j)     
-    assert_tol(YI,mYI[bb-1,j,I]-1,I,j)     
+    timestep = tt[tts + I]                                      
+    t=timestep
+    t1  = int(np.floor(timestep)); t2 = t1 + 1 
 
-    # Interpolate fields linearly between timesteps
-    timestep = tt[tts + I]
-    t1  = int(np.floor(timestep)); t2 = t1 + 1   
-    dt1 = timestep - t1; dt2 = t2 - timestep
-    
-    ua = uaF[XI,YI,t1] * dt1 + uaF[XI,YI,t2] * dt2 
-    va = vaF[XI,YI,t1] * dt1 + vaF[XI,YI,t2] * dt2 
-    uw = uwF[XI,YI,t1] * dt1 + uwF[XI,YI,t2] * dt2 
-    vw = vwF[XI,YI,t1] * dt1 + vwF[XI,YI,t2] * dt2 
-    SST = sst[XI,YI,t1] * dt1 + sst[XI,YI,t2] * dt2
+    if interpolate:
 
-    assert_tol(ua,mUA[bb-1,j,I],I,j)
-    assert_tol(va,mVA[bb-1,j,I],I,j)
-    assert_tol(uw,mUW[bb-1,j,I],I,j)
-    assert_tol(vw,mVW[bb-1,j,I],I,j)
+        ti1=(t2-t)/(t2-t1)
+        ti2=(t-t1)/(t2-t1)
+        ti=t1*ti1+t2*ti2
+
+        XI1 = np.where(LON <= loc[I,0])[0][-1]                                    
+        XI2 = np.where(LON > loc[I,0])[0][0]                                      
+        YI1 = np.where(LAT <= loc[I,1])[0][-1]                                    
+        YI2 = np.where(LAT > loc[I,1])[0][0] 
+
+        points = ((XI1,XI2),(YI1,YI2),(t1,t2))
+
+        x=loc[I,0]; 
+        xi1=(LON[XI2]-x)/(LON[XI2]-LON[XI1]); xi2=(x-LON[XI1])/(LON[XI2]-LON[XI1])
+        xi=XI1*xi1+XI2*xi2
+        
+        y=loc[I,1]
+        yi1=(LAT[YI2]-y)/(LAT[YI2]-LAT[YI1]); yi2=(y-LAT[YI1])/(LAT[YI2]-LAT[YI1])
+        yi=YI1*yi1+YI2*yi2
+        
+        xyti = [xi,yi,ti]
+
+        fields = [uaF,vaF,uwF,vwF,sst]; name = []
+        ii = 0
+        for field in fields:
+            values = field[XI1:XI2+1,YI1:YI2+1,t1:t2+1]
+            name.append(interpn(points,values,xyti)[0]) 
+            ii+=1
+        ua = name[0]; va = name[1]; uw = name[2]; vw = name[3]; SST = name[4]
+
+    else:
+
+        # Find nearest neighbour
+        XI = find_nearest(LON, loc[I,0])
+        YI = find_nearest(LAT, loc[I,1])
+        assert_tol(XI,mXI[bb-1,j,I]-1,I,j)     
+        assert_tol(YI,mYI[bb-1,j,I]-1,I,j)     
+
+        # Interpolate fields linearly between timesteps
+        dt1 = timestep - t1; dt2 = t2 - timestep
+        
+        ua = uaF[XI,YI,t1] * dt1 + uaF[XI,YI,t2] * dt2 
+        va = vaF[XI,YI,t1] * dt1 + vaF[XI,YI,t2] * dt2 
+        uw = uwF[XI,YI,t1] * dt1 + uwF[XI,YI,t2] * dt2 
+        vw = vwF[XI,YI,t1] * dt1 + vwF[XI,YI,t2] * dt2 
+        SST = sst[XI,YI,t1] * dt1 + sst[XI,YI,t2] * dt2
+        assert_tol(ua,mUA[bb-1,j,I],I,j)
+        assert_tol(va,mVA[bb-1,j,I],I,j)
+        assert_tol(uw,mUW[bb-1,j,I],I,j)
+        assert_tol(vw,mVW[bb-1,j,I],I,j)
 
     # Compute wind speed and "U tilde" at location for a given icesize
     Ua = np.sqrt(ua**2 + va**2)
@@ -79,7 +124,6 @@ def drift(I,loc,dims):
     # now compute analytic icevelocity solution
     ui = uw-g*a(UT)*va+g*b(UT)*ua
     vi = vw+g*a(UT)*ua+g*b(UT)*va
-
     assert_tol(ui,mUI[bb-1,j,I],I,j)
     assert_tol(vi,mVI[bb-1,j,I],I,j)
 
