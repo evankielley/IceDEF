@@ -32,12 +32,6 @@ if interpolate
     yi1=(LAT(YI2)-y)/(LAT(YI2)-LAT(YI1)); yi2=(y-LAT(YI1))/(LAT(YI2)-LAT(YI1));                            
     yi=YI1*yi1+YI2*yi2; 
     
-    %ua = uaGRID({xi,yi,ti});
-    %va = vaGRID({xi,yi,ti});
-    %uw = uwGRID({xi,yi,ti});
-    %vw = vwGRID({xi,yi,ti});
-    %SST = sstGRID({xi,yi,ti});
-    
     %points=[[XI1,XI2],[YI1,YI2],[t1,t2]];                          
     xpoints = [XI1,XI2];
     ypoints = [YI1,YI2];
@@ -103,6 +97,7 @@ temp(I) = SST;
 
 yil(I+1) = yil(I) + dlat;
 xil(I+1) = xil(I) + dlon/cos((yil(I+1)+yil(I))/2*pi/180);
+
 % check you haven't gone out of bounds-------------------------------------
 if xil(I+1)>maxLON || xil(I+1)<minLON || yil(I+1)>maxLAT || yil(I+1)<minLAT
     outofbound = 1;

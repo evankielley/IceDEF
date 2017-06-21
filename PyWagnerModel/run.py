@@ -11,9 +11,9 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 
 def main():
-    global bb
     plot_list = []
     save_plots = True
+    global bb
     for bb in bvec:
         print("Iceberg size class: {}".format(bb))
         silent_remove('bergClass{}.pkl'.format(bb))
