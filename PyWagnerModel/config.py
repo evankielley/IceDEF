@@ -33,11 +33,11 @@ tt = np.linspace(0, len(t)-1,nt)  # model time
 
 modelfull = 'ECCO_20th'
 modelshort = 'E2'
-root = '/home/evankielley/WagnerModel'
+root = '/home/evankielley/IceDEF/WagnerModel'
 condloc = root + '/conditions/' + modelfull + '/'
 outloc = root + '/output/' + modelfull + '/'
 modelloc = root + '/Model/'
-pyOutloc = '/home/evankielley/IceDEF/EvanICEDEF/'
+pyOutloc = '/home/evankielley/IceDEF/PyWagnerModel/'
 
 msk = sio.loadmat(condloc + 'mask.mat'); msk = msk['msk'] 
 vel = sio.loadmat(condloc + modelshort + '_vels_1992.mat'); vel = vel['vel']

@@ -1,5 +1,5 @@
 from iceberg import Iceberg
-from constants import *
+from config import *
 from functions import *
 from store_objects import *
 from load_objects import *

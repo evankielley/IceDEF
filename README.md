@@ -6,7 +6,7 @@ These instructions will get you a copy of the project up and running on your loc
 
 ### Prerequisites
 
-#### EvanIceDEF
+#### PyWagnerModel
 1. Anaconda or another Python environment
 2. Data for sea-surface temperature, wind, and ocean velocities
 ```
@@ -27,7 +27,7 @@ Again, these data files were too large to be stored on Github so they will have 
 ### Installation
 The following instructions are tailored for Ubuntu 16.04.
 
-#### EvanIceDEF
+#### PyWagnerModel
 Enter the following to install Anaconda for Python 3.6:
 ```
 bash ~/Downloads/Anaconda3-4.4.0-Linux-x86_64.sh
@@ -35,7 +35,7 @@ bash ~/Downloads/Anaconda3-4.4.0-Linux-x86_64.sh
 ```
 source ~/.bashrc
 ```
-Change the root path in constants.py to:
+Change the root path in config.py to:
 ```
 root = /<your path>/WagnerModel
 ```
@@ -56,7 +56,7 @@ iceberg_shell
 <!---
 ### Viewing Output
 
-#### EvanIceDEF
+#### PyWagnerModel
 
 
 
