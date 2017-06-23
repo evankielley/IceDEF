@@ -7,6 +7,7 @@
 % Till Wagner, Oct 2016, tjwagner@ucsd.edu
 % -------------------------------------------------------------------------
 I = i; 
+mmelted(I)=false;
 % Compute Melt Terms-------------------------------------------------------
 Me = CMe1*(Cs1*Ua^Cs2 + Cs3*Ua);      % wind driven erosion
 Mv = CMv1*SST + CMv2*SST^2;           % thermal side wall erosion
@@ -22,6 +23,7 @@ h(I+1)=h(I)+dhdt*Dt;
 if l(I+1)<0 || w(I+1)<0 || h(I+1)<0
     l(I+1)=0; w(I+1)=0; h(I+1)=0;
     melted = 1;
+    mmelted(I)=true;
     mm = mm+1;
 end
 % Rollovers:
@@ -32,6 +34,9 @@ end
 if w(I+1)>l(I+1)
     wn = l(I+1); l(I+1)=w(I+1); w(I+1) = wn;
 end
+% save length, width, and height
+ml(I+1)=l(I+1); mw(I+1)=w(I+1);mh(I+1)=h(I+1);
+
 % Compute new volume and dvol
 v(I+1) = l(I+1)*w(I+1)*h(I+1);
 dv(I+1) = v(I)-v(I+1);
@@ -40,4 +45,4 @@ if I == lt-1 && v(I+1) > 0
     ss = ss+1;
 end
 % -------------------------------------------------------------------------
-Mev = Me; Mvv = Mv; Mbv = Mb;  %store melt rates
+Mev(I) = Me; Mvv(I) = Mv; Mbv(I) = Mb;  %store melt rates

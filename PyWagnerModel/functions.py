@@ -21,7 +21,7 @@ def S(l, w):
 
 def ff(lati,om):
     # Latitude in degrees
-    ff = 2*om*np.sin(abs(lati)*np.pi/180)
+    ff = 2*om*np.sin(np.abs(lati)*np.pi/180)
     return ff
 
 def Ut(u, lati, S, Cw, g, om):

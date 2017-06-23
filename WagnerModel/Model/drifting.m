@@ -8,7 +8,8 @@
 % -------------------------------------------------------------------------
 I = i;
 interpolate = false;
-
+mob(I) = false;
+mgrounded(I) = false;
 if interpolate
     
     YI = dsearchn(LAT,yil(I));  % just for saving purposes
@@ -101,6 +102,7 @@ xil(I+1) = xil(I) + dlon/cos((yil(I+1)+yil(I))/2*pi/180);
 % check you haven't gone out of bounds-------------------------------------
 if xil(I+1)>maxLON || xil(I+1)<minLON || yil(I+1)>maxLAT || yil(I+1)<minLAT
     outofbound = 1;
+    mob(I)=true;
     ob = ob+1;
     fprintf('iceberg %d left boundary at timestep %d \n',j,I);
 else % now check you didn't send the iceberg on land-----------------------
@@ -110,6 +112,7 @@ else % now check you didn't send the iceberg on land-----------------------
     xi2(1) = find(LON<=xil(I+1),1,'last');
     xi2(2) = find(LON>xil(I+1),1,'first');
     if any(find(msk(xi2,yi2)==0))
+        mgrounded(I)=true;
         yil(I+1) = yil(I);  %i.e. when I get put within one grid box of land
         xil(I+1) = xil(I);  %I assume the iceberg don't move, until it doesn't happen anymore
     end

@@ -44,7 +44,7 @@ seed_Y = repmat(Seed_Y(:),[100,1]); %i.e. this can run 3600 icebergs
 % these are the circulation fields-----------------------------------------
 uwF = vel.uw(:,:,t); vwF = vel.vw(:,:,t);   %water vels input
 uaF = vel.ua(:,:,t); vaF = vel.va(:,:,t);   %air vels input
-sst = sst(:,:,t);                       %sst vels input
+sst = double(sst(:,:,t));                       %sst vels input
 
 
 % Load berg sizes (classification from Bigg et al 1997) -----------------------------------
@@ -59,7 +59,9 @@ mL = XIL; mW = XIL; mH = XIL;
 UI = XIL; UA = XIL; UW = XIL;                    
 VI = XIL; VA = XIL; VW = XIL;                    
 TE = XIL;                                        
-Memat = XIL; Mvmat = XIL; Mbmat = XIL;           
+mMe = XIL; mMv = XIL; mMb = XIL;
+mOB = XIL; mGROUNDED = XIL; mMELTED = XIL;
+
 
 % loop over individual initial iceberg size classes -----------------------
 for bb = bvec
@@ -92,6 +94,7 @@ for bb = bvec
         viv = v; vav = v; vwv = v;
         temp = v;
         Mev = v; Mvv = v; Mbv = v;
+        mob = v; mgrounded = v; mmelted = v;
         
         %pick random grid seeding location (same note as above applies)
         %randoX = randi([1,length(seed_X)],1);
@@ -127,9 +130,9 @@ for bb = bvec
         UA(bb,j,ind) = uav(ind); VA(bb,j,ind) = vav(ind); %store air vels
         UW(bb,j,ind) = uwv(ind); VW(bb,j,ind) = vwv(ind); %store wat vels
         TE(bb,j,ind) =temp(ind);                       %store sst vels       
-        Memat(bb,j,ind) = Mev;                         %store melt rates
-        Mvmat(bb,j,ind) = Mvv;
-        Mbmat(bb,j,ind) = Mbv;
+        mMe(bb,j,ind) = Mev(ind); mMv(bb,j,ind) = Mvv(ind); mMb(bb,j,ind) = Mbv(ind);
+        mGROUNDED(bb,j,ind)=mgrounded(ind);mOB(bb,j,ind)=mob(ind);
+        mMELTED(bb,j,ind)=mmelted(ind);
         
     end
     % ---------------------------------------------------------------------
@@ -141,6 +144,7 @@ mLAT = LAT; mLON = LON; mmsk = msk;
 
 save(strcat(outloc,'output_full'),...
     'XIL','YIL','mXI','mYI','VOL','DVOL','UI','VI','UA','VA','UW','VW',...
-    'mL','mW','mH','mLAT','mLON','mmsk','TE','Memat','Mvmat','Mbmat');
+    'mL','mW','mH','mLAT','mLON','mmsk','TE','mMe','mMv','mMb',...
+    'mGROUNDED','mOB','mMELTED');
 
 save(strcat(outloc,'fixed.mat'),'ts_all','randoX_all','randoY_all');

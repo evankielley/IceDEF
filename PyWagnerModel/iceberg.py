@@ -29,3 +29,4 @@ class Iceberg(object):
         self.location = np.multiply(np.empty([nt,2]),np.nan)
         self.melted = False
         self.outOfBounds = False 
+        self.grounded = False

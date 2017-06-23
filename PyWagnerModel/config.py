@@ -17,7 +17,7 @@ Cs1 = 1.5; Cs2 = 0.5; Cs3 = 0.1
 CMv1 = 7.62e-3; CMv2 = 1.29e-3; CMe1 = 0.5
 CMb1 = 0.58; CMb2 = 0.8; CMb3 = 0.2
 
-bvec = range(1,11)
+bvec =  range(1,11)
 trajnum = 25            # total number of iceberg trajectories to compute
 final_t = 122           # number of input field time steps
 startrange = final_t/2  # input field start range
@@ -53,7 +53,7 @@ uwF = vel['uw']; uwF = uwF[0,0]; uwF = np.asarray(uwF).astype(float)
 vwF = vel['vw']; vwF = vwF[0,0]; vwF = np.asarray(vwF).astype(float)
 uaF = vel['ua']; uaF = uaF[0,0]; uaF = np.asarray(uaF).astype(float)
 vaF = vel['va']; vaF = vaF[0,0]; vaF = np.asarray(vaF).astype(float)
-sst = sst[:,:,t]; sst = np.asarray(sst).astype(float)
+sst = np.asarray(sst).astype(float); sst = sst[:,:,:final_t] 
 
 inFile = outloc + 'output_full.mat'                                                                        
 mXIL = sio.loadmat(inFile)['XIL']; mXIL = np.asarray(mXIL).astype(float)                                   
@@ -71,10 +71,10 @@ mUA = sio.loadmat(inFile)['UA']; mUA = np.asarray(mUA).astype(float)
 mVA = sio.loadmat(inFile)['VA']; mVA = np.asarray(mVA).astype(float)                                      
 mUW = sio.loadmat(inFile)['UW']; mUW = np.asarray(mUW).astype(float)                                      
 mVW = sio.loadmat(inFile)['VW']; mVW = np.asarray(mVW).astype(float)                                      
-mTE = sio.loadmat(inFile)['TE']; mTE = np.asarray(mTE).astype(float)                                      
-mMemat = sio.loadmat(inFile)['Memat']; mMemat = np.asarray(mMemat).astype(float)                                
-mMvmat = sio.loadmat(inFile)['Mvmat']; mMvmat = np.asarray(mMvmat).astype(float)                                
-mMbmat = sio.loadmat(inFile)['Mbmat']; mMbmat = np.asarray(mMbmat).astype(float)                                
+mSST = sio.loadmat(inFile)['TE']; mSST = np.asarray(mSST).astype(float)                                      
+mMe = sio.loadmat(inFile)['mMe']; mMe = np.asarray(mMe).astype(float)                                
+mMv = sio.loadmat(inFile)['mMv']; mMv = np.asarray(mMv).astype(float)                                
+mMb = sio.loadmat(inFile)['mMb']; mMb = np.asarray(mMb).astype(float)                                
 mLAT = sio.loadmat(inFile)['mLAT']; mLAT = np.asarray(mLAT).astype(float)                                    
 mLON = sio.loadmat(inFile)['mLON']; mLON = np.asarray(mLON).astype(float)                                    
 mmsk = sio.loadmat(inFile)['mmsk']; mmsk = np.asarray(mmsk).astype(float)                                    

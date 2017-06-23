@@ -16,11 +16,14 @@ def main():
     global bb
     for bb in bvec:
         print("Iceberg size class: {}".format(bb))
+        #print()
         silent_remove('bergClass{}.pkl'.format(bb))
         L, W, H = bergdims[bb-1,0],bergdims[bb-1,1],bergdims[bb-1,2]
         VOL = L*W*H; dL,dW,dH,dVOL = 0,0,0,0
         global j
         for j in range(0,trajnum):
+            #print("trajnum: {}".format(j))
+            #print()
             assert_tol_matrix(LAT,np.ravel(mLAT),0,j)
             assert_tol_matrix(LON,np.ravel(mLON),0,j)
             assert_tol_matrix(msk,mmsk,0,j)
@@ -39,8 +42,10 @@ def main():
             berg.location[0,:] = LON[xig-1], LAT[yig-1]
             i=0
             while not berg.outOfBounds and not berg.melted and i<lt-1:
+                #print('timestep: {}'.format(i))
+                #print()
                 I=i
-                berg.location,berg.outOfBounds,Ua,SST,ui,uw,vi,vw = drift(I,berg.location,berg.dims)
+                berg.location,berg.outOfBounds,berg.grounded,Ua,SST,ui,uw,vi,vw = drift(I,berg.location,berg.dims)
                 berg.dims,berg.dimsChange,berg.melted = melt(I,berg.dims,berg.dimsChange,Ua,SST,ui,uw,vi,vw)
                 i += 1
             store_objects(berg, 'bergClass{}.pkl'.format(bb))
@@ -58,6 +63,7 @@ def main():
         
 def drift(I,loc,dims):
 
+    GROUNDED = False
     OB = False
     interpolate = False
 
@@ -96,13 +102,19 @@ def drift(I,loc,dims):
             ii+=1
         ua = name[0]; va = name[1]; uw = name[2]; vw = name[3]; SST = name[4]
 
+        assert_tol('ua',ua,'mUA',mUA[bb-1,j,I],I,j)
+        assert_tol('va',va,'mVA',mVA[bb-1,j,I],I,j)
+        assert_tol('uw',uw,'mUW',mUW[bb-1,j,I],I,j)
+        assert_tol('vw',vw,'mVW',mVW[bb-1,j,I],I,j)
+        assert_tol('SST',SST,'mSST',mSST[bb-1,j,I],I,j)
+
     else:
 
         # Find nearest neighbour
         XI = find_nearest(LON, loc[I,0])
         YI = find_nearest(LAT, loc[I,1])
-        assert_tol(XI,mXI[bb-1,j,I]-1,I,j)     
-        assert_tol(YI,mYI[bb-1,j,I]-1,I,j)     
+        #assert_tol(XI,mXI[bb-1,j,I]-1,I,j)     
+        #assert_tol(YI,mYI[bb-1,j,I]-1,I,j)     
 
         # Interpolate fields linearly between timesteps
         dt1 = timestep - t1; dt2 = t2 - timestep
@@ -112,10 +124,12 @@ def drift(I,loc,dims):
         uw = uwF[XI,YI,t1] * dt1 + uwF[XI,YI,t2] * dt2 
         vw = vwF[XI,YI,t1] * dt1 + vwF[XI,YI,t2] * dt2 
         SST = sst[XI,YI,t1] * dt1 + sst[XI,YI,t2] * dt2
-        assert_tol(ua,mUA[bb-1,j,I],I,j)
-        assert_tol(va,mVA[bb-1,j,I],I,j)
-        assert_tol(uw,mUW[bb-1,j,I],I,j)
-        assert_tol(vw,mVW[bb-1,j,I],I,j)
+
+        assert_tol('ua',ua,'mUA',mUA[bb-1,j,I],I,j)
+        assert_tol('va',va,'mVA',mVA[bb-1,j,I],I,j)
+        assert_tol('uw',uw,'mUW',mUW[bb-1,j,I],I,j)
+        assert_tol('vw',vw,'mVW',mVW[bb-1,j,I],I,j)
+        assert_tol('SST',SST,'mSST',mSST[bb-1,j,I],I,j)
 
     # Compute wind speed and "U tilde" at location for a given icesize
     Ua = np.sqrt(ua**2 + va**2)
@@ -124,8 +138,8 @@ def drift(I,loc,dims):
     # now compute analytic icevelocity solution
     ui = uw-g*a(UT)*va+g*b(UT)*ua
     vi = vw+g*a(UT)*ua+g*b(UT)*va
-    assert_tol(ui,mUI[bb-1,j,I],I,j)
-    assert_tol(vi,mVI[bb-1,j,I],I,j)
+    assert_tol('ui',ui,'mUI',mUI[bb-1,j,I],I,j)
+    assert_tol('vi',vi,'mVI',mVI[bb-1,j,I],I,j)
 
     # Icetranslation -- Note the conversion from meters to degrees lon/lat   
     dlon = ui*dtR 
@@ -139,13 +153,32 @@ def drift(I,loc,dims):
     else:
         xi2a,xi2b,yi2a,yi2b = find_berg_grid(LAT,LON,loc[I+1,0], loc[I+1,1])
         if msk[xi2a,yi2a]==0 or msk[xi2a,yi2b]==0 or msk[xi2b,yi2a]==0 or msk[xi2b,yi2b]==0:
+            GROUNDED = True
             loc[I+1,0] = loc[I,0]
             loc[I+1,1] = loc[I,1]
 
-    assert_tol(loc[I+1,0],mXIL[bb-1,j,I+1],I,j)
-    assert_tol(loc[I+1,1],mYIL[bb-1,j,I+1],I,j)
+    assert_tol('xil',loc[I+1,0],'mxil',mXIL[bb-1,j,I+1],I,j)
+    assert_tol('yil',loc[I+1,1],'myil',mYIL[bb-1,j,I+1],I,j)
 
-    return loc,OB,Ua,SST,ui,uw,vi,vw
+    var_list = [
+                ['ua',ua,mUA[bb-1,j,I],ua-mUA[bb-1,j,I]],
+                ['va',va,mVA[bb-1,j,I],va-mVA[bb-1,j,I]],
+                ['uw',uw,mUW[bb-1,j,I],uw-mUW[bb-1,j,I]],
+                ['vw',vw,mVW[bb-1,j,I],vw-mVW[bb-1,j,I]],
+                ['SST',SST,mSST[bb-1,j,I],SST-mSST[bb-1,j,I]],
+                #['Ua',Ua,mUa,Ua-mUa],
+                ['ui',ui,mUI[bb-1,j,I],ui-mUI[bb-1,j,I]],
+                ['vi',vi,mVI[bb-1,j,I],vi-mVI[bb-1,j,I]],
+                #['dlon',dlon,mdlon,dlon-mdlon],
+                #['dlat',dlat,mdlat,dlat-mdlat],
+                ['xLocation',loc[I,0],mXIL[bb-1,j,I],loc[I,0]-mXIL[bb-1,j,I]],
+                ['yLocation',loc[I,1],mYIL[bb-1,j,I],loc[I,1]-mYIL[bb-1,j,I]],
+                #['GROUNDED',GROUNDED,mGROUNDED,GROUNDED-mGROUNDED],
+                #['OB',OB,mOB,OB-mOB]
+                ]
+    #print_var_table(var_list)
+
+    return loc,OB,GROUNDED,Ua,SST,ui,uw,vi,vw
 
 
 def melt(I,dims,ddims,Ua,SST,ui,uw,vi,vw):
@@ -188,11 +221,25 @@ def melt(I,dims,ddims,Ua,SST,ui,uw,vi,vw):
     dims[I+1,3] = dims[I+1,0]*dims[I+1,1]*dims[I+1,2]
     ddims[I+1,3] = dims[I,3] - dims[I+1,3]
 
-    #assert_tol(dims[I+1,0],mL[bb-1,j,I+1],I,j,correct=True,tol=1e-9)
-    #assert_tol(dims[I+1,1],mW[bb-1,j,I+1],I,j,correct=True,tol=1e-9)
-    #assert_tol(dims[I+1,2],mH[bb-1,j,I+1],I,j,correct=True,tol=1e-9)
-    #assert_tol(dims[I+1,3],mVOL[bb-1,j,I+1],I,j,correct=True)
-    #assert_tol(ddims[I+1,3],mDVOL[bb-1,j,I+1],I,j,correct=True)
+    var_list =  [
+                ['Me',Me,mMe[bb-1,j,I],Me-mMe[bb-1,j,I]],
+                ['Mv',Mv,mMv[bb-1,j,I],Mv-mMv[bb-1,j,I]],
+                ['Mb',Mb,mMb[bb-1,j,I],Mb-mMb[bb-1,j,I]],
+                #['MELTED',berg.melted,mMELTED,berg.melted-mMELTED],
+                ['Length', dims[I,0], mL[bb-1,j,I], dims[I,0] - mL[bb-1,j,I]],
+                ['Width', dims[I,1], mW[bb-1,j,I], dims[I,1] - mW[bb-1,j,I]],
+                ['Height', dims[I,2], mH[bb-1,j,I], dims[I,2] - mH[bb-1,j,I]],
+                ['Volume', dims[I,3], mVOL[bb-1,j,I], dims[I,3] - mVOL[bb-1,j,I]],
+                ['dVolume', ddims[I,3], mDVOL[bb-1,j,I], ddims[I,3] - mDVOL[bb-1,j,I]]
+                ]
+
+    #print_var_table(var_list)
+
+    assert_tol('L',dims[I+1,0],'mL',mL[bb-1,j,I+1],I,j)
+    assert_tol('W',dims[I+1,1],'mW',mW[bb-1,j,I+1],I,j)
+    assert_tol('H',dims[I+1,2],'mH',mH[bb-1,j,I+1],I,j)
+    #assert_tol('VOL',dims[I+1,3],'mVOL',mVOL[bb-1,j,I+1],I,j,tol=1e-3)
+    #assert_tol('DVOL',ddims[I+1,3],'mDVOL',mDVOL[bb-1,j,I+1],I,j,tol=1e-3)
 
     return dims,ddims,melted
 
