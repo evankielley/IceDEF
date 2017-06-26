@@ -83,18 +83,22 @@ end
 Ua = sqrt(ua^2+va^2);
 UT = Ut(Ua,yil(I),S(l(I),w(I)));   %U tilde is \Lambda in the papers
 % now compute analytic iceberg velocity solution---------------------------
-ui = uw - g*a(UT)*va + g*b(UT)*ua;
-vi = vw + g*a(UT)*ua + g*b(UT)*va;
+alpha = a(UT); 
+beta = b(UT);
+ui = uw - g*alpha*va + g*beta*ua;
+vi = vw + g*alpha*ua + g*beta*va;
 
 % iceberg translation (note that I'm converting from m to deg lat/lon)-----
 dlon = ui*dtR;
 dlat = vi*dtR;
 
 mxi(I) = XI; myi(I) = YI;
+mua(I) = Ua; mut(I) = UT;
 uiv(I) = ui; viv(I) = vi;
 uav(I) = ua; vav(I) = va;
 uwv(I) = uw; vwv(I) = vw;
 temp(I) = SST;
+malpha(I) = alpha; mbeta(I) = beta;
 
 yil(I+1) = yil(I) + dlat;
 xil(I+1) = xil(I) + dlon/cos((yil(I+1)+yil(I))/2*pi/180);
@@ -124,5 +128,6 @@ else % now check you didn't send the iceberg on land-----------------------
     %             xil(I+1) = xil(I);  %I assume the iceberg don't move, until it doesn't happen anymore
     %         end
     %     end
+    
 end
 % -----------------------------------------------------------------

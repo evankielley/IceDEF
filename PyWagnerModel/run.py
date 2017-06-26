@@ -9,24 +9,26 @@ import numpy as np
 from scipy.interpolate import interpn
 from matplotlib.backends.backend_pdf import PdfPages
 
+# Flags
+global interpolate, save_plots, assert_tol_flag
+interpolate = False
+save_plots = True
+assert_tol_flag = 'break'
+assert_tol_tol = 1e-6
 
 def main():
     plot_list = []
-    save_plots = True
     global bb
     for bb in bvec:
         print("Iceberg size class: {}".format(bb))
-        #print()
         silent_remove('bergClass{}.pkl'.format(bb))
         L, W, H = bergdims[bb-1,0],bergdims[bb-1,1],bergdims[bb-1,2]
         VOL = L*W*H; dL,dW,dH,dVOL = 0,0,0,0
         global j
         for j in range(0,trajnum):
-            #print("trajnum: {}".format(j))
-            #print()
-            assert_tol_matrix(LAT,np.ravel(mLAT),0,j)
-            assert_tol_matrix(LON,np.ravel(mLON),0,j)
-            assert_tol_matrix(msk,mmsk,0,j)
+            assert_tol_matrix(LAT,np.ravel(mLAT),0,j,assert_tol_flag,assert_tol_tol)
+            assert_tol_matrix(LON,np.ravel(mLON),0,j,assert_tol_flag,assert_tol_tol)
+            assert_tol_matrix(msk,mmsk,0,j,assert_tol_flag,assert_tol_tol)
             berg = Iceberg(nt)
             berg.dims[0,:] = L,W,H,VOL
             berg.dimsChange[0,:] = dL,dW,dH,dVOL
@@ -42,8 +44,6 @@ def main():
             berg.location[0,:] = LON[xig-1], LAT[yig-1]
             i=0
             while not berg.outOfBounds and not berg.melted and i<lt-1:
-                #print('timestep: {}'.format(i))
-                #print()
                 I=i
                 berg.location,berg.outOfBounds,berg.grounded,Ua,SST,ui,uw,vi,vw = drift(I,berg.location,berg.dims)
                 berg.dims,berg.dimsChange,berg.melted = melt(I,berg.dims,berg.dimsChange,Ua,SST,ui,uw,vi,vw)
@@ -65,7 +65,6 @@ def drift(I,loc,dims):
 
     GROUNDED = False
     OB = False
-    interpolate = False
 
     timestep = tt[tts + I]                                      
     t=timestep
@@ -102,19 +101,19 @@ def drift(I,loc,dims):
             ii+=1
         ua = name[0]; va = name[1]; uw = name[2]; vw = name[3]; SST = name[4]
 
-        assert_tol('ua',ua,'mUA',mUA[bb-1,j,I],I,j)
-        assert_tol('va',va,'mVA',mVA[bb-1,j,I],I,j)
-        assert_tol('uw',uw,'mUW',mUW[bb-1,j,I],I,j)
-        assert_tol('vw',vw,'mVW',mVW[bb-1,j,I],I,j)
-        assert_tol('SST',SST,'mSST',mSST[bb-1,j,I],I,j)
+        assert_tol('ua',ua,'mUA',mUA[bb-1,j,I],I,j,assert_tol_flag,assert_tol_tol)
+        assert_tol('va',va,'mVA',mVA[bb-1,j,I],I,j,assert_tol_flag,assert_tol_tol)
+        assert_tol('uw',uw,'mUW',mUW[bb-1,j,I],I,j,assert_tol_flag,assert_tol_tol)
+        assert_tol('vw',vw,'mVW',mVW[bb-1,j,I],I,j,assert_tol_flag,assert_tol_tol)
+        assert_tol('SST',SST,'mSST',mSST[bb-1,j,I],I,j,assert_tol_flag,assert_tol_tol)
 
     else:
 
         # Find nearest neighbour
         XI = find_nearest(LON, loc[I,0])
         YI = find_nearest(LAT, loc[I,1])
-        #assert_tol(XI,mXI[bb-1,j,I]-1,I,j)     
-        #assert_tol(YI,mYI[bb-1,j,I]-1,I,j)     
+        #assert_tol(XI,mXI[bb-1,j,I]-1,I,j,assert_tol_flag,assert_tol_tol)     
+        #assert_tol(YI,mYI[bb-1,j,I]-1,I,j,assert_tol_flag,assert_tol_tol)     
 
         # Interpolate fields linearly between timesteps
         dt1 = timestep - t1; dt2 = t2 - timestep
@@ -125,21 +124,23 @@ def drift(I,loc,dims):
         vw = vwF[XI,YI,t1] * dt1 + vwF[XI,YI,t2] * dt2 
         SST = sst[XI,YI,t1] * dt1 + sst[XI,YI,t2] * dt2
 
-        assert_tol('ua',ua,'mUA',mUA[bb-1,j,I],I,j)
-        assert_tol('va',va,'mVA',mVA[bb-1,j,I],I,j)
-        assert_tol('uw',uw,'mUW',mUW[bb-1,j,I],I,j)
-        assert_tol('vw',vw,'mVW',mVW[bb-1,j,I],I,j)
-        assert_tol('SST',SST,'mSST',mSST[bb-1,j,I],I,j)
+        assert_tol('ua',ua,'mUA',mUA[bb-1,j,I],I,j,assert_tol_flag,assert_tol_tol)
+        assert_tol('va',va,'mVA',mVA[bb-1,j,I],I,j,assert_tol_flag,assert_tol_tol)
+        assert_tol('uw',uw,'mUW',mUW[bb-1,j,I],I,j,assert_tol_flag,assert_tol_tol)
+        assert_tol('vw',vw,'mVW',mVW[bb-1,j,I],I,j,assert_tol_flag,assert_tol_tol)
+        assert_tol('SST',SST,'mSST',mSST[bb-1,j,I],I,j,assert_tol_flag,assert_tol_tol)
 
     # Compute wind speed and "U tilde" at location for a given icesize
     Ua = np.sqrt(ua**2 + va**2)
     UT = Ut(Ua,loc[I,1], S(dims[I,0],dims[I,1]),Cw,g,om)
 
-    # now compute analytic icevelocity solution
-    ui = uw-g*a(UT)*va+g*b(UT)*ua
-    vi = vw+g*a(UT)*ua+g*b(UT)*va
-    assert_tol('ui',ui,'mUI',mUI[bb-1,j,I],I,j)
-    assert_tol('vi',vi,'mVI',mVI[bb-1,j,I],I,j)
+    # now compute analytic ice velocity solution
+    alpha = a(UT)
+    beta = b(UT)
+    ui = uw-g*alpha*va+g*beta*ua
+    vi = vw+g*alpha*ua+g*beta*va
+    assert_tol('ui',ui,'mUI',mUI[bb-1,j,I],I,j,assert_tol_flag,assert_tol_tol)
+    assert_tol('vi',vi,'mVI',mVI[bb-1,j,I],I,j,assert_tol_flag,assert_tol_tol)
 
     # Icetranslation -- Note the conversion from meters to degrees lon/lat   
     dlon = ui*dtR 
@@ -157,8 +158,8 @@ def drift(I,loc,dims):
             loc[I+1,0] = loc[I,0]
             loc[I+1,1] = loc[I,1]
 
-    assert_tol('xil',loc[I+1,0],'mxil',mXIL[bb-1,j,I+1],I,j)
-    assert_tol('yil',loc[I+1,1],'myil',mYIL[bb-1,j,I+1],I,j)
+    assert_tol('xil',loc[I+1,0],'mxil',mXIL[bb-1,j,I+1],I,j,assert_tol_flag,assert_tol_tol)
+    assert_tol('yil',loc[I+1,1],'myil',mYIL[bb-1,j,I+1],I,j,assert_tol_flag,assert_tol_tol)
 
     var_list = [
                 ['ua',ua,mUA[bb-1,j,I],ua-mUA[bb-1,j,I]],
@@ -166,17 +167,20 @@ def drift(I,loc,dims):
                 ['uw',uw,mUW[bb-1,j,I],uw-mUW[bb-1,j,I]],
                 ['vw',vw,mVW[bb-1,j,I],vw-mVW[bb-1,j,I]],
                 ['SST',SST,mSST[bb-1,j,I],SST-mSST[bb-1,j,I]],
-                #['Ua',Ua,mUa,Ua-mUa],
+                ['Ua',Ua,mUa[bb-1,j,I],Ua-mUa[bb-1,j,I]],
+                ['UT',UT,mUT[bb-1,j,I],UT-mUT[bb-1,j,I]],
+                ['alpha',alpha,mALPHA[bb-1,j,I],alpha-mALPHA[bb-1,j,I]],
+                ['beta',beta,mBETA[bb-1,j,I],beta-mBETA[bb-1,j,I]],
                 ['ui',ui,mUI[bb-1,j,I],ui-mUI[bb-1,j,I]],
                 ['vi',vi,mVI[bb-1,j,I],vi-mVI[bb-1,j,I]],
                 #['dlon',dlon,mdlon,dlon-mdlon],
                 #['dlat',dlat,mdlat,dlat-mdlat],
                 ['xLocation',loc[I,0],mXIL[bb-1,j,I],loc[I,0]-mXIL[bb-1,j,I]],
                 ['yLocation',loc[I,1],mYIL[bb-1,j,I],loc[I,1]-mYIL[bb-1,j,I]],
-                #['GROUNDED',GROUNDED,mGROUNDED,GROUNDED-mGROUNDED],
-                #['OB',OB,mOB,OB-mOB]
+                ['GROUNDED',GROUNDED,mGROUNDED[bb-1,j,I],GROUNDED-mGROUNDED[bb-1,j,I]],
+                #['OB',OB,mOB[bb-1,j,I],OB-mOB[bb-1,j,I]]
                 ]
-    #print_var_table(var_list)
+    print_var_table(var_list,j,I)
 
     return loc,OB,GROUNDED,Ua,SST,ui,uw,vi,vw
 
@@ -233,11 +237,11 @@ def melt(I,dims,ddims,Ua,SST,ui,uw,vi,vw):
                 ['dVolume', ddims[I,3], mDVOL[bb-1,j,I], ddims[I,3] - mDVOL[bb-1,j,I]]
                 ]
 
-    #print_var_table(var_list)
+    print_var_table(var_list,j,I)
 
-    assert_tol('L',dims[I+1,0],'mL',mL[bb-1,j,I+1],I,j)
-    assert_tol('W',dims[I+1,1],'mW',mW[bb-1,j,I+1],I,j)
-    assert_tol('H',dims[I+1,2],'mH',mH[bb-1,j,I+1],I,j)
+    assert_tol('L',dims[I+1,0],'mL',mL[bb-1,j,I+1],I,j,assert_tol_flag,assert_tol_tol)
+    assert_tol('W',dims[I+1,1],'mW',mW[bb-1,j,I+1],I,j,assert_tol_flag,assert_tol_tol)
+    assert_tol('H',dims[I+1,2],'mH',mH[bb-1,j,I+1],I,j,assert_tol_flag,assert_tol_tol)
     #assert_tol('VOL',dims[I+1,3],'mVOL',mVOL[bb-1,j,I+1],I,j,tol=1e-3)
     #assert_tol('DVOL',ddims[I+1,3],'mDVOL',mDVOL[bb-1,j,I+1],I,j,tol=1e-3)
 
