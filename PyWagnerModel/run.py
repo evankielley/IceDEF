@@ -65,7 +65,7 @@ def drift(I,loc,dims):
 
     GROUNDED = False
     OB = False
-    interpolate = False
+    interpolate = True
 
     timestep = tt[tts + I]                                      
     t=timestep
