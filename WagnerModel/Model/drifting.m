@@ -7,7 +7,7 @@
 % Till Wagner, Oct 2016, tjwagner@ucsd.edu
 % -------------------------------------------------------------------------
 I = i;
-interpolate = false;
+interpolate = true;
 mob(I) = false;
 mgrounded(I) = false;
 if interpolate
