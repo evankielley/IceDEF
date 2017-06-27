@@ -23,7 +23,7 @@ minLAT = min(LAT(:)); maxLAT = max(LAT(:));
 minLON = min(LON(:)); maxLON = max(LON(:));
 
 % set run parameters ------------------------------------------------------
-trajnum = 25;            % total number of iceberg trajectories to compute
+trajnum = 1;            % total number of iceberg trajectories to compute
 final_t = 122;           % number of input field time steps
 startrange = final_t/2;  % input field start range
 tres = 3;                % time resoln such that "model Dt"="input DT"/tres
@@ -48,7 +48,7 @@ sst = double(sst(:,:,t));                       %sst vels input
 
 
 % Load berg sizes (classification from Bigg et al 1997) -----------------------------------
-bvec = 1:10;   %vector of which size classes to compute - has to be [1,10]
+bvec = 9:9;   %vector of which size classes to compute - has to be [1,10]
 load bergdims
 
 % set output arrays -------------------------------------------------------
@@ -56,11 +56,13 @@ XIL = nan(length(bvec),trajnum,nt); YIL = XIL;
 mXI = XIL; mYI = XIL;
 VOL = XIL; DVOL = VOL;                           
 mL = XIL; mW = XIL; mH = XIL;
+mUa = XIL; mUT = XIL;
 UI = XIL; UA = XIL; UW = XIL;                    
 VI = XIL; VA = XIL; VW = XIL;                    
 TE = XIL;                                        
 mMe = XIL; mMv = XIL; mMb = XIL;
 mOB = XIL; mGROUNDED = XIL; mMELTED = XIL;
+mALPHA = XIL; mBETA = XIL;
 
 
 % loop over individual initial iceberg size classes -----------------------
@@ -90,11 +92,13 @@ for bb = bvec
         mxi = xil; myi = xil;
         v = xil; dv = xil;
         ml = xil; mw = xil; mh = xil;
+        mua = xil; mut = xil;
         uiv = v; uav = v; uwv = v;
         viv = v; vav = v; vwv = v;
         temp = v;
         Mev = v; Mvv = v; Mbv = v;
         mob = v; mgrounded = v; mmelted = v;
+        malpha = v; mbeta = v;
         
         %pick random grid seeding location (same note as above applies)
         %randoX = randi([1,length(seed_X)],1);
@@ -126,6 +130,7 @@ for bb = bvec
         mXI(bb,j,ind) = mxi(ind); mYI(bb,j,ind) = myi(ind);
         VOL(bb,j,ind)=v(ind); DVOL(bb,j,ind)=dv(ind);     %store volume
         mL(bb,j,ind) = ml(ind); mW(bb,j,ind) = mw(ind); mH(bb,j,ind) = mh(ind);
+        mUa(bb,j,ind) = mua(ind); mUT(bb,j,ind) = mut(ind);
         UI(bb,j,ind) = uiv(ind); VI(bb,j,ind) = viv(ind); %store ice vels
         UA(bb,j,ind) = uav(ind); VA(bb,j,ind) = vav(ind); %store air vels
         UW(bb,j,ind) = uwv(ind); VW(bb,j,ind) = vwv(ind); %store wat vels
@@ -133,6 +138,7 @@ for bb = bvec
         mMe(bb,j,ind) = Mev(ind); mMv(bb,j,ind) = Mvv(ind); mMb(bb,j,ind) = Mbv(ind);
         mGROUNDED(bb,j,ind)=mgrounded(ind);mOB(bb,j,ind)=mob(ind);
         mMELTED(bb,j,ind)=mmelted(ind);
+        mALPHA(bb,j,ind)=malpha(ind); mBETA(bb,j,ind)=mbeta(ind);
         
     end
     % ---------------------------------------------------------------------
@@ -143,8 +149,8 @@ end
 mLAT = LAT; mLON = LON; mmsk = msk;
 
 save(strcat(outloc,'output_full'),...
-    'XIL','YIL','mXI','mYI','VOL','DVOL','UI','VI','UA','VA','UW','VW',...
+    'XIL','YIL','mXI','mYI','VOL','DVOL','mUa','mUT','UI','VI','UA','VA','UW','VW',...
     'mL','mW','mH','mLAT','mLON','mmsk','TE','mMe','mMv','mMb',...
-    'mGROUNDED','mOB','mMELTED');
+    'mGROUNDED','mOB','mMELTED','mALPHA','mBETA');
 
 save(strcat(outloc,'fixed.mat'),'ts_all','randoX_all','randoY_all');

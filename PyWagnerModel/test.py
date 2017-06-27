@@ -1,7 +1,8 @@
 import math
 from tabulate import tabulate
 
-def print_var_table(var_list):
+def print_var_table(var_list,traj,timestep):
+    print("trajectory: {}, timestep: {}".format(traj,timestep))
     print(tabulate(var_list, headers=['Name', 'Python', 'Matlab', 'Difference']))
     print()  # newline
 

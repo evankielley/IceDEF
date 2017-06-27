@@ -8,10 +8,10 @@ def a(U):
     return a
 
 def b(U):
-    b = float(np.real(np.multiply(np.divide(1,np.power(U,3)),cmath.sqrt(np.multiply((4+np.power(U,4)), \
-                                           cmath.sqrt(1+np.power(U,4)))-3*np.power(U,4)-4))))
+    b = np.float64(np.real(np.multiply(np.divide(1,np.power(U,3)),cmath.sqrt(np.multiply((4+np.power(U,4)), \
+        cmath.sqrt(1+np.power(U,4)))-3*np.power(U,4)-4))))
     if math.isnan(b):
-        b = 0
+        b = np.float64(0)
     return b
 
 def S(l, w):
@@ -22,11 +22,18 @@ def S(l, w):
 def ff(lati,om):
     # Latitude in degrees
     ff = 2*om*np.sin(np.abs(lati)*np.pi/180)
+    ff = np.float64(ff)
     return ff
 
 def Ut(u, lati, S, Cw, g, om):
     # \Lambda in the papers
-    Ut = np.sqrt(2)*Cw*g/ff(lati,om)*u/S
+    u = np.float64(u)
+    lati = np.float64(lati)
+    S = np.float64(S)
+    Cw = np.float64(Cw)
+    g = np.float64(g)
+    om = np.float64(om)
+    Ut = np.sqrt(2)*Cw*np.divide(g,ff(lati,om))*np.divide(u,S)
     return Ut
 
 def find_nearest(array,value):
