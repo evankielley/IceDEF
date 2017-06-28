@@ -6,15 +6,32 @@
 %
 % Till Wagner, Oct 2016, tjwagner@ucsd.edu
 % -------------------------------------------------------------------------
+
+% set dummy iterator ------------------------------------------------------
 I = i;
+
+% set initial conditions --------------------------------------------------
 interpolate = false;
 mob(I) = false;
 mgrounded(I) = false;
+
+% find nearest LAT or LON index for y or x location
+% CAUTION: this only works on a regular grid!
+% if strcmp(modelshort,'E2')
+    % YI = dsearchn(LAT,yil(I));
+    % XI = dsearchn(LON,xil(I));
+% else  %CCSM is on a irregular grid!
+%     indic = dsearchn([LAT2,LON2],[yil(I),xil(I)]);
+%     [XI,YI]=find(indic==vec);
+% end*
+
+
+YI = dsearchn(LAT,yil(I));
+XI = dsearchn(LON,xil(I));
+
+% compute drift vars with linear interpolation for x, y, and t ------------
 if interpolate
     
-    YI = dsearchn(LAT,yil(I));  % just for saving purposes
-    XI = dsearchn(LON,xil(I));  % likewise
-
     timestep = tt(tts + I); t=timestep;                                                      
     t1 = floor(timestep); t2 = t1 + 1;                      
     ti1=(t2-t)/(t2-t1); ti2=(t-t1)/(t2-t1);                                              
@@ -56,18 +73,9 @@ if interpolate
     SST = sstGRID({xi,yi,ti});    
    
     
+% compute drift vars using only linear interpolation for t ----------------
 else
-    % find nearest neighbour using dsearchn,
-    % CAUTION: this only works on a regular grid!
-    % if strcmp(modelshort,'E2')
-    YI = dsearchn(LAT,yil(I));
-    XI = dsearchn(LON,xil(I));
 
-    % else  %CCSM is on a irregular grid!
-    %     indic = dsearchn([LAT2,LON2],[yil(I),xil(I)]);
-    %     [XI,YI]=find(indic==vec);
-    % end*
-    % now interpolate fields linearly between timesteps------------------------
     timestep = tt(tts+I);
     t1  = floor(timestep); t2 = t1+1;
     dt1 = timestep-t1; dt2 = t2-timestep;
@@ -82,6 +90,7 @@ end
 % compute wind speed and "U tilde" at location (for given iceberg size)----
 Ua = sqrt(ua^2+va^2);
 UT = Ut(Ua,yil(I),S(l(I),w(I)));   %U tilde is \Lambda in the papers
+
 % now compute analytic iceberg velocity solution---------------------------
 alpha = a(UT);
 if UT > 0.1
@@ -96,14 +105,6 @@ vi = vw + g*alpha*ua + g*beta*va;
 dlon = ui*dtR;
 dlat = vi*dtR;
 
-mxi(I) = XI; myi(I) = YI;
-mua(I) = Ua; mut(I) = UT;
-uiv(I) = ui; viv(I) = vi;
-uav(I) = ua; vav(I) = va;
-uwv(I) = uw; vwv(I) = vw;
-temp(I) = SST;
-malpha(I) = alpha; mbeta(I) = beta;
-
 yil(I+1) = yil(I) + dlat;
 xil(I+1) = xil(I) + dlon/cos((yil(I+1)+yil(I))/2*pi/180);
 
@@ -113,8 +114,9 @@ if xil(I+1)>maxLON || xil(I+1)<minLON || yil(I+1)>maxLAT || yil(I+1)<minLAT
     mob(I)=true;
     ob = ob+1;
     fprintf('iceberg %d left boundary at timestep %d \n',j,I);
+
 else % now check you didn't send the iceberg on land-----------------------
-    %     if strcmp(modelshort,'E2')
+    % if strcmp(modelshort,'E2')
     yi2(1) = find(LAT<=yil(I+1),1,'last');
     yi2(2) = find(LAT>yil(I+1),1,'first');
     xi2(1) = find(LON<=xil(I+1),1,'last');
@@ -124,14 +126,22 @@ else % now check you didn't send the iceberg on land-----------------------
         yil(I+1) = yil(I);  %i.e. when I get put within one grid box of land
         xil(I+1) = xil(I);  %I assume the iceberg don't move, until it doesn't happen anymore
     end
-    %     else
-    %         indic = dsearchn([LAT2,LON2],[yil(I+1),xil(I+1)]);
-    %         [XI,YI]=find(indic==vec);
-    %         if vel.mask(XI,YI)==1
-    %             yil(I+1) = yil(I);  %i.e. when I get put within one grid box of land
-    %             xil(I+1) = xil(I);  %I assume the iceberg don't move, until it doesn't happen anymore
-    %         end
-    %     end
-    
+    % else
+    %      indic = dsearchn([LAT2,LON2],[yil(I+1),xil(I+1)]);
+    %      [XI,YI]=find(indic==vec);
+    %      if vel.mask(XI,YI)==1
+    %          yil(I+1) = yil(I);  %i.e. when I get put within one grid box of land
+    %          xil(I+1) = xil(I);  %I assume the iceberg don't move, until it doesn't happen anymore
+    %      end
+    %  end
+
 end
-% -----------------------------------------------------------------
+
+% store into output vectors
+mxi(I) = XI; myi(I) = YI;
+mua(I) = Ua; mut(I) = UT;
+uiv(I) = ui; viv(I) = vi;
+uav(I) = ua; vav(I) = va;
+uwv(I) = uw; vwv(I) = vw;
+temp(I) = SST;
+malpha(I) = alpha; mbeta(I) = beta;

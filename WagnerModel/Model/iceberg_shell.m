@@ -1,7 +1,7 @@
 % set directories ---------------------------------------------------------
 modelfull = 'ECCO_20th';
 modelshort= 'E2';
-root   = '/home/evankielley/IceDEF/WagnerModel';  % root directory for project
+root   = '/home/evankielley/IceDEF/WagnerModel';  % root dir for project
 condloc= strcat(root,'/conditions/',modelfull,'/'); % input directory
 outloc = strcat(root,'/output/',modelfull,'/'); % output directory
 
@@ -32,23 +32,23 @@ Dt = DT/tres;            % model timestep in days
 dt = Dt*24*3600;         % model timestep in seconds
 R = 6378*1e3;            % earth radius in m
 dtR = dt/R*180/pi;       % need this ratio for distances in "drifting.m"
-t = 1:final_t;                  %how long is the run
-nt= length(t)*tres;             %number of model timesteps
-tt = linspace(1,length(t),nt);  %model time
+t = 1:final_t;                  % how long is the run
+nt= length(t)*tres;             % number of model timesteps
+tt = linspace(1,length(t),nt);  % model time
 
 % Load Seeding fields -----------------------------------------------------
 load Laurent_Seed
-seed_X = repmat(Seed_X(:),[100,1]); %cycle through each location 100x
-seed_Y = repmat(Seed_Y(:),[100,1]); %i.e. this can run 3600 icebergs
+seed_X = repmat(Seed_X(:),[100,1]); % cycle through each location 100x
+seed_Y = repmat(Seed_Y(:),[100,1]); % i.e. this can run 3600 icebergs
 
 % these are the circulation fields-----------------------------------------
-uwF = vel.uw(:,:,t); vwF = vel.vw(:,:,t);   %water vels input
-uaF = vel.ua(:,:,t); vaF = vel.va(:,:,t);   %air vels input
-sst = double(sst(:,:,t));                       %sst vels input
+uwF = vel.uw(:,:,t); vwF = vel.vw(:,:,t);   % water velocities input
+uaF = vel.ua(:,:,t); vaF = vel.va(:,:,t);   % air velocities input
+sst = double(sst(:,:,t));                   % sst input
 
 
-% Load berg sizes (classification from Bigg et al 1997) -----------------------------------
-bvec = 1:10;   %vector of which size classes to compute - has to be [1,10]
+% Load berg sizes (classification from Bigg et al 1997) -------------------
+bvec = 1:10;   % vector of which size classes to compute - has to be [1,10]
 load bergdims
 
 % set output arrays -------------------------------------------------------
@@ -63,7 +63,6 @@ TE = XIL;
 mMe = XIL; mMv = XIL; mMb = XIL;
 mOB = XIL; mGROUNDED = XIL; mMELTED = XIL;
 mALPHA = XIL; mBETA = XIL;
-
 
 % loop over individual initial iceberg size classes -----------------------
 for bb = bvec
@@ -88,7 +87,8 @@ for bb = bvec
         tts= ts*tres;                  %trajectory start time (of model)
         lt = nt-tts;                   %trajectory run length
         
-        xil = nan(1,lt); yil = xil;    %initialize output vectors
+        % initialize output vectors
+        xil = nan(1,lt); yil = xil;
         mxi = xil; myi = xil;
         v = xil; dv = xil;
         ml = xil; mw = xil; mh = xil;
@@ -102,39 +102,48 @@ for bb = bvec
         
         %pick random grid seeding location (same note as above applies)
         %randoX = randi([1,length(seed_X)],1);
-        randoX = randoX_all(bb,j);
         %randoY = randi([1,length(seed_Y)],1);
-        randoY = randoY_all(bb,j);
+        %yig = seed_Y(randoY); xig = seed_X(randoX);
+        
+        % pick fixed seeding location (for model comparison)
+        randoX = randoX_all(bb,j);  % fixed set of random int inputs
+        randoY = randoY_all(bb,j);  % fixed set of random int inputs
         yig = seed_Y(randoY); xig = seed_X(randoX);
                         
+        % set initial values for output vectors
         xil(1) = LON(xig); yil(1) = LAT(yig);   %initial lon and lat
         l = L*ones(1,lt); w = l*W/L; h = l*H/L; %initial berg dimensions
         v(1) = L*W*H; dv(1) = 0;                %initial volume and dvol
         ml(1) = L; mw(1) = W; mh(1) = H;
         
-        i = 0; outofbound = 0; melted = 0;
+        % set initial conditions for iceberg status (boolean)
+        outofbound = 0; melted = 0;
+        
+        % initialize iterating variable
+        i = 0; 
+        
         % now integrate as long as the iceberg is in the domain and not
         % melted and over the time period specified above
+        
         while outofbound == 0 && melted == 0 && i<lt-1
             i = i+1;
-            % this is only required if you change params seasonally -------
-            day_yr = ts+i;
-            % -------------------------------------------------------------
+            % day_yr = ts+i; % required if you change params seasonally
             drifting
-            % -------------------------------------------------------------
             melting
         end
+        
         ind = 1:i+1;
         
-        XIL(bb,j,ind)=xil(ind); YIL(bb,j,ind)=yil(ind);   %store trajectory
+        % store output vectors into output matrices
+        XIL(bb,j,ind)=xil(ind); YIL(bb,j,ind)=yil(ind);
         mXI(bb,j,ind) = mxi(ind); mYI(bb,j,ind) = myi(ind);
-        VOL(bb,j,ind)=v(ind); DVOL(bb,j,ind)=dv(ind);     %store volume
+        VOL(bb,j,ind)=v(ind); DVOL(bb,j,ind)=dv(ind);  
         mL(bb,j,ind) = ml(ind); mW(bb,j,ind) = mw(ind); mH(bb,j,ind) = mh(ind);
         mUa(bb,j,ind) = mua(ind); mUT(bb,j,ind) = mut(ind);
-        UI(bb,j,ind) = uiv(ind); VI(bb,j,ind) = viv(ind); %store ice vels
-        UA(bb,j,ind) = uav(ind); VA(bb,j,ind) = vav(ind); %store air vels
-        UW(bb,j,ind) = uwv(ind); VW(bb,j,ind) = vwv(ind); %store wat vels
-        TE(bb,j,ind) =temp(ind);                       %store sst vels       
+        UI(bb,j,ind) = uiv(ind); VI(bb,j,ind) = viv(ind);
+        UA(bb,j,ind) = uav(ind); VA(bb,j,ind) = vav(ind);
+        UW(bb,j,ind) = uwv(ind); VW(bb,j,ind) = vwv(ind);
+        TE(bb,j,ind) =temp(ind);                       
         mMe(bb,j,ind) = Mev(ind); mMv(bb,j,ind) = Mvv(ind); mMb(bb,j,ind) = Mbv(ind);
         mGROUNDED(bb,j,ind)=mgrounded(ind);mOB(bb,j,ind)=mob(ind);
         mMELTED(bb,j,ind)=mmelted(ind);
@@ -146,11 +155,14 @@ for bb = bvec
     % ---------------------------------------------------------------------  
 end
 
+% save inputs for model comparison
 mLAT = LAT; mLON = LON; mmsk = msk;
 
+% save outputs for analysis and model comparison
 save(strcat(outloc,'output_full'),...
     'XIL','YIL','mXI','mYI','VOL','DVOL','mUa','mUT','UI','VI','UA','VA','UW','VW',...
     'mL','mW','mH','mLAT','mLON','mmsk','TE','mMe','mMv','mMb',...
     'mGROUNDED','mOB','mMELTED','mALPHA','mBETA');
 
+% save fixed random inputs for model comparison
 save(strcat(outloc,'fixed.mat'),'ts_all','randoX_all','randoY_all');
