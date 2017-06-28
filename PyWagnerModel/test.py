@@ -1,32 +1,33 @@
+"""This module tests the likeness between two seperate porgrams"""
 import math
 from tabulate import tabulate
 
 def print_var_table(var_list,traj,timestep):
+    """This function prints a neat table of variables specified in an input array """
     print("trajectory: {}, timestep: {}".format(traj,timestep))
     print(tabulate(var_list, headers=['Name', 'Python', 'Matlab', 'Difference']))
     print()  # newline
 
-def compare_vals(obsName,obs,expName,exp,step,tol=1e-3):
-    diff = obs-exp
-    if abs(diff)>tol:
-        print('step: {}, diff: {}, {} (obs): {}, {} (exp): {}'.format(step,diff,obsName,obs,expName,exp))
-
 def assert_tol(name1,val1,name2,val2,step,traj,flag='print',tol=1e-5):
+    """This function uses several different flags (print, break, correct, and ignore) to compare input values"""
+    output_str = 'python: {}, matlab {}, traj: {}, step: {}, diff: {}'.format(val1, val2, traj,step,diff)
+
     if math.isnan(val1) or math.isnan(val2):
-        print('python: {}, matlab {}, traj: {}, step: {}, diff: {}'.format(val1, val2, traj,step,diff))
+        print(output_str)
         print('This function does not compare NaNs.')
         return val1
     diff = val1-val2
+
     if abs(diff)>tol:
         if flag=='break':
-            raise AssertionError('{}: {}, {}: {}, traj: {}, step: {}, diff: {}'.format(name1,val1,name2,val2,traj,step,diff))
+            raise AssertionError(output_str)
             return val1
         elif flag=='correct':
             val1=val2
-            print('{}: {}, {}: {}, traj: {}, step: {}, diff: {}'.format(name1,val1,name2,val2,traj,step,diff))
+            print(output_str)
             return val1
         elif flag=='print':
-            print('{}: {}, {}: {}, traj: {}, step: {}, diff: {}'.format(name1,val1,name2,val2,traj,step,diff))
+            print(output_str)
             return val1  
         elif flag=='ignore':
             return val1
@@ -35,18 +36,24 @@ def assert_tol(name1,val1,name2,val2,step,traj,flag='print',tol=1e-5):
     else:
         return val1
 
-def assert_tol_matrix(val1,val2,step,traj,correct=False,ignore=False,tol=1e-3):
+def assert_tol_matrix(val1,val2,step,traj,flag='ignore',tol=1e-3):
+    """This function uses several different flags (print, break, correct, and ignore) to compare input matrices"""
+    output_str = 'traj: {}, step: {}, diff: {}'.format(traj,step,diff)
     diff = val1-val2
     if abs(diff).any()>tol:
-        if not correct and not ignore:
-            raise AssertionError('traj: {}, step: {}, diff: {}'.format(traj,step,diff))
+        if flag=='break':
+            raise AssertionError(output_str)
             return val1
-        elif correct and ignore:
+        elif flag=='correct':
             val1=val2
-            print('traj: {}, step: {} corrected'.format(traj,step))
+            print(output_str)
+            return val1
+        elif flag=='print':
+            print(output_str)
+            return val1  
+        elif flag=='ignore':
             return val1
         else:
-            return val1  
+            return val1
     else:
         return val1
-
