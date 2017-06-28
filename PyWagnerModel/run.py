@@ -13,7 +13,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 global interpolate, save_plots, assert_tol_flag
 interpolate = False
 save_plots = True
-assert_tol_flag = 'break'
+assert_tol_flag = 'break'  # can be: break, print, correct, or ignore
 assert_tol_tol = 1e-6
 
 def main():
@@ -136,7 +136,10 @@ def drift(I,loc,dims):
 
     # now compute analytic ice velocity solution
     alpha = a(UT)
-    beta = b(UT)
+    if UT > 0.1:
+        beta = b_big(UT,mUT[bb-1,j,I],mBETA[bb-1,j,I])
+    else:
+        beta = b_small(UT,mUT[bb-1,j,I],mBETA[bb-1,j,I])
     ui = uw-g*alpha*va+g*beta*ua
     vi = vw+g*alpha*ua+g*beta*va
     assert_tol('ui',ui,'mUI',mUI[bb-1,j,I],I,j,assert_tol_flag,assert_tol_tol)
@@ -180,7 +183,7 @@ def drift(I,loc,dims):
                 ['GROUNDED',GROUNDED,mGROUNDED[bb-1,j,I],GROUNDED-mGROUNDED[bb-1,j,I]],
                 #['OB',OB,mOB[bb-1,j,I],OB-mOB[bb-1,j,I]]
                 ]
-    print_var_table(var_list,j,I)
+    #print_var_table(var_list,j,I)
 
     return loc,OB,GROUNDED,Ua,SST,ui,uw,vi,vw
 
@@ -237,7 +240,7 @@ def melt(I,dims,ddims,Ua,SST,ui,uw,vi,vw):
                 ['dVolume', ddims[I,3], mDVOL[bb-1,j,I], ddims[I,3] - mDVOL[bb-1,j,I]]
                 ]
 
-    print_var_table(var_list,j,I)
+    #print_var_table(var_list,j,I)
 
     assert_tol('L',dims[I+1,0],'mL',mL[bb-1,j,I+1],I,j,assert_tol_flag,assert_tol_tol)
     assert_tol('W',dims[I+1,1],'mW',mW[bb-1,j,I+1],I,j,assert_tol_flag,assert_tol_tol)

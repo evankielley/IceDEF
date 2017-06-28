@@ -23,7 +23,7 @@ minLAT = min(LAT(:)); maxLAT = max(LAT(:));
 minLON = min(LON(:)); maxLON = max(LON(:));
 
 % set run parameters ------------------------------------------------------
-trajnum = 1;            % total number of iceberg trajectories to compute
+trajnum = 25;            % total number of iceberg trajectories to compute
 final_t = 122;           % number of input field time steps
 startrange = final_t/2;  % input field start range
 tres = 3;                % time resoln such that "model Dt"="input DT"/tres
@@ -48,7 +48,7 @@ sst = double(sst(:,:,t));                       %sst vels input
 
 
 % Load berg sizes (classification from Bigg et al 1997) -----------------------------------
-bvec = 9:9;   %vector of which size classes to compute - has to be [1,10]
+bvec = 1:10;   %vector of which size classes to compute - has to be [1,10]
 load bergdims
 
 % set output arrays -------------------------------------------------------

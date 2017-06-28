@@ -21,7 +21,9 @@ Ut = @(u,lati,S) sqrt(2)*Cw*g/ff(lati).*u/S;    % \Lambda in the papers
 % the following are slightly differently non-dimmed in the papers (sqrt(2))
 % need to make those consistent at some point -----------------------------
 a = @(U) sqrt(2)./U.^3.*(1-sqrt(1+U.^4));       
-b = @(U) real(1./U.^3.*sqrt((4+U.^4).*sqrt(1+U.^4)-3*U.^4-4));
+b_big = @(U) real(1./U.^3.*sqrt((4+U.^4).*sqrt(1+U.^4)-3*U.^4-4));
+b_small = @(U) real(U.^3./sqrt(8).*sqrt(1-3.*U.^4./4+9.*U.^8./16-7.*U.^12./16+45.*U.^16./256));
+%b_small = @(U) real(1./U.^3.*sqrt(U.^12./8-3.*U.^16/32+9*U^20/128-7*U^24/128+45*U^28/1024));
 % Melt parameters (WDE16 Appendix)-----------------------------------------
 % -------------------------------------------------------------------------
 Ti0 = -4;

@@ -7,7 +7,7 @@
 % Till Wagner, Oct 2016, tjwagner@ucsd.edu
 % -------------------------------------------------------------------------
 I = i;
-interpolate = true;
+interpolate = false;
 mob(I) = false;
 mgrounded(I) = false;
 if interpolate
@@ -83,8 +83,12 @@ end
 Ua = sqrt(ua^2+va^2);
 UT = Ut(Ua,yil(I),S(l(I),w(I)));   %U tilde is \Lambda in the papers
 % now compute analytic iceberg velocity solution---------------------------
-alpha = a(UT); 
-beta = b(UT);
+alpha = a(UT);
+if UT > 0.1
+    beta = b_big(UT);
+else
+    beta = b_small(UT);
+end
 ui = uw - g*alpha*va + g*beta*ua;
 vi = vw + g*alpha*ua + g*beta*va;
 

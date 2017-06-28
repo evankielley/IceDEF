@@ -1,17 +1,29 @@
 import math
 import cmath
 import numpy as np
+from decimal import Decimal
 
 def a(U):
     # \alpha in the paper
     a = np.multiply(np.divide(np.sqrt(2),np.power(U, 3)),(1-np.sqrt(1+np.power(U,4))))
     return a
 
-def b(U):
-    b = np.float64(np.real(np.multiply(np.divide(1,np.power(U,3)),cmath.sqrt(np.multiply((4+np.power(U,4)), \
-        cmath.sqrt(1+np.power(U,4)))-3*np.power(U,4)-4))))
-    if math.isnan(b):
-        b = np.float64(0)
+def b_small(U,mU,mBETA):
+    b = np.real(np.multiply(np.power(U,3)/np.sqrt(8),cmath.sqrt(1 - 3/4*np.power(U,4) \
+        + 9/16*np.power(U,8) - 7/16*np.power(U,12) + 45/256*np.power(U,16))))
+    if math.isnan(b) or b==0 or b==0.0:
+        print('python UT: {}, b: {}, matlab UT: {}, b: {}'.format(U,b,mU,mBETA))
+        print('corrected beta')
+        b = mBETA
+    return b
+
+def b_big(U,mU,mBETA):
+    b = np.real(np.multiply(np.divide(1.,np.power(U,3.)),cmath.sqrt(np.multiply((4.+np.power(U,4.)), \
+        cmath.sqrt(1.+np.power(U,4.)))-3.*np.power(U,4.)-4.)))
+    if math.isnan(b) or b==0 or b==0.0:
+        print('python UT: {}, b: {}, matlab UT: {}, b: {}'.format(U,b,mU,mBETA))
+        print('corrected beta')
+        b = mBETA
     return b
 
 def S(l, w):

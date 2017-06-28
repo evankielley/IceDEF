@@ -28,8 +28,10 @@ def assert_tol(name1,val1,name2,val2,step,traj,flag='print',tol=1e-5):
         elif flag=='print':
             print('{}: {}, {}: {}, traj: {}, step: {}, diff: {}'.format(name1,val1,name2,val2,traj,step,diff))
             return val1  
+        elif flag=='ignore':
+            return val1
         else:
-            print('flag must be one of break, print, or correct')
+            return val1
     else:
         return val1
 
