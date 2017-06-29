@@ -9,17 +9,21 @@ import numpy as np
 from scipy.interpolate import interpn
 from matplotlib.backends.backend_pdf import PdfPages
 
-# Flags
+# Flags ###############################################################
 global fixed, verify,print_table, interpolate, save_plots
-global assert_tol_flag, assert_tol_tol
 
 fixed = True
 verify = True
 print_table = False
 interpolate = False
 save_plots = True
-assert_tol_flag = 'break'  # can be: break, print, correct, or ignore
-assert_tol_tol = 1e-6
+
+if verify:
+    global assert_tol_flag, assert_tol_tol
+    assert_tol_flag = 'break'  # break, print, correct, or ignore
+    assert_tol_tol = 1e-6
+
+#######################################################################
 
 def main():
     plot_list = []
