@@ -10,7 +10,9 @@ from scipy.interpolate import interpn
 from matplotlib.backends.backend_pdf import PdfPages
 
 # Flags
-global interpolate, save_plots, assert_tol_flag
+global fixed, verify,print_table, interpolate, save_plots
+global assert_tol_flag, assert_tol_tol
+
 fixed = True
 verify = True
 print_table = False
