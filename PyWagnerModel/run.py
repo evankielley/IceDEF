@@ -21,7 +21,7 @@ save_plots = True
 if verify:
     global assert_tol_flag, assert_tol_tol
     assert_tol_flag = 'break'  # break, print, correct, or ignore
-    assert_tol_tol = 1e-6
+    assert_tol_tol = 0.7e-8
 
 #######################################################################
 
@@ -160,10 +160,11 @@ def drift(I,loc,dims):
     UT = Ut(Ua,loc[I,1], S(dims[I,0],dims[I,1]),Cw,g,om)
 
     # now compute analytic ice velocity solution
-    alpha = a(UT)
-    if UT > 0.1:
+    if UT >= 1:
+        alpha = a_big(UT)
         beta = b_big(UT,mUT[bb-1,j,I],mBETA[bb-1,j,I])
     else:
+        alpha = a_small(UT)
         beta = b_small(UT,mUT[bb-1,j,I],mBETA[bb-1,j,I])
     ui = uw-g*alpha*va+g*beta*ua
     vi = vw+g*alpha*ua+g*beta*va
