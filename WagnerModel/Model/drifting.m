@@ -92,10 +92,11 @@ Ua = sqrt(ua^2+va^2);
 UT = Ut(Ua,yil(I),S(l(I),w(I)));   %U tilde is \Lambda in the papers
 
 % now compute analytic iceberg velocity solution---------------------------
-alpha = a(UT);
-if UT > 0.1
+if UT >= 1
+    alpha = a_big(UT);
     beta = b_big(UT);
 else
+    alpha = a_small(UT);
     beta = b_small(UT);
 end
 ui = uw - g*alpha*va + g*beta*ua;
