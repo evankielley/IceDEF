@@ -3,7 +3,12 @@ import math
 import cmath
 import numpy as np
 
-def a(U):
+def a_small(U):
+    # \alpha in the paper
+    a = np.sqrt(2)*(-U/2 + U**5/8 - U**9/16 + 5*U**13/128 - 7*U**17/256) 
+    return a
+
+def a_big(U):
     # \alpha in the paper
     a = np.multiply(np.divide(np.sqrt(2),np.power(U, 3)),(1-np.sqrt(1+np.power(U,4))))
     return a
