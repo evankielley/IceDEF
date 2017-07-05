@@ -25,9 +25,10 @@ Ut = @(u,lati,S) sqrt(2)*Cw*g/ff(lati).*u/S;    % Lambda in the papers
 % alpha and beta functions
 % these are slightly differently in the papers (sqrt(2)) -- not sure why
 % b_big is accurate for U greater than 0.1 otherwise b_small is to be used
-a = @(U) sqrt(2)./U.^3.*(1-sqrt(1+U.^4));
-b_big = @(U) real(1./U.^3.*sqrt((4+U.^4).*sqrt(1+U.^4)-3*U.^4-4));
+a_small = @(U) sqrt(2).*(-U./2 + U.^5/8 - U.^9./16 + 5.*U.^13./128 - 7.*U.^17./256);
+a_big = @(U) sqrt(2)./U.^3.*(1-sqrt(1+U.^4));
 b_small = @(U) real(U.^3./sqrt(8).*sqrt(1-3.*U.^4./4+9.*U.^8./16-7.*U.^12./16+45.*U.^16./256));
+b_big = @(U) real(1./U.^3.*sqrt((4+U.^4).*sqrt(1+U.^4)-3*U.^4-4));
 
 % Melt parameters (WDE16 Appendix) ----------------------------------------
 Ti0 = -4;
