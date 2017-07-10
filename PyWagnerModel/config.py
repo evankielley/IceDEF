@@ -2,6 +2,18 @@ import scipy.io as sio
 import numpy as np
 import numpy.matlib
 
+# Paths ###############################################################
+# You MUST tailor these paths to suit the machine that runs that program
+modelfull = 'ECCO_20th'
+modelshort = 'E2'
+root = '/home/evankielley/IceDEF/WagnerModel'
+condloc = root + '/conditions/' + modelfull + '/'
+outloc = root + '/output/' + modelfull + '/'
+modelloc = root + '/Model/'
+pyOutloc = '/home/evankielley/IceDEF/PyWagnerModel/'
+
+# Model Constants #####################################################
+
 R = 6378*1e3  ## earth radius in m
 rhow = 1027  ## density of water (kg/m^3)
 rhoa = 1.2  ## density of air   (kg/m^3)
@@ -31,18 +43,14 @@ t = range(0, final_t)      # how long is the run
 nt = len(t)*tres            # number of model timesteps
 tt = np.linspace(0, len(t)-1,nt)  # model time
 
-modelfull = 'ECCO_20th'
-modelshort = 'E2'
-root = '/home/evankielley/IceDEF/WagnerModel'
-condloc = root + '/conditions/' + modelfull + '/'
-outloc = root + '/output/' + modelfull + '/'
-modelloc = root + '/Model/'
-pyOutloc = '/home/evankielley/IceDEF/PyWagnerModel/'
 
-msk = sio.loadmat(condloc + 'mask.mat'); msk = msk['msk'] 
-vel = sio.loadmat(condloc + modelshort + '_vels_1992.mat'); vel = vel['vel']
-sst = sio.loadmat(condloc + modelshort +'_sst_1992.mat'); sst = sst['sst']
-bergdims = sio.loadmat(modelloc + 'bergdims.mat'); bergdims = bergdims['bergdims']; bergdims = np.asarray(bergdims).astype(float)
+# Read in Input fields ################################################
+
+# Input fields
+msk = sio.loadmat(condloc + 'mask.mat')['msk']
+vel = sio.loadmat(condloc + modelshort + '_vels_1992.mat')['vel']
+sst = sio.loadmat(condloc + modelshort +'_sst_1992.mat')['sst']
+bergdims = sio.loadmat(modelloc + 'bergdims.mat')['bergdims'] * 1.0
 Laurent_Seed = sio.loadmat(modelloc + 'Laurent_Seed.mat')
 Seed_X = Laurent_Seed['Seed_X']; Seed_Y = Laurent_Seed['Seed_Y']
 seed_X = np.matlib.repmat(Seed_X, 1, 100); seed_Y = np.matlib.repmat(Seed_Y, 1, 100)
@@ -55,6 +63,13 @@ uaF = vel['ua']; uaF = uaF[0,0]
 vaF = vel['va']; vaF = vaF[0,0]
 sst = np.asarray(sst).astype(float); sst = sst[:,:,:final_t] 
 
+# FIXED randomizations (for testing)
+fixedInFile = outloc + 'fixed.mat'
+mts = sio.loadmat(fixedInFile)['ts_all']
+mrandoX = sio.loadmat(fixedInFile)['randoX_all']
+mrandoY = sio.loadmat(fixedInFile)['randoY_all']
+
+# MATLAB outputs (for comparing)
 inFile = outloc + 'output_full.mat'                                                                        
 mLAT = sio.loadmat(inFile)['mLAT']
 mLON = sio.loadmat(inFile)['mLON']
@@ -80,13 +95,8 @@ mSST = sio.loadmat(inFile)['TE']
 mMe = sio.loadmat(inFile)['mMe']
 mMv = sio.loadmat(inFile)['mMv']
 mMb = sio.loadmat(inFile)['mMb']
-
 mALPHA = sio.loadmat(inFile)['mALPHA']
 mBETA = sio.loadmat(inFile)['mBETA']
 mGROUNDED = sio.loadmat(inFile)['mGROUNDED']
 mOB = sio.loadmat(inFile)['mOB']
 
-fixedInFile = outloc + 'fixed.mat'
-mts = sio.loadmat(fixedInFile)['ts_all']
-mrandoX = sio.loadmat(fixedInFile)['randoX_all']
-mrandoY = sio.loadmat(fixedInFile)['randoY_all']
