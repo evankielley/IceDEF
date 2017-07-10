@@ -2,28 +2,28 @@
 import math
 import cmath
 import numpy as np
+import sympy as sp
 
-def a_small(U):
+def a_taylor(U):
     # \alpha in the paper
     a = np.sqrt(2)*(-U/2 + U**5/8 - U**9/16 + 5*U**13/128 - 7*U**17/256) 
     return a
 
-def a_big(U):
+def a_naive(U):
     # \alpha in the paper
     a = np.multiply(np.divide(np.sqrt(2),np.power(U, 3)),(1-np.sqrt(1+np.power(U,4))))
     return a
 
-def b_small(U,mU,mBETA):
+def b_taylor(U,mU,mBETA):
     """Computes beta from the papers -- only useful for U <= 0.1 """
-    b = np.real(np.multiply(np.power(U,3)/np.sqrt(8),cmath.sqrt(1 - 3/4*np.power(U,4) \
-        + 9/16*np.power(U,8) - 7/16*np.power(U,12) + 45/256*np.power(U,16))))
+    b = U**3*(U**4*(0.0745776683282687*U**4 - 0.132582521472478) + 0.353553390593274) - 4.93696020934508e-17
     if math.isnan(b) or b==0 or b==0.0:
         print('python UT: {}, b: {}, matlab UT: {}, b: {}'.format(U,b,mU,mBETA))
         print('corrected beta')
         b = mBETA
     return b
 
-def b_big(U,mU,mBETA):
+def b_naive(U,mU,mBETA):
     """Computes beta from the papers -- only accurate for U > 0.1"""
     b = np.real(np.multiply(np.divide(1.,np.power(U,3.)),cmath.sqrt(np.multiply((4.+np.power(U,4.)), \
         cmath.sqrt(1.+np.power(U,4.)))-3.*np.power(U,4.)-4.)))

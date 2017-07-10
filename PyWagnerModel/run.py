@@ -13,7 +13,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 global fixed, verify,print_table, interpolate, save_plots
 
 fixed = True
-verify = True
+verify = False
 print_table = False
 interpolate = False
 save_plots = True
@@ -160,12 +160,13 @@ def drift(I,loc,dims):
     UT = Ut(Ua,loc[I,1], S(dims[I,0],dims[I,1]),Cw,g,om)
 
     # now compute analytic ice velocity solution
-    if UT >= 1:
-        alpha = a_big(UT)
-        beta = b_big(UT,mUT[bb-1,j,I],mBETA[bb-1,j,I])
+    if UT >= 0.6:
+        alpha = a_naive(UT)
+        beta = b_naive(UT,mUT[bb-1,j,I],mBETA[bb-1,j,I])
     else:
-        alpha = a_small(UT)
-        beta = b_small(UT,mUT[bb-1,j,I],mBETA[bb-1,j,I])
+        alpha = a_taylor(UT)
+        beta = b_taylor(UT,mUT[bb-1,j,I],mBETA[bb-1,j,I])
+
     ui = uw-g*alpha*va+g*beta*ua
     vi = vw+g*alpha*ua+g*beta*va
 
