@@ -2,14 +2,14 @@ import scipy.io as sio
 import numpy as np
 import numpy.matlib
 
-R = np.float64(6378*1e3)  ## earth radius in m
+R = 6378*1e3  ## earth radius in m
 rhow = 1027  ## density of water (kg/m^3)
 rhoa = 1.2  ## density of air   (kg/m^3)
 rhoi = 850  ## density of ice   (kg/m^3)
 drho = rhow - rhoi
 Cw = 0.9  ## bulk coefficient water  (Bigg et al 1997)
 Ca = 1.3  ## bulk coefficient air    (Bigg et al 1997)
-om = np.float64(7.2921e-5)  ## rotation rate of earth (rad/s)
+om = 7.2921e-5  ## rotation rate of earth (rad/s)
 g = np.sqrt(rhoa*drho/rhow/rhoi*(Ca/Cw))  ## gamma = np.sqrt(ca/cw)
 
 Ti0 = -4
@@ -24,9 +24,9 @@ startrange = final_t/2  # input field start range
 tres = 3                # time resoln such that "model Dt"="input DT"/tres
 DT = 3                  # Input fields time step
 Dt = DT/tres            # model timestep in days
-dt = np.float64(Dt*24*3600)         # model timestep in seconds
-R = np.float64(6378*1e3)            # earth radius in m
-dtR = np.float64(dt/R*180/np.pi)       # need this ratio for distances in "drifting.m"
+dt = Dt*24*3600         # model timestep in seconds
+R = 6378*1e3            # earth radius in m
+dtR = dt/R*180/np.pi       # need this ratio for distances in "drifting.m"
 t = range(0, final_t)      # how long is the run
 nt = len(t)*tres            # number of model timesteps
 tt = np.linspace(0, len(t)-1,nt)  # model time
@@ -47,47 +47,46 @@ Laurent_Seed = sio.loadmat(modelloc + 'Laurent_Seed.mat')
 Seed_X = Laurent_Seed['Seed_X']; Seed_Y = Laurent_Seed['Seed_Y']
 seed_X = np.matlib.repmat(Seed_X, 1, 100); seed_Y = np.matlib.repmat(Seed_Y, 1, 100)
 seed_X = seed_X.transpose().flatten(); seed_Y = seed_Y.transpose().flatten()
-LAT = vel['latw'] * 1.0; LAT = LAT[0,0]; LAT = np.ravel(LAT); LAT = np.asarray([float(i) for i in LAT])
-LON = vel['lonw'] * 1.0; LON = LON[0,0]; LON = np.ravel(LON); LON = np.asarray([float(i) for i in LON])
-uwF = vel['uw']; uwF = uwF[0,0]; uwF = np.asarray(uwF).astype(float) 
-vwF = vel['vw']; vwF = vwF[0,0]; vwF = np.asarray(vwF).astype(float)
-uaF = vel['ua']; uaF = uaF[0,0]; uaF = np.asarray(uaF).astype(float)
-vaF = vel['va']; vaF = vaF[0,0]; vaF = np.asarray(vaF).astype(float)
+LAT = np.ravel(vel['latw'][0,0]); LAT = np.asarray([float(i) for i in LAT])
+LON = np.ravel(vel['lonw'][0,0]); LON = np.asarray([float(i) for i in LON])
+uwF = vel['uw']; uwF = uwF[0,0] 
+vwF = vel['vw']; vwF = vwF[0,0]
+uaF = vel['ua']; uaF = uaF[0,0]
+vaF = vel['va']; vaF = vaF[0,0]
 sst = np.asarray(sst).astype(float); sst = sst[:,:,:final_t] 
 
 inFile = outloc + 'output_full.mat'                                                                        
-mLAT = sio.loadmat(inFile)['mLAT']; mLAT = np.asarray(mLAT).astype(float)                                    
-mLON = sio.loadmat(inFile)['mLON']; mLON = np.asarray(mLON).astype(float)                                    
-mmsk = sio.loadmat(inFile)['mmsk']; mmsk = np.asarray(mmsk).astype(float)                                    
-mXIL = sio.loadmat(inFile)['XIL']; mXIL = np.asarray(mXIL).astype(float)                                   
-mYIL = sio.loadmat(inFile)['YIL']; mYIL = np.asarray(mYIL).astype(float)                                    
-mXI = sio.loadmat(inFile)['mXI']; mXI = np.asarray(mXI).astype(float)                                    
-mYI = sio.loadmat(inFile)['mYI']; mYI = np.asarray(mYI).astype(float)                                    
-mVOL = sio.loadmat(inFile)['VOL']; mVOL = np.asarray(mVOL).astype(float)                                    
-mDVOL = sio.loadmat(inFile)['DVOL']; mDVOL = np.asarray(mDVOL).astype(float)                                  
-mL = sio.loadmat(inFile)['mL']; mL = np.asarray(mL).astype(float)                                    
-mW = sio.loadmat(inFile)['mW']; mW = np.asarray(mW).astype(float)                                    
-mH = sio.loadmat(inFile)['mH']; mH = np.asarray(mH).astype(float)                                    
-mUa = sio.loadmat(inFile)['mUa']; mUa = np.asarray(mUa).astype(float)                                      
-mUT = sio.loadmat(inFile)['mUT']; mUT = np.asarray(mUT).astype(float)                                      
-mUI = sio.loadmat(inFile)['UI']; mUI = np.asarray(mUI).astype(float)                                      
-mVI = sio.loadmat(inFile)['VI']; mVI = np.asarray(mVI).astype(float)                                      
-mUA = sio.loadmat(inFile)['UA']; mUA = np.asarray(mUA).astype(float)                                      
-mVA = sio.loadmat(inFile)['VA']; mVA = np.asarray(mVA).astype(float)                                      
-mUW = sio.loadmat(inFile)['UW']; mUW = np.asarray(mUW).astype(float)                                      
-mVW = sio.loadmat(inFile)['VW']; mVW = np.asarray(mVW).astype(float)                                      
-mSST = sio.loadmat(inFile)['TE']; mSST = np.asarray(mSST).astype(float)                                      
-mMe = sio.loadmat(inFile)['mMe']; mMe = np.asarray(mMe).astype(float)                                
-mMv = sio.loadmat(inFile)['mMv']; mMv = np.asarray(mMv).astype(float)                                
-mMb = sio.loadmat(inFile)['mMb']; mMb = np.asarray(mMb).astype(float)                                
+mLAT = sio.loadmat(inFile)['mLAT']
+mLON = sio.loadmat(inFile)['mLON']
+mmsk = sio.loadmat(inFile)['mmsk']
+mXIL = sio.loadmat(inFile)['XIL']
+mYIL = sio.loadmat(inFile)['YIL']
+mXI = sio.loadmat(inFile)['mXI']
+mYI = sio.loadmat(inFile)['mYI']
+mVOL = sio.loadmat(inFile)['VOL']
+mDVOL = sio.loadmat(inFile)['DVOL']
+mL = sio.loadmat(inFile)['mL'] 
+mW = sio.loadmat(inFile)['mW']
+mH = sio.loadmat(inFile)['mH']
+mUa = sio.loadmat(inFile)['mUa']
+mUT = sio.loadmat(inFile)['mUT']
+mUI = sio.loadmat(inFile)['UI']
+mVI = sio.loadmat(inFile)['VI']
+mUA = sio.loadmat(inFile)['UA']
+mVA = sio.loadmat(inFile)['VA']
+mUW = sio.loadmat(inFile)['UW']
+mVW = sio.loadmat(inFile)['VW']
+mSST = sio.loadmat(inFile)['TE']
+mMe = sio.loadmat(inFile)['mMe']
+mMv = sio.loadmat(inFile)['mMv']
+mMb = sio.loadmat(inFile)['mMb']
 
-mALPHA = sio.loadmat(inFile)['mALPHA']; mALPHA = np.asarray(mALPHA).astype(float)                                
-mBETA = sio.loadmat(inFile)['mBETA']; mBETA = np.asarray(mBETA).astype(float)                                
-mGROUNDED = sio.loadmat(inFile)['mGROUNDED']; mGROUNDED = np.asarray(mGROUNDED).astype(float)                                
-mOB = sio.loadmat(inFile)['mOB']; mOB = np.asarray(mOB).astype(float)                                
+mALPHA = sio.loadmat(inFile)['mALPHA']
+mBETA = sio.loadmat(inFile)['mBETA']
+mGROUNDED = sio.loadmat(inFile)['mGROUNDED']
+mOB = sio.loadmat(inFile)['mOB']
 
 fixedInFile = outloc + 'fixed.mat'
-mts = sio.loadmat(fixedInFile)['ts_all']#; mts = np.asarray(mts).astype(float)                                 
-mrandoX = sio.loadmat(fixedInFile)['randoX_all']#; mrandoX = np.asarray(mrandoX).astype(float)                        
-mrandoY = sio.loadmat(fixedInFile)['randoY_all']#; mrandoY = np.asarray(mrandoY).astype(float)                        
-
+mts = sio.loadmat(fixedInFile)['ts_all']
+mrandoX = sio.loadmat(fixedInFile)['randoX_all']
+mrandoY = sio.loadmat(fixedInFile)['randoY_all']
