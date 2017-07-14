@@ -1,18 +1,23 @@
-\documentclass{article}
+\documentclass[12pt]{article}
 
+\usepackage{graphicx}
+\usepackage{subfig}
 \usepackage{amsmath}
+\usepackage[margin=1.0in]{geometry}
+\setlength{\parindent}{0pt}
+\newcommand{\forceindent}{\leavevmode{\parindent=2em\indent}}
 
 \begin{document}
 
 \section{Introduction}
 
-    In regards to the analytical iceberg drift model created by Till
-Wagner in 2016, the naive evaluations of complicated expressions 
-and the use of single precision input data causes inaccurate results. 
-This document shows how we fixed this problem by doing two things: 
-one, changing the input data into double precision; two, doing Taylor 
-expansions of $\alpha$ and $\beta$ for further evaluation using 
-Horner's rule.
+\forceindent In regards to the analytical iceberg drift model created 
+by Till Wagner in 2016, the naive evaluations of complicated 
+expressions and the use of single precision input data causes 
+inaccurate results. This document shows how we fixed this problem by 
+doing two things: one, changing the input data into double precision; 
+two, doing Taylor expansions of $\alpha$ and $\beta$ for further 
+evaluation using Horner's rule.
     
 \section{Improvements to $\alpha$ and $\beta$ Functions}
 The functions $\alpha$ and $\beta$ are defined in Dr. Wagner's paper
@@ -27,11 +32,24 @@ as:
         \sqrt{1+4\Lambda^4} -3\Lambda^4-1]^{1/2}
     \end{equation}
 
-% insert alpha plot between 0 and 1
-
 where $\Lambda$ is some constant that is occasionally very small (but
-never negative). Hence the problem herein comes from computing the 
-following differences:
+never negative). 
+
+    \begin{figure}[h]
+        \centering
+        \subfloat[Naive $\alpha$ function for small $u$.]
+            {{\includegraphics[width=0.5\textwidth]
+            {naive_alpha_plot.png}}}
+        \subfloat[Naive $\beta$ function for small $u$]
+            {{\includegraphics[width=0.5\textwidth]
+            {naive_beta_plot.png}}}
+        \caption{Evaluating naive implementations of $\alpha$ and 
+                $\beta$ for small $u$.}
+        \label{fig:naive}
+    \end{figure}
+
+Hence the problem herein comes from computing the following 
+differences: 
 
     \begin{equation}
         1 - \sqrt{1+\Lambda^4}
@@ -43,20 +61,27 @@ for $\alpha$ and:
        (1+\Lambda^4)\sqrt{1+4\Lambda^4} -3\Lambda^4-1
     \end{equation}
 
-% insert beta plot between 0 and 1
 
-for $\beta$ -- as $\Lambda$ approaches zero. This is due to round-off 
-errors.
+for $\beta$, as $\Lambda$ approaches zero. This is due to round-off 
+error.\bigskip
 
-To fix this issue, we began by taking the Taylor approximation for 
-$\alpha$:
+To fix this issue, we began by taking the Taylor approximation:
+
+    \begin{equation}
+        \sqrt{1+x} = 1 + \frac{x}{2} + \sum_{k=2}^{\infty} 
+                    \frac{(-1)^{k+1}(2k-3)!}{2^{2k-2}(k-2)!k!}x^k
+    \end{equation} 
+
+to reduce round-off errors in the square root.
+\bigskip
+Next we applied our approximation to $\alpha$:
 
     \begin{equation}
         \frac{\sqrt{2}}{2}(-u+\frac{u^5}{4}-\frac{u^9}{8}+
         \frac{5u^{13}}{64}-\frac{7u^{17}}{128}+O(u^{21}))
     \end{equation}
 
-and for $\beta$:
+and to $\beta$:
 
     \begin{multline}
         \frac{\sqrt{2}}{4}(u^3-\frac{3u^7}{8}+\frac{27u^{11}}{128}-
@@ -68,7 +93,7 @@ and for $\beta$:
     \end{multline}
 
 where the new equation for $\alpha$ contains less terms than the new
-equation for $\beta$ because $\beta$ is more ill-conditioned.
+equation for $\beta$ because $\beta$ is more ill-conditioned.\bigskip
 
 In order to avoid computing large exponents of $u$ we simplified each
 new equation using Horner's rule. Therefore $\alpha$ then became:
@@ -90,8 +115,27 @@ and $\beta$ became:
     \end{multline}
 
 which is beneficial because the largest power of $u$ that must be 
-computed is the fourth power.
+computed is the fourth power. \clearpage%\bigskip
 
+Now, if we look at the absolute difference between our naive 
+implementations and our new Taylor approximated - Horner evaluated 
+functions, we can see the difference in how they behave.
+
+    \begin{figure}[h]
+        \centering
+        \subfloat[Absolute difference for $\alpha$ function.]
+            {{\includegraphics[width=0.5\textwidth]
+            {absolute_naive_vs_horner_alpha_plot}}}
+        \subfloat[Absolute difference for $\beta$ function.]
+            {{\includegraphics[width=0.5\textwidth]
+            {absolute_naive_vs_horner_beta_plot}}}
+        \caption{Evaluating the absolute difference of naive 
+                and Horner implemtations of $\alpha$ and $\beta$ for 
+                small $u$.}
+        \label{fig:absolute_difference}
+    \end{figure}
+
+\clearpage
 \section{Single vs. Double Precision Input Data}
 In Dr. Wagner's model, the input data for sea surface temperature is in
 single precision. By simply changing the importation of this data into
