@@ -88,3 +88,54 @@ def plot_berg_location(xil,yil,show=False):
         plt.show()
     else:
         return f        
+
+from mpl_toolkits.basemap import Basemap
+
+def plot_track_on_map(xil,yil,show=False):
+    xil = xil - 360
+    xil = xil[0]
+    xil = xil[:360]
+    print(xil)
+    yil = yil[0]
+    yil = yil[:360]
+    print(yil)
+    # Lambert Conformal Conic map.
+    m = Basemap(llcrnrlon=-80.,llcrnrlat=30.,urcrnrlon=-30.,urcrnrlat=70.,
+                projection='lcc',lat_1=20., lon_0=-60.,
+                resolution ='l',area_thresh=1000.)
+    #m = Basemap(llcrnrlon=-80.,llcrnrlat=30.,urcrnrlon=-30.,urcrnrlat=80.,
+    #            projection='lcc',lat_1=20.,lat_2=40.,lon_0=-60.,
+    #            resolution ='l',area_thresh=1000.)
+
+    x, y = m(xil,yil)
+    m.plot(x,y,linewidth=1.5,color='r')
+
+    # draw coastlines, meridians and parallels.
+    m.drawcoastlines()
+    m.drawcountries()
+    m.drawmapboundary(fill_color='#99ffff')
+    m.fillcontinents(color='#cc9966',lake_color='#99ffff')
+    m.drawparallels(np.arange(10,70,20),labels=[1,1,0,0])
+    m.drawmeridians(np.arange(-100,0,20),labels=[0,0,0,1])
+    plt.title('Iceberg Drift')
+    plt.show()
+
+def plot_track_on_map2(xil,yil,show=False):
+    xil = xil - 360
+    xil = xil[0]
+    xil = xil[:30]
+    print(xil)
+    yil = yil[0]
+    yil = yil[:30]
+    print(yil)
+    # draw map with markers for float locations
+    m = Basemap(projection='hammer',lon_0=0)
+    x, y = m(xil,yil)
+    m.drawmapboundary(fill_color='#99ffff')
+    m.fillcontinents(color='#cc9966',lake_color='#99ffff')
+    m.scatter(x,y,3,marker='o',color='k')
+    plt.title('Iceberg Drift')
+    plt.show()
+
+
+

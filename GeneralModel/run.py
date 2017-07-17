@@ -13,14 +13,13 @@ from matplotlib.backends.backend_pdf import PdfPages
 # Paths
 root = '/home/evankielley/IceDEF/GeneralModel/'
 
-# Flags ###############################################################
+# Flags 
 global fixed, interpolate, save_plots
 
 fixed = True
 interpolate = False
-save_plots = True
+save_plots = False
 
-#######################################################################
 
 def main():
     plot_list = []
@@ -68,7 +67,9 @@ def main():
 
         XIL,YIL = load_objects(root + 'bergClass{}.pkl'.format(bb),trajnum,nt)
         plot_name = 'plot' + str(bb)
-        plot_name = plot_berg_location(XIL,YIL)
+        #plot_name = plot_berg_location(XIL,YIL)
+        plot_name = plot_track_on_map(XIL,YIL)
+        #plot_name = plot_track_on_map2(XIL,YIL)
         plot_list.append(plot_name)
     
     if save_plots:
