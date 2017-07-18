@@ -4,7 +4,7 @@ class Iceberg(object):
     """A chunk of floating ice typically drifting in the ocean.
     
     Args:
-        nt (int): the number of timesteps that the iceberg will exist for.
+        num_steps (inum_steps): the number of timesteps that the iceberg will exist for.
 
     Attributes:
         dims (float): the dimensions length, width, height, and volume over time. 
@@ -14,25 +14,23 @@ class Iceberg(object):
         outOfBounds (bool): a logical that tells whether the iceberg has drifted out of bounds or not.
 
     Example:
-        berg = Iceberg(nt)
-        berg.dims[0,:] = L, W, H, VOL
-        berg.dimsChange[0,:] = dL, dW, dH, dVOL
+        berg = Iceberg(num_steps)
+        berg.dims[0,:] = L, W, H
+        berg.dimsChange[0,:] = dL, dW, dH
         berg.location[0,:] = lon, lat
         berg.melted = False
         berg.outOfBounds = False  
+        berg.grounded = False
     """
-    def __init__(self, nt, dims, coordinates):
+    def __init__(self, num_steps, init_berg_dims, init_berg_coords):
         """The constructor of the Iceberg class."""
-        nt = int(nt)
-        length, width, height, = dims[0], dims[1], dims[2]
-        volume = length * width * height
-        longitude, latitude = coordinates[0], coordinates[1]
-        self.dims = np.multiply(np.empty([nt,4]),np.nan)
-        self.dims[0,:] = length, width, height, volume
-        self.dimsChange = np.multiply(np.empty([nt,4]),np.nan)
-        self.dimsChange[0,:] = 0,0,0,0
-        self.location = np.multiply(np.empty([nt,2]),np.nan)
-        self.location[0,:] = longitude, latitude
+        num_steps = int(num_steps)
+        self.dims = np.multiply(np.empty([num_steps,3]),np.nan)
+        self.dims[0,:] = init_berg_dims
+        self.dimsChange = np.multiply(np.empty([num_steps,3]),np.nan)
+        self.dimsChange[0,:] = 0.,0.,0.
+        self.coords = np.multiply(np.empty([num_steps,2]),np.nan)
+        self.coords[0,:] = init_berg_coords
         self.melted = False
         self.outOfBounds = False 
         self.grounded = False

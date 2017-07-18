@@ -20,8 +20,8 @@ fixed = True
 interpolate = False
 save_plots = False
 
-bergdims = np.asarray([600., 500., 400.])
-coordinates = np.asarray([310.,50.])
+init_berg_dims = np.asarray([600., 500., 400.])
+init_berg_coords = np.asarray([310.,50.])
 
 def main():
     plot_list = []
@@ -33,7 +33,7 @@ def main():
         global j
         for j in range(0,trajnum):
 
-            berg = Iceberg(nt, bergdims, coordinates)
+            berg = Iceberg(nt, init_berg_dims, init_berg_coords)
 
             if fixed:
                 ts = mts[bb-1,j]
@@ -47,17 +47,17 @@ def main():
             i=0
             while not berg.outOfBounds and not berg.melted and i<lt-1:
                 I=i
-                berg.location,berg.outOfBounds,berg.grounded,Ua,SST,ui,uw,vi,vw = drift(I,berg.location,berg.dims)
+                berg.coords,berg.outOfBounds,berg.grounded,Ua,SST,ui,uw,vi,vw = drift(I,berg.coords,berg.dims)
                 berg.dims,berg.dimsChange,berg.melted = melt(I,berg.dims,berg.dimsChange,Ua,SST,ui,uw,vi,vw)
                 i += 1
 
             store_objects(berg, 'bergClass{}.pkl'.format(bb))
 
-        XIL,YIL = load_objects(root + 'bergClass{}.pkl'.format(bb),trajnum,nt)
+        berg_lon, berg_lat = load_objects(root + 'bergClass{}.pkl'.format(bb),trajnum,nt)
         plot_name = 'plot' + str(bb)
-        #plot_name = plot_berg_location(XIL,YIL)
-        plot_name = plot_track_on_map(XIL,YIL)
-        #plot_name = plot_track_on_map2(XIL,YIL)
+        #plot_name = plot_berg.coords(berg_lon,berg_lat)
+        plot_name = plot_track_on_map(berg_lon,berg_lat)
+        #plot_name = plot_track_on_map2(berg_lon,berg_lat)
         plot_list.append(plot_name)
     
     if save_plots:
@@ -66,7 +66,7 @@ def main():
                 pdf.savefig(plot)
 
         
-def drift(I,loc,dims):
+def drift(I,berg_coords,berg_dims):
 
     GROUNDED = False
     OB = False
@@ -81,49 +81,49 @@ def drift(I,loc,dims):
         ti2=(t-t1)/(t2-t1)
         ti=t1*ti1+t2*ti2
 
-        XI1 = np.where(LON <= loc[I,0])[0][-1]                                    
-        XI2 = np.where(LON > loc[I,0])[0][0]                                      
-        YI1 = np.where(LAT <= loc[I,1])[0][-1]                                    
-        YI2 = np.where(LAT > loc[I,1])[0][0] 
+        lon_1 = np.where(LON <= berg_coords[I,0])[0][-1]                                    
+        lon_2 = np.where(LON > berg_coords[I,0])[0][0]                                      
+        lat_1 = np.where(LAT <= berg_coords[I,1])[0][-1]                                    
+        lat_2 = np.where(LAT > berg_coords[I,1])[0][0] 
 
         points = ((XI1,XI2),(YI1,YI2),(t1,t2))
 
-        x=loc[I,0]; 
-        xi1=(LON[XI2]-x)/(LON[XI2]-LON[XI1]); xi2=(x-LON[XI1])/(LON[XI2]-LON[XI1])
-        xi=XI1*xi1+XI2*xi2
+        berg_lon=berg_coords[I,0]; 
+        lon1=(LON[lon_2]-lon)/(LON[lon_2]-LON[lon_1]); lon2=(lon-LON[lon_1])/(LON[lon_2]-LON[lon_1])
+        loni=lon_1*lon1+lon_2*lon2
         
-        y=loc[I,1]
-        yi1=(LAT[YI2]-y)/(LAT[YI2]-LAT[YI1]); yi2=(y-LAT[YI1])/(LAT[YI2]-LAT[YI1])
-        yi=YI1*yi1+YI2*yi2
+        lat=berg_coords[I,1]
+        lat1=(LAT[lat_2]-y)/(LAT[lat_2]-LAT[lat_1]); lat2=(lat-LAT[lat_1])/(LAT[lat_2]-LAT[lat_1])
+        lati=lat_1*lat1+lat_2*lat2
         
-        xyti = [xi,yi,ti]
+        lon_lat_t_i = [loni,lati,ti]
 
         fields = [uaF,vaF,uwF,vwF,sst]; name = []
         ii = 0
         for field in fields:
-            values = field[XI1:XI2+1,YI1:YI2+1,t1:t2+1]
-            name.append(interpn(points,values,xyti)[0]) 
+            values = field[lon_1:lon_2+1,lat_1:lat_2+1,t1:t2+1]
+            name.append(interpn(points,values,lon_lat_t_i)[0]) 
             ii+=1
         ua = name[0]; va = name[1]; uw = name[2]; vw = name[3]; SST = name[4]
 
     else:
 
         # Find nearest neighbour
-        XI = find_nearest(LON, loc[I,0])
-        YI = find_nearest(LAT, loc[I,1])
+        lon_ = find_nearest(LON, berg_coords[I,0])
+        lat_ = find_nearest(LAT, berg_coords[I,1])
 
         # Interpolate fields linearly between timesteps
         dt1 = timestep - t1; dt2 = t2 - timestep
         
-        ua = uaF[XI,YI,t1] * dt1 + uaF[XI,YI,t2] * dt2 
-        va = vaF[XI,YI,t1] * dt1 + vaF[XI,YI,t2] * dt2 
-        uw = uwF[XI,YI,t1] * dt1 + uwF[XI,YI,t2] * dt2 
-        vw = vwF[XI,YI,t1] * dt1 + vwF[XI,YI,t2] * dt2 
-        SST = sst[XI,YI,t1] * dt1 + sst[XI,YI,t2] * dt2
+        ua = uaF[lon_,lat_,t1] * dt1 + uaF[lon_,lat_,t2] * dt2 
+        va = vaF[lon_,lat_,t1] * dt1 + vaF[lon_,lat_,t2] * dt2 
+        uw = uwF[lon_,lat_,t1] * dt1 + uwF[lon_,lat_,t2] * dt2 
+        vw = vwF[lon_,lat_,t1] * dt1 + vwF[lon_,lat_,t2] * dt2 
+        SST = sst[lon_,lat_,t1] * dt1 + sst[lon_,lat_,t2] * dt2
 
     # Compute wind speed and "U tilde" at location for a given icesize
     Ua = np.sqrt(ua**2 + va**2)
-    UT = Ut(Ua,loc[I,1], S(dims[I,0],dims[I,1]),Cw,g,om)
+    UT = Ut(Ua,berg_coords[I,1], S(berg_dims[I,0],berg_dims[I,1]),Cw,g,om)
 
     # now compute analytic ice velocity solution
     ui = uw-g*alpha(UT)*va+g*beta(UT)*ua
@@ -132,63 +132,59 @@ def drift(I,loc,dims):
     # Icetranslation -- Note the conversion from meters to degrees lon/lat   
     dlon = ui*dtR 
     dlat = vi*dtR
-    loc[I+1,1] = loc[I,1] + dlat
-    loc[I+1,0] = loc[I,0]+ dlon/np.cos((loc[I+1,1]+loc[I,1])/2*np.pi/180)
+    berg_coords[I+1,1] = berg_coords[I,1] + dlat
+    berg_coords[I+1,0] = berg_coords[I,0]+ dlon/np.cos((berg_coords[I+1,1]+berg_coords[I,1])/2*np.pi/180)
 
     # Check if out-of-bounds
-    if loc[I+1,0]>max(LON) or loc[I+1,0]<min(LON) or loc[I+1,1]>max(LAT) or loc[I+1,1]<min(LAT):
+    if berg_coords[I+1,0]>max(LON) or berg_coords[I+1,0]<min(LON) or berg_coords[I+1,1]>max(LAT) or berg_coords[I+1,1]<min(LAT):
         OB = True
     else:
-        xi2a,xi2b,yi2a,yi2b = find_berg_grid(LAT,LON,loc[I+1,0], loc[I+1,1])
-        if msk[xi2a,yi2a]==0 or msk[xi2a,yi2b]==0 or msk[xi2b,yi2a]==0 or msk[xi2b,yi2b]==0:
+        lon2a,lon2b,lat2a,lat2b = find_berg_grid(LAT,LON,berg_coords[I+1,0], berg_coords[I+1,1])
+        if msk[lon2a,lat2a]==0 or msk[lon2a,lat2b]==0 or msk[lon2b,lat2a]==0 or msk[lon2b,lat2b]==0:
             GROUNDED = True
-            loc[I+1,0] = loc[I,0]
-            loc[I+1,1] = loc[I,1]
+            berg_coords[I+1,0] = berg_coords[I,0]
+            berg_coords[I+1,1] = berg_coords[I,1]
 
-    return loc,OB,GROUNDED,Ua,SST,ui,uw,vi,vw
+    return berg_coords,OB,GROUNDED,Ua,SST,ui,uw,vi,vw
 
 
-def melt(I,dims,ddims,Ua,SST,ui,uw,vi,vw):
+def melt(I,berg_dims,berg_ddims,Ua,SST,ui,uw,vi,vw):
 
     melted = False
 
     # Melt terms
     Me = CMe1 * (Cs1 * Ua**Cs2 + Cs3 * Ua)  ## Wind driven erosion
     Mv = CMv1 * SST + CMv2 * SST**2  ## Thermal side wall erosion 
-    Mb = CMb1*np.power(np.sqrt(np.square(ui-uw)+np.square(vi-vw)),CMb2)*(SST-Ti0)/dims[I,0]**CMb3
+    Mb = CMb1*np.power(np.sqrt(np.square(ui-uw)+np.square(vi-vw)),CMb2)*(SST-Ti0)/berg_dims[I,0]**CMb3
 
     # Melt rates
-    ddims[I,0] = - Mv - Me 
-    ddims[I,1] = - Mv - Me 
-    ddims[I,2] = - Mb
-    dims[I+1,0] = dims[I,0]+ddims[I,0]*Dt 
-    dims[I+1,1] = dims[I,1]+ddims[I,1]*Dt 
-    dims[I+1,2] = dims[I,2]+ddims[I,2]*Dt 
+    berg_ddims[I,0] = - Mv - Me 
+    berg_ddims[I,1] = - Mv - Me 
+    berg_ddims[I,2] = - Mb
+    berg_dims[I+1,0] = berg_dims[I,0]+berg_ddims[I,0]*Dt 
+    berg_dims[I+1,1] = berg_dims[I,1]+berg_ddims[I,1]*Dt 
+    berg_dims[I+1,2] = berg_dims[I,2]+berg_ddims[I,2]*Dt 
 
     # Check if iceberg size is negative
     
-    if dims[I+1,0]<0 or dims[I+1,1]<0 or dims[I+1,2]<0:
-        dims[I+1,0] = 0; dims[I+1,1] = 0; dims[I+1,2] = 0
+    if berg_dims[I+1,0]<0 or berg_dims[I+1,1]<0 or berg_dims[I+1,2]<0:
+        berg_dims[I+1,0] = 0; berg_dims[I+1,1] = 0; berg_dims[I+1,2] = 0
         melted = True
 
     else:
         # Rollover
-        if dims[I+1,1] < (0.85*dims[I+1,2]):
-            hn = dims[I+1,1]  ## new height
-            dims[I+1,1] = dims[I+1,2] 
-            dims[I+1,2] = hn
+        if berg_dims[I+1,1] < (0.85*berg_dims[I+1,2]):
+            hn = berg_dims[I+1,1]  ## new height
+            berg_dims[I+1,1] = berg_dims[I+1,2] 
+            berg_dims[I+1,2] = hn
 
         # Check if length is greater than width
-        if dims[I+1,1] > dims[I+1,0]:
-            wn = dims[I+1,0] 
-            dims[I+1,0] = dims[I+1,1] 
-            dims[I+1,1] = wn
+        if berg_dims[I+1,1] > berg_dims[I+1,0]:
+            wn = berg_dims[I+1,0] 
+            berg_dims[I+1,0] = berg_dims[I+1,1] 
+            berg_dims[I+1,1] = wn
 
-    # New volume and change in volume (dv)
-    dims[I+1,3] = dims[I+1,0]*dims[I+1,1]*dims[I+1,2]
-    ddims[I+1,3] = dims[I,3] - dims[I+1,3]
-
-    return dims,ddims,melted
+    return berg_dims,berg_ddims,melted
 
 
 if __name__=="__main__":

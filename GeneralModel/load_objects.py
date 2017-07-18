@@ -8,7 +8,7 @@ def load_objects(inFile,trajnum,nt):
         while True:
             try:
                 berg0 = pickle.load(input)
-                XIL[i,:] = berg0.location[:,0]; YIL[i,:] = berg0.location[:,1]
+                XIL[i,:] = berg0.coords[:,0]; YIL[i,:] = berg0.coords[:,1]
                 i += 1
             except EOFError:
                 break
