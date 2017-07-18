@@ -17,16 +17,22 @@ class Iceberg(object):
         berg = Iceberg(nt)
         berg.dims[0,:] = L, W, H, VOL
         berg.dimsChange[0,:] = dL, dW, dH, dVOL
-        berg.location[0,:] = lat, lon
+        berg.location[0,:] = lon, lat
         berg.melted = False
         berg.outOfBounds = False  
     """
-    def __init__(self, nt):
+    def __init__(self, nt, dims, coordinates):
         """The constructor of the Iceberg class."""
         nt = int(nt)
+        length, width, height, = dims[0], dims[1], dims[2]
+        volume = length * width * height
+        longitude, latitude = coordinates[0], coordinates[1]
         self.dims = np.multiply(np.empty([nt,4]),np.nan)
+        self.dims[0,:] = length, width, height, volume
         self.dimsChange = np.multiply(np.empty([nt,4]),np.nan)
+        self.dimsChange[0,:] = 0,0,0,0
         self.location = np.multiply(np.empty([nt,2]),np.nan)
+        self.location[0,:] = longitude, latitude
         self.melted = False
         self.outOfBounds = False 
         self.grounded = False

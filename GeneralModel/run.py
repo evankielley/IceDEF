@@ -20,6 +20,8 @@ fixed = True
 interpolate = False
 save_plots = False
 
+bergdims = np.asarray([600., 500., 400.])
+coordinates = np.asarray([310.,50.])
 
 def main():
     plot_list = []
@@ -28,15 +30,10 @@ def main():
         print("Iceberg size class: {}".format(bb))
         silent_remove('bergClass{}.pkl'.format(bb))
         
-        L, W, H = bergdims[bb-1,0],bergdims[bb-1,1],bergdims[bb-1,2]
-        VOL = L*W*H; dL,dW,dH,dVOL = 0,0,0,0
-
         global j
         for j in range(0,trajnum):
 
-            berg = Iceberg(nt)
-            berg.dims[0,:] = L,W,H,VOL
-            berg.dimsChange[0,:] = dL,dW,dH,dVOL
+            berg = Iceberg(nt, bergdims, coordinates)
 
             if fixed:
                 ts = mts[bb-1,j]
@@ -46,15 +43,6 @@ def main():
             global tts
             tts = ts*tres
             lt = nt-tts
-
-            if fixed:
-                randoX = mrandoX[bb-1,j]; randoY = mrandoY[bb-1,j]
-                xig = seed_X[randoX-1]; yig = seed_Y[randoY-1] 
-            else:
-                xig = seed_X[np.random.randint(1, seed_X.size)] 
-                yig = seed_Y[np.random.randint(1, seed_Y.size)]
-            
-            berg.location[0,:] = LON[xig-1], LAT[yig-1]
 
             i=0
             while not berg.outOfBounds and not berg.melted and i<lt-1:

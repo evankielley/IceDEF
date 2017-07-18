@@ -19,7 +19,7 @@ Cs1 = 1.5; Cs2 = 0.5; Cs3 = 0.1
 CMv1 = 7.62e-3; CMv2 = 1.29e-3; CMe1 = 0.5
 CMb1 = 0.58; CMb2 = 0.8; CMb3 = 0.2
 
-bvec = range(10,11) #range(1,2) #range(1,11)
+bvec = range(1,2) #range(1,11)
 trajnum = 1  #25            # total number of iceberg trajectories to compute
 final_t = 122           # number of input field time steps
 startrange = final_t/2  # input field start range
