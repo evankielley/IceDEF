@@ -1,4 +1,5 @@
 from iceberg import Iceberg
+from specifications import *
 from load_constants import *
 from load_inputs import *
 from load_objects import *
@@ -16,17 +17,13 @@ root = '/home/evankielley/IceDEF/GeneralModel/'
 # Flags 
 global fixed, interpolate, save_plots
 
-fixed = True
-interpolate = False
+interpolate = True
 save_plots = False
-
-init_berg_dims = np.asarray([600., 500., 400.])
-init_berg_coords = np.asarray([310.,50.])
 
 def main():
     plot_list = []
     global bb
-    for bb in bvec:
+    for bb in range(1, num_berg_sizes+1):
         print("Iceberg size class: {}".format(bb))
         silent_remove('bergClass{}.pkl'.format(bb))
         
@@ -35,12 +32,8 @@ def main():
 
             berg = Iceberg(nt, init_berg_dims, init_berg_coords)
 
-            if fixed:
-                ts = mts[bb-1,j]
-            else:
-                ts = np.random.randint(0,round(startrange)) 
-
             global tts
+            ts = np.random.randint(0,round(final_t/2)) 
             tts = ts*tres
             lt = nt-tts
 
@@ -55,9 +48,7 @@ def main():
 
         berg_lon, berg_lat = load_objects(root + 'bergClass{}.pkl'.format(bb),trajnum,nt)
         plot_name = 'plot' + str(bb)
-        #plot_name = plot_berg.coords(berg_lon,berg_lat)
         plot_name = plot_track_on_map(berg_lon,berg_lat)
-        #plot_name = plot_track_on_map2(berg_lon,berg_lat)
         plot_list.append(plot_name)
     
     if save_plots:
@@ -72,8 +63,8 @@ def drift(I,berg_coords,berg_dims):
     OB = False
 
     timestep = tt[tts + I]                                      
-    t=timestep
-    t1  = int(np.floor(timestep)); t2 = t1 + 1 
+    t = timestep
+    t1 = int(np.floor(timestep)); t2 = t1 + 1 
 
     if interpolate:
 
@@ -86,14 +77,14 @@ def drift(I,berg_coords,berg_dims):
         lat_1 = np.where(LAT <= berg_coords[I,1])[0][-1]                                    
         lat_2 = np.where(LAT > berg_coords[I,1])[0][0] 
 
-        points = ((XI1,XI2),(YI1,YI2),(t1,t2))
+        points = ((lon_1,lon_2),(lat_1,lat_2),(t1,t2))
 
-        berg_lon=berg_coords[I,0]; 
+        lon = berg_coords[I,0]; 
         lon1=(LON[lon_2]-lon)/(LON[lon_2]-LON[lon_1]); lon2=(lon-LON[lon_1])/(LON[lon_2]-LON[lon_1])
         loni=lon_1*lon1+lon_2*lon2
         
-        lat=berg_coords[I,1]
-        lat1=(LAT[lat_2]-y)/(LAT[lat_2]-LAT[lat_1]); lat2=(lat-LAT[lat_1])/(LAT[lat_2]-LAT[lat_1])
+        lat = berg_coords[I,1]
+        lat1=(LAT[lat_2]-lat)/(LAT[lat_2]-LAT[lat_1]); lat2=(lat-LAT[lat_1])/(LAT[lat_2]-LAT[lat_1])
         lati=lat_1*lat1+lat_2*lat2
         
         lon_lat_t_i = [loni,lati,ti]
@@ -166,7 +157,6 @@ def melt(I,berg_dims,berg_ddims,Ua,SST,ui,uw,vi,vw):
     berg_dims[I+1,2] = berg_dims[I,2]+berg_ddims[I,2]*Dt 
 
     # Check if iceberg size is negative
-    
     if berg_dims[I+1,0]<0 or berg_dims[I+1,1]<0 or berg_dims[I+1,2]<0:
         berg_dims[I+1,0] = 0; berg_dims[I+1,1] = 0; berg_dims[I+1,2] = 0
         melted = True
