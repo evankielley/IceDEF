@@ -23,14 +23,14 @@ save_plots = False
 def main():
     plot_list = []
     global bb
-    for bb in range(1, num_berg_sizes+1):
-        print("Iceberg size class: {}".format(bb))
-        silent_remove('bergClass{}.pkl'.format(bb))
+    for bb in range(1, num_bergs+1):
+        print("Iceberg: {}".format(bb))
+        silent_remove('berg{}.pkl'.format(bb))
         
         global j
         for j in range(0,trajnum):
 
-            berg = Iceberg(nt, init_berg_dims, init_berg_coords)
+            berg = Iceberg(nt, init_berg_dims[bb-1], init_berg_coords[bb-1])
 
             global tts
             ts = np.random.randint(0,round(final_t/2)) 
@@ -44,9 +44,9 @@ def main():
                 berg.dims,berg.dimsChange,berg.melted = melt(I,berg.dims,berg.dimsChange,Ua,SST,ui,uw,vi,vw)
                 i += 1
 
-            store_objects(berg, 'bergClass{}.pkl'.format(bb))
+            store_objects(berg, 'berg{}.pkl'.format(bb))
 
-        berg_lon, berg_lat = load_objects(root + 'bergClass{}.pkl'.format(bb),trajnum,nt)
+        berg_lon, berg_lat = load_objects(root + 'berg{}.pkl'.format(bb),trajnum,nt)
         plot_name = 'plot' + str(bb)
         plot_name = plot_track_on_map(berg_lon,berg_lat)
         plot_list.append(plot_name)
@@ -80,12 +80,14 @@ def drift(I,berg_coords,berg_dims):
         points = ((lon_1,lon_2),(lat_1,lat_2),(t1,t2))
 
         lon = berg_coords[I,0]; 
-        lon1=(LON[lon_2]-lon)/(LON[lon_2]-LON[lon_1]); lon2=(lon-LON[lon_1])/(LON[lon_2]-LON[lon_1])
-        loni=lon_1*lon1+lon_2*lon2
+        lon1 = (LON[lon_2] - lon)/(LON[lon_2] - LON[lon_1]); 
+        lon2 = (lon - LON[lon_1])/(LON[lon_2] - LON[lon_1])
+        loni = lon_1*lon1 + lon_2*lon2
         
         lat = berg_coords[I,1]
-        lat1=(LAT[lat_2]-lat)/(LAT[lat_2]-LAT[lat_1]); lat2=(lat-LAT[lat_1])/(LAT[lat_2]-LAT[lat_1])
-        lati=lat_1*lat1+lat_2*lat2
+        lat1 = (LAT[lat_2] - lat)/(LAT[lat_2] - LAT[lat_1]); 
+        lat2 = (lat - LAT[lat_1])/(LAT[lat_2] - LAT[lat_1])
+        lati = lat_1*lat1 + lat_2*lat2
         
         lon_lat_t_i = [loni,lati,ti]
 
@@ -158,13 +160,13 @@ def melt(I,berg_dims,berg_ddims,Ua,SST,ui,uw,vi,vw):
 
     # Check if iceberg size is negative
     if berg_dims[I+1,0]<0 or berg_dims[I+1,1]<0 or berg_dims[I+1,2]<0:
-        berg_dims[I+1,0] = 0; berg_dims[I+1,1] = 0; berg_dims[I+1,2] = 0
+        berg_dims[I+1,0]=0; berg_dims[I+1,1]=0; berg_dims[I+1,2]=0
         melted = True
 
     else:
         # Rollover
         if berg_dims[I+1,1] < (0.85*berg_dims[I+1,2]):
-            hn = berg_dims[I+1,1]  ## new height
+            hn = berg_dims[I+1,1]  # new height
             berg_dims[I+1,1] = berg_dims[I+1,2] 
             berg_dims[I+1,2] = hn
 

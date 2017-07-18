@@ -1,10 +1,10 @@
 import numpy as np
 
 # Icebergs
-num_berg_sizes = 1                                  # number of different iceberg sizes
-trajnum = 1                                         # number of iceberg trajectories per size class
-init_berg_dims = np.asarray([600., 500., 400.])     # initial iceberg dimensions
-init_berg_coords = np.asarray([310.,50.])           # initial iceberg coordinates
+num_bergs = 1                              
+trajnum = 1                               
+init_berg_dims = np.asarray([[600., 500., 400.]]) 
+init_berg_coords = np.asarray([[310.,50.]])      
 
 
 # Time-stepping
