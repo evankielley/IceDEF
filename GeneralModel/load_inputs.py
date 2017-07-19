@@ -17,11 +17,11 @@ path2seed = path2inputs + 'Laurent_Seed.mat'
 msk = sio.loadmat(path2mask)['msk']
 vel = sio.loadmat(path2vels)['vel']
 sst = sio.loadmat(path2sst)['sst']
-bergdims = sio.loadmat(path2bergdims)['bergdims'] * 1.0
-Laurent_Seed = sio.loadmat(path2seed)
-Seed_X = Laurent_Seed['Seed_X']; Seed_Y = Laurent_Seed['Seed_Y']
-seed_X = np.matlib.repmat(Seed_X, 1, 100); seed_Y = np.matlib.repmat(Seed_Y, 1, 100)
-seed_X = seed_X.transpose().flatten(); seed_Y = seed_Y.transpose().flatten()
+#bergdims = sio.loadmat(path2bergdims)['bergdims'] * 1.0
+#Laurent_Seed = sio.loadmat(path2seed)
+#Seed_X = Laurent_Seed['Seed_X']; Seed_Y = Laurent_Seed['Seed_Y']
+#seed_X = np.matlib.repmat(Seed_X, 1, 100); seed_Y = np.matlib.repmat(Seed_Y, 1, 100)
+#seed_X = seed_X.transpose().flatten(); seed_Y = seed_Y.transpose().flatten()
 LAT = np.ravel(vel['latw'][0,0]); LAT = np.asarray([float(i) for i in LAT])
 LON = np.ravel(vel['lonw'][0,0]); LON = np.asarray([float(i) for i in LON])
 uwF = vel['uw']; uwF = uwF[0,0] 

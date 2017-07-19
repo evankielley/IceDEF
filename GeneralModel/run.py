@@ -48,7 +48,7 @@ def main():
         
         # Plot
         plot_name = 'plot' + str(bb)
-        plot_name = plot_track_on_map(berg_lon,berg_lat)
+        plot_name = plot_track_on_map(berg_lon,berg_lat,show=True)
         plot_list.append(plot_name)
     
     # Save a PDF of all plots

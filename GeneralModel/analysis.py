@@ -31,20 +31,26 @@ def plot_berg_location(xil,yil,show=False):
     else:
         return f        
 
-def plot_track_on_map(xil,yil,show=False):
+def plot_track_on_map(berg_lon,berg_lat,show=False):
 
-    #xil = xil - 360
-    xil = xil - 360
-    xil = xil[~np.isnan(xil)]
-    #yil = yil[0]
-    yil = yil[~np.isnan(yil)]
+    berg_lon = berg_lon[~np.isnan(berg_lon)]-360
+    berg_lat = berg_lat[~np.isnan(berg_lat)]
 
     # Lambert Conformal Conic map.
-    m = Basemap(llcrnrlon=-80.,llcrnrlat=30.,urcrnrlon=-30.,urcrnrlat=70.,
+
+    llc_lon = np.amin(berg_lon) - 10
+    llc_lat = np.amin(berg_lat) - 10
+
+    urc_lon = np.amax(berg_lon) + 10
+    urc_lat = np.amax(berg_lat) + 10
+
+    fig = plt.figure()
+    
+    m = Basemap(llcrnrlon=llc_lon,llcrnrlat=llc_lat,urcrnrlon=urc_lon,urcrnrlat=urc_lat,
                 projection='lcc',lat_1=20., lon_0=-60.,
                 resolution ='l',area_thresh=1000.)
 
-    x, y = m(xil,yil)
+    x, y = m(berg_lon,berg_lat)
     m.plot(x,y,linewidth=1.5,color='r')
 
     # draw coastlines, meridians and parallels.
@@ -55,4 +61,7 @@ def plot_track_on_map(xil,yil,show=False):
     m.drawparallels(np.arange(10,70,20),labels=[1,1,0,0])
     m.drawmeridians(np.arange(-100,0,20),labels=[0,0,0,1])
     plt.title('Iceberg Drift')
-    plt.show()
+    if show:
+        plt.show()
+    else:
+        return fig
