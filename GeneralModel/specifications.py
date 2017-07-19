@@ -1,8 +1,17 @@
 import numpy as np
 
+# Paths
+root = '/home/evankielley/IceDEF/GeneralModel/'
+
+# Flags 
+
+interpolate = True
+save_plots = False
+
+
 # Icebergs
 num_bergs = 1                              
-trajnum = 1                               
+num_trajs = 1                               
 init_berg_dims = np.asarray([[600., 500., 400.]]) 
 init_berg_coords = np.asarray([[310.,50.]])      
 

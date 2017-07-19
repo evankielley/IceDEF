@@ -1,3 +1,4 @@
+import numpy as np
 from iceberg import Iceberg
 from specifications import *
 from load_constants import *
@@ -7,57 +8,57 @@ from functions import *
 from store_objects import *
 from analysis import *
 from test import *
-import numpy as np
 from scipy.interpolate import interpn
 from matplotlib.backends.backend_pdf import PdfPages
 
-# Paths
-root = '/home/evankielley/IceDEF/GeneralModel/'
-
-# Flags 
-global fixed, interpolate, save_plots
-
-interpolate = True
-save_plots = False
 
 def main():
     plot_list = []
-    global bb
-    for bb in range(1, num_bergs+1):
-        print("Iceberg: {}".format(bb))
-        silent_remove('berg{}.pkl'.format(bb))
-        
-        global j
-        for j in range(0,trajnum):
 
+    for bb in range(1, num_bergs+1):
+
+        # Remove old output files
+        silent_remove('berg{}.pkl'.format(bb))
+
+        print("Iceberg: {}".format(bb))
+        
+        for j in range(0, num_trajs):
+
+            # Create iceberg instance
             berg = Iceberg(nt, init_berg_dims[bb-1], init_berg_coords[bb-1])
 
-            global tts
+            # Randomize start time
             ts = np.random.randint(0,round(final_t/2)) 
             tts = ts*tres
             lt = nt-tts
 
+            # Simulate
             i=0
             while not berg.outOfBounds and not berg.melted and i<lt-1:
                 I=i
-                berg.coords,berg.outOfBounds,berg.grounded,Ua,SST,ui,uw,vi,vw = drift(I,berg.coords,berg.dims)
-                berg.dims,berg.dimsChange,berg.melted = melt(I,berg.dims,berg.dimsChange,Ua,SST,ui,uw,vi,vw)
+                berg.coords,berg.outOfBounds,berg.grounded,Ua,SST,ui,uw,vi,vw = drift(I,tts,berg.coords,berg.dims)
+                berg.dims,berg.melted = melt(I,berg.dims,Ua,SST,ui,uw,vi,vw)
                 i += 1
 
+            # Store iceberg instance
             store_objects(berg, 'berg{}.pkl'.format(bb))
 
-        berg_lon, berg_lat = load_objects(root + 'berg{}.pkl'.format(bb),trajnum,nt)
+        # Load all trajectories for one iceberg
+        berg_lon, berg_lat = load_objects(root + 'berg{}.pkl'.format(bb), num_trajs, nt)
+        
+        # Plot
         plot_name = 'plot' + str(bb)
         plot_name = plot_track_on_map(berg_lon,berg_lat)
         plot_list.append(plot_name)
     
+    # Save a PDF of all plots
     if save_plots:
         with PdfPages('plots.pdf') as pdf:
             for plot in plot_list:
                 pdf.savefig(plot)
 
         
-def drift(I,berg_coords,berg_dims):
+def drift(I,tts,berg_coords,berg_dims):
 
     GROUNDED = False
     OB = False
@@ -141,27 +142,24 @@ def drift(I,berg_coords,berg_dims):
     return berg_coords,OB,GROUNDED,Ua,SST,ui,uw,vi,vw
 
 
-def melt(I,berg_dims,berg_ddims,Ua,SST,ui,uw,vi,vw):
+def melt(I,berg_dims,Ua,SST,ui,uw,vi,vw):
 
-    melted = False
+    MELTED = False
 
     # Melt terms
     Me = CMe1 * (Cs1 * Ua**Cs2 + Cs3 * Ua)  ## Wind driven erosion
     Mv = CMv1 * SST + CMv2 * SST**2  ## Thermal side wall erosion 
     Mb = CMb1*np.power(np.sqrt(np.square(ui-uw)+np.square(vi-vw)),CMb2)*(SST-Ti0)/berg_dims[I,0]**CMb3
 
-    # Melt rates
-    berg_ddims[I,0] = - Mv - Me 
-    berg_ddims[I,1] = - Mv - Me 
-    berg_ddims[I,2] = - Mb
-    berg_dims[I+1,0] = berg_dims[I,0]+berg_ddims[I,0]*Dt 
-    berg_dims[I+1,1] = berg_dims[I,1]+berg_ddims[I,1]*Dt 
-    berg_dims[I+1,2] = berg_dims[I,2]+berg_ddims[I,2]*Dt 
+    # New berg dims
+    berg_dims[I+1,0] = berg_dims[I,0] - (Mv + Me)*Dt
+    berg_dims[I+1,1] = berg_dims[I,1] - (Mv + Me)*Dt
+    berg_dims[I+1,2] = berg_dims[I,2] - Mb*Dt
 
     # Check if iceberg size is negative
     if berg_dims[I+1,0]<0 or berg_dims[I+1,1]<0 or berg_dims[I+1,2]<0:
         berg_dims[I+1,0]=0; berg_dims[I+1,1]=0; berg_dims[I+1,2]=0
-        melted = True
+        MELTED = True
 
     else:
         # Rollover
@@ -176,7 +174,7 @@ def melt(I,berg_dims,berg_ddims,Ua,SST,ui,uw,vi,vw):
             berg_dims[I+1,0] = berg_dims[I+1,1] 
             berg_dims[I+1,1] = wn
 
-    return berg_dims,berg_ddims,melted
+    return berg_dims, MELTED
 
 
 if __name__=="__main__":

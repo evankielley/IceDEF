@@ -1,7 +1,7 @@
 import numpy as np
 
 class Iceberg(object):
-    """A chunk of floating ice typically drifting in the ocean.
+    """A chunk of floating ice drifting in the ocean.
     
     Args:
         num_steps (inum_steps): the number of timesteps that the iceberg will exist for.
@@ -25,11 +25,9 @@ class Iceberg(object):
     def __init__(self, num_steps, init_berg_dims, init_berg_coords):
         """The constructor of the Iceberg class."""
         num_steps = int(num_steps)
-        self.dims = np.multiply(np.empty([num_steps,3]),np.nan)
+        self.dims = np.empty([num_steps,3])*np.nan
         self.dims[0,:] = init_berg_dims
-        self.dimsChange = np.multiply(np.empty([num_steps,3]),np.nan)
-        self.dimsChange[0,:] = 0.,0.,0.
-        self.coords = np.multiply(np.empty([num_steps,2]),np.nan)
+        self.coords = np.empty([num_steps,2])*np.nan
         self.coords[0,:] = init_berg_coords
         self.melted = False
         self.outOfBounds = False 
