@@ -1,5 +1,7 @@
 \documentclass[12pt]{article}
 \usepackage{amsmath}
+
+
 \begin{document}
 
 \section{$\gamma$ - Water Drag vs. Air Drag}
@@ -28,5 +30,32 @@ y^* = 2 \Omega sin(\dfrac{\pi |y|}{180})
 \end{equation}
 
 is the "$y$ location" of the iceberg in degrees latitude.
+
+\section{$\alpha$ and $\beta$ - Dimensionless Parameters}
+
+\begin{equation}
+\alpha \equiv \dfrac{\sqrt{2}}{\Lambda^3}(1-\sqrt{1+\Lambda^4})
+\end{equation}
+
+\begin{equation}
+\beta \equiv \dfrac{1}{\Lambda^3}\sqrt{(4+\Lambda^4)\sqrt{1+\Lambda^4}
+             - 3\Lambda^4 - 4}
+\end{equation}
+
+\section{$\textbf{v}_i$ - Iceberg Velocity}
+
+\begin{equation}
+\textbf{v}_i = \textbf{v}_w + \gamma(-\alpha \boldsymbol{\hat{k}} \times
+               \textbf{v}_a + \beta \textbf{v}_a)
+\end{equation}
+
+\begin{equation}
+v_{i_u} = v_{w_u} + \gamma(-\alpha v_{a_v} + \beta v_{a_u})
+\end{equation}
+
+\begin{equation}
+v_{i_v} = v_{w_v} + \gamma(\alpha v_{a_u} + \beta v_{a_v})
+\end{equation}
+
 
 \end{document}
