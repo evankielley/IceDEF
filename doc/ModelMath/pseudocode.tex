@@ -1,0 +1,43 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath}
+
+\renewcommand{\baselinestretch}{2.5}
+
+\begin{document}
+
+
+\section{Function($t^i$, $x^i$, $y^i$, $\ell^i$, $w^i$, $h^i$)}
+Find nearest $x^*$, $y^*$, and $t^*$ to $x^i$, $y^i$, and $t^i$.\newline
+Use $x^*$, $y^*$, and $t^*$ to find fields $v_{a_u}$, $v_{a_v}$, $v_{w_u}$, 
+$v_{w_v}$, and T.\newline
+$S = \pi(\dfrac{\ell\textit{w}}{\ell+\textit{w}})$\newline
+$\mathit{f} = 2\Omega sin\dfrac{\pi y^i}{180}$\newline
+$\Lambda \equiv \sqrt{\Lambda_w\Lambda_a} = 
+\sqrt{2}C_w\dfrac{\gamma C_w}{y}\dfrac{\lVert\mathbf{v_a}\rVert}{S}$\newline
+$\alpha \equiv \dfrac{\sqrt{2}}{\Lambda^3}(1-\sqrt{1+\Lambda^4})$\newline
+$\beta \equiv \dfrac{1}{\Lambda^3}\sqrt{(4+\Lambda^4)\sqrt{1+\Lambda^4}
+- 3\Lambda^4 - 4}$\newline
+$v_{i_u} = v_{w_u} + \gamma(-\alpha v_{a_v} + \beta v_{a_u})$\newline
+$v_{i_v} = v_{w_v} + \gamma(\alpha v_{a_u} + \beta v_{a_v})$\newline
+$x^{i+1} = x^{i} + v_{i_u} \Delta t cos(\dfrac{\pi \bar{y}}{180})\dfrac{180}
+{\pi R}$\newline
+$y^{i+1} = y^i + v_{i_u} \Delta t \dfrac{180}{\pi R}$\newline
+If $x^{i+1}$, $y^{i+1}$ is on land:\newline
+\indent $x^{i+1} = x^i$ and $y^{i+1} = y^i$.\newline 
+$M_e = C_{Me1}(C_{S1}\lVert\mathbf{v_a}\rVert^{C_{S2}} + 
+C_{S3}\lVert\mathbf{v_a}\rVert)$\newline
+$M_v = T(C_{Mv1} + C_{Mv2}T)$\newline
+$M_b = \dfrac{C_{Mb1}\sqrt{(v_{i_u} - v_{w_u})^2 + (v_{i_v} - v_{w_v})^2}^
+{C_{Mb2}}(T-T_0)}{\ell^{C_{Mb3}}}$\newline
+$\ell^{i+1} = \ell^i - (M_e + M_v)\tilde{t}$\newline
+$w^{i+1} = w^i - (M_e + M_v)\tilde{t}$\newline
+$h^{i+1} = h^i - M_b\tilde{t}$\newline
+If any of $\ell^{i+1}$, $w^{i+1}$, $h^{i+1}$ equal zero:\newline
+\indent Set them all to zero.\newline
+Else:\newline 
+\indent If $w^{i+1}$ is less than $0.85 h^{i+1}$:\newline
+\indent \indent Swap $w^{i+1}$ and $h^{i+1}$.\newline
+\indent If $w^{i+1}$ > $\ell^{i+1}$:\newline
+\indent \indent Swap $w^{i+1}$ and $\ell^{i+1}$.\newline
+Return $x^{i+1}$, $y^{i+1}$, $\ell^{i+1}$, $w^{i+1}$, $h^{i+1}$.\newline
+\end{document}
