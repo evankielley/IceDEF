@@ -1,3 +1,5 @@
+This branch is the initial steps in work with Till Wagner's model
+
 # IceDEF
 Iceberg Drift Ensemble Forecasting
 
