@@ -1,2 +1,0 @@
-V=griddedInterpolant(uaF(1,1,),uaF(),uaF());
-surf(V);
