@@ -73,7 +73,7 @@ class Metocean(object):
 
 
 
-class GLBv008(MetoceanModel):
+class GLBv008(Metocean):
     url = 'http://tds.hycom.org/thredds/dodsC/GLBv0.08/expt_56.3'
     xy_res = 0.08  # spatial resolution in degrees lat/lon
     t_res = 3  # temporal resolution in hours
@@ -101,7 +101,7 @@ class GLBv008(MetoceanModel):
 
 
 
-class Navgem(MetoceanModel):
+class Navgem(Metocean):
     url = 'http://coastwatch.pfeg.noaa.gov/erddap/griddap/erdNavgem05D10mWind_LonPM180'
     xy_res = 0.5  # spatial resolution in degrees lat/lon
     t_res = 6  # temporal resolution in hours
@@ -124,7 +124,7 @@ class Navgem(MetoceanModel):
 
 
 
-class ECMWF_Ocean(MetoceanModel):
+class ECMWF_Ocean(Metocean):
     # product identifier: GLOBAL_ANALYSIS_FORECAST_PHY_001_024
     #path = '/media/evankielley/hd2/ECMWF/ocean/daily/'
     path = '/home/evankielley/Data/ECMWF/ocean/daily/'
@@ -163,7 +163,7 @@ class ECMWF_Ocean(MetoceanModel):
 
 
 
-class ECMWF_Atm(MetoceanModel):
+class ECMWF_Atm(Metocean):
     # product identifier: WIND_GLO_WIND_L4_NRT_OBSERVATIONS_012_004
     #path = '/media/evankielley/hd2/ECMWF/atm/daily/'
     path = '/home/evankielley/Data/ECMWF/atm/daily/'
