@@ -1,3 +1,6 @@
+# Plots directory
+plots/
+
 # Dask worker space
 dask-worker-space/
 
