@@ -1,0 +1,9 @@
+24 January, 2018
+
+Smaller timestep
+Scipy Regular Grid Interpolant
+Fix the size
+Iceberg tracks for other 15 day time periods
+
+Alison Ambi -- help finding papers for lit review
+
