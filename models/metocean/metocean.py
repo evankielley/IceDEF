@@ -4,7 +4,8 @@ import netCDF4 as nc
 import xarray as xr
 import scipy.interpolate as interp
 import datetime
-import os
+from datetime import date, timedelta
+import urllib
 
 
 class Metocean(object):
@@ -32,6 +33,7 @@ class Metocean(object):
                          (t_max - pd.Timestamp('1950-01-01')).seconds/3600 + self.t_res
             self.t_min = nc.num2date(self.t_min, self.t_units, self.t_calendar)
             self.t_max = nc.num2date(self.t_max, self.t_units, self.t_calendar)
+            
             self.year_min = str(self.t_min.year)
             self.year_max = str(self.t_max.year)
             self.month_min = str(self.t_min.month)
@@ -125,27 +127,38 @@ class Navgem(Metocean):
 
 
 class ECMWF_Ocean(Metocean):
+    
     # product identifier: GLOBAL_ANALYSIS_FORECAST_PHY_001_024
-    #path = '/media/evankielley/hd2/ECMWF/ocean/daily/'
-    path = '/home/evankielley/Data/ECMWF/ocean/daily/'
-    all_files = sorted(os.listdir(path))
-    fname = '{}{}{}.nc' #.format(year, month, day)
+
+    path = 'ftp://data.munroelab.ca/pub/ECMWF/ocean/daily/'
     xy_res = 1/12  # spatial resolution in degrees lat/lon
     t_res = 1  # temporal resolution in hours
     t_units = 'hours since 1950-01-01 00:00:00'
     t_calendar = 'standard'
+    
     def __init__(self, x_min, x_max, y_min, y_max, t_min, t_max):
+        
         super().__init__(x_min, x_max, y_min, y_max, t_min, t_max)
-        if self.t_min.year == self.t_max.year and self.t_min.month == self.t_max.month and self.t_min.day == self.t_max.day:
-            self.ds = nc.Dataset(self.path + self.fname.format(self.year_min, self.month_min, self.day_min))
-        else:
-            self.files = self.all_files[self.all_files.index(self.fname.format(self.year_min, self.month_min, self.day_min)):
-                                   self.all_files.index(self.fname.format(self.year_max, self.month_max, self.day_max))+1]
-            for i in range(len(self.files)):
-                self.files[i] = self.path + self.files[i]
+        
+        d1 = date(self.t_min.year, self.t_min.month, self.t_min.day)  # start date
+        d2 = date(self.t_max.year, self.t_max.month, self.t_max.day)  # end date
+        delta = d2 - d1  # timedelta
+            
+        self.filenames = []
+        self.files = []
+        
+        for i in range(delta.days + 1):
+            new_date = d1 + timedelta(days=i)
+            self.filenames.append(self.path + str(new_date).replace('-', '') + '.nc')
+            self.files.append(urllib.request.urlretrieve(self.filenames[i])[0])
+            
+        if len(self.files) == 1:
+            self.ds = nc.Dataset(self.files[0])
+        elif len(self.files) > 1:
             self.ds = nc.MFDataset(self.files)
-            #self.ds = nc.MFDataset([self.path + self.fname.format(self.year_min, self.month_min, self.day_min),
-            #                        self.path + self.fname.format(self.year_max, self.month_max, self.day_max)])
+        else:
+            print('Error in file list')
+
         self.times = nc.num2date(self.ds.variables['time'][:], self.t_units, self.t_calendar)
         self.datetimes = self.times
         self.t2000 = []
@@ -164,27 +177,37 @@ class ECMWF_Ocean(Metocean):
 
 
 class ECMWF_Atm(Metocean):
+    
     # product identifier: WIND_GLO_WIND_L4_NRT_OBSERVATIONS_012_004
-    #path = '/media/evankielley/hd2/ECMWF/atm/daily/'
-    path = '/home/evankielley/Data/ECMWF/atm/daily/'
-    fname = 'sub{}{}{}.nc' #.format(year, month, day)
-    all_files = sorted(os.listdir(path))
+    path = 'ftp://data.munroelab.ca/pub/ECMWF/atm/daily/'
     xy_res = 1/4  # spatial resolution in degrees lat/lon
     t_res = 6  # temporal resolution in hours
     t_units = 'hours since 1900-01-01 00:00:00.0 00:00'
     t_calendar = 'standard'
+    
     def __init__(self, x_min, x_max, y_min, y_max, t_min, t_max):
+        
         super().__init__(x_min, x_max, y_min, y_max, t_min, t_max)
-        if self.t_min.year == self.t_max.year and self.t_min.month == self.t_max.month and self.t_min.day == self.t_max.day:
-            self.ds = nc.Dataset(self.path + self.fname.format(self.year_min, self.month_min, self.day_min))
-        else:
-            self.files = self.all_files[self.all_files.index(self.fname.format(self.year_min, self.month_min, self.day_min)):
-                                   self.all_files.index(self.fname.format(self.year_max, self.month_max, self.day_max))+1]
-            for i in range(len(self.files)):
-                self.files[i] = self.path + self.files[i]
+        
+        d1 = date(self.t_min.year, self.t_min.month, self.t_min.day)  # start date
+        d2 = date(self.t_max.year, self.t_max.month, self.t_max.day)  # end date
+        delta = d2 - d1  # timedelta
+            
+        self.filenames = []
+        self.files = []
+        
+        for i in range(delta.days + 1):
+            new_date = d1 + timedelta(days=i)
+            self.filenames.append(self.path + 'sub' + str(new_date).replace('-', '') + '.nc')
+            self.files.append(urllib.request.urlretrieve(self.filenames[i])[0])
+            
+        if len(self.files) == 1:
+            self.ds = nc.Dataset(self.files[0])
+        elif len(self.files) > 1:
             self.ds = nc.MFDataset(self.files)
-            #self.ds = nc.MFDataset([self.path + self.fname.format(self.year_min, self.month_min, self.day_min),
-            #                        self.path + self.fname.format(self.year_max, self.month_max, self.day_max)])
+        else:
+            print('Error in file list')
+
         self.times = nc.num2date(self.ds.variables['time'][:], self.t_units, self.t_calendar)
         self.datetimes = self.times
         self.t2000 = []
