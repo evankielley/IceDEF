@@ -17,19 +17,20 @@ CMv1 = 7.62e-3; CMv2 = 1.29e-3; CMe1 = 0.5
 CMb1 = 0.58; CMb2 = 0.8; CMb3 = 0.2
 
 
-def wagner_drift(t, x, y, l, w, h, AU, AV, WU, WV, SST, dt):
+
+def wagner_drift(x, y, l, w, h, AU, AV, WU, WV, SST, t_ocean, t_atm, dt):
 
 
     # Extract values from input fields
     
-    vau = AU([t, y, x])[0]
-    vav = AV([t, y, x])[0]  
-    vwu = WU([t, y, x])[0] 
-    vwv = WV([t, y, x])[0]
-    sst = SST([t, y, x])[0]
+    vau = AU([t_atm, y, x])[0]
+    vav = AV([t_atm, y, x])[0]  
+    vwu = WU([t_ocean, y, x])[0] 
+    vwv = WV([t_ocean, y, x])[0]
+    sst = SST([t_ocean, y, x])[0]
     
     
-    # Drifting
+    # Drift
 
     S = np.pi*((l*w)/(l+w))
     ff = 2*om*np.sin((np.abs(y)*np.pi)/180)
@@ -62,6 +63,7 @@ def wagner_drift(t, x, y, l, w, h, AU, AV, WU, WV, SST, dt):
     x_new = x + (viu*dt)/(np.cos((((y + y_new)/2)*np.pi)/180))*(180/(np.pi*R))
 
 
+    # Decay
 
     Me = CMe1*(Cs1*np.sqrt(vau**2 + vav**2)**Cs2 + Cs3*np.sqrt(vau**2 + vav**2))
     Mv = CMv1*sst + CMv2*sst**2
@@ -82,34 +84,3 @@ def wagner_drift(t, x, y, l, w, h, AU, AV, WU, WV, SST, dt):
         w_new, l_new = l_new, w_new
         
     return x_new, y_new, l_new, w_new, h_new
-
-
-
-def wagner_decay(t, x, y, l, w, h, AU,AV,WU,WV, SST):
-
-    vau = AU([t, y, x])[0]
-    vav = AV([t, y, x])[0]  
-    vwu = WU([t, y, x])[0] 
-    vwv = WV([t, y, x])[0]
-
-    sst = SST([t, y, x])[0]
-
-    Me = CMe1*(Cs1*np.sqrt(vau**2 + vav**2)**Cs2 + Cs3*np.sqrt(vau**2 + vav**2))
-    Mv = CMv1*sst + CMv2*sst**2
-    Mb = CMb1*np.power(np.sqrt(np.square(viu-vwu)+np.square(viv-vwv)),CMb2)*(sst - sst0)/l**CMb3
-
-    l_new = l - (Mv + Me)*(dt/(24*3600))  # convert dt from secs to days
-    w_new = w - (Mv + Me)*(dt/(24*3600))
-    h_new = h - Mb*(dt/(24*3600))
-
-    if w_new < 0.85*h_new:
-        # Rollover
-        print('rollover')
-        w_new, h_new = h_new, w_new
-
-    if w_new > l_new:
-        # Ensure l is greater than w
-        print('swap l and w')
-        w_new, l_new = l_new, w_new
-    
-    return l_new, w_new, h_new
