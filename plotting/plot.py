@@ -235,6 +235,22 @@ def plot_return_size_vary(iip_berg, mod_berg_gr, mod_berg_bb, mod_berg_sm, mod_b
     return f
 
 
+def plot_return_size_vary_no_time(iip_berg, mod_berg_gr, mod_berg_bb, mod_berg_sm, mod_berg_med, 
+                         mod_berg_lg, mod_berg_vlg, ind=None):
+    f = plt.figure()
+
+    plt.plot(iip_berg.lons, iip_berg.lats, label='observed', color='red')
+    plt.plot(mod_berg_gr.lons, mod_berg_gr.lats, label='gr', color='orange')
+    plt.plot(mod_berg_bb.lons, mod_berg_bb.lats, label='bb', color='green')
+    plt.plot(mod_berg_sm.lons, mod_berg_sm.lats, label='sm', color='blue')
+    plt.plot(mod_berg_med.lons, mod_berg_med.lats, label='med', color='black')
+    plt.plot(mod_berg_lg.lons, mod_berg_lg.lats, label='lg', color='purple')
+    plt.plot(mod_berg_vlg.lons, mod_berg_vlg.lats, label='vlg', color='yellow')
+    plt.legend()
+    plt.xlabel('Longitude'); plt.ylabel('Latitude')
+
+    return f
+
 
 def animate_winds():
 
