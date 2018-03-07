@@ -2,6 +2,8 @@ import scipy.interpolate as interp
 import datetime
 from datetime import date, timedelta
 import urllib
+import netCDF4 as nc
+import numpy as np
 
 
 class Metocean(object):
