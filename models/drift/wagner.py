@@ -1,3 +1,11 @@
+"""Iceberg drift model from Wagner, 2017.
+.. module:: wagner
+    :platform: Unix, Windows
+    :synopsis: This module computes the trajectory of an iceberg in terms of it's longitude and latitude. The equations used in this
+    model stem from the paper, An Analytical Model of Iceberg Drift, Wagner et. al. (2017).
+.. moduleauthor:: Evan Kielley <evankielley@gmail.com>
+"""
+
 import numpy as np
 import cmath
 
@@ -18,15 +26,53 @@ CMb1 = 0.58; CMb2 = 0.8; CMb3 = 0.2
 
 
 
-def wagner_drift(x, y, l, w, h, AU, AV, WU, WV, SST, t_ocean, t_atm, dt):
+def wagner_drift(x, y, l, w, h, UA, VA, UW, VW, SST, t_ocean, t_atm, dt):
+    """This functions computes the trajectory of an iceberg over one timestep.
+    :param x: The iceberg's longitudinal coordinate (degrees).
+    :type x: float.
+    :param y: The iceberg's latitudinal coordinate (degrees).
+    :type y: float.
+    :param l: The iceberg's length dimension (m).
+    :type l: float.
+    :param w: The iceberg's width dimension (m).
+    :type w: float.
+    :param h: The iceberg's height dimension (m).
+    :type h: float.
+    :param UA: The interpolated u-component of the wind velocity (m/s), East is positive.
+    :type UA: array_like, shape (t, x, y).
+    :param VA: The interpolated v-component of the wind velocity (m/s), North is positive.
+    :type VA: array_like, shape (t, x, y).
+    :param UW: The interpolated u-component of the current velocity (m/s), East is positive.
+    :type UW: array_like, shape (t, x, y).
+    :param VW: The interpolated v-component of the current velocity (m/s), North is positive.
+    :type VW: array_like, shape (t, x, y).
+    :param SST: The interpolated sea-surface temperature (degrees C).
+    :type SST: array_like, shape (t, x, y).
+    :param t_ocean: The timestep that agrees with the time units for the ocean current field.
+    :type t_ocean: float.
+    :param t_ocean: The timestep that agrees with the time units for the wind field.
+    :type t_atm: float.
+    :param dt: The timestep length (s).
+    :type dt: float.
+    :return x_new: The new longitudinal position of the iceberg (degrees).
+    :rtype x_new: float.
+    :return y_new: The new latitudinal position of the iceberg (degrees).
+    :rtype y_new: float.
+    :return l_new: The new length of the iceberg (m).
+    :rtype l_new: float.
+    :return w_new: The new width of the iceberg (m).
+    :rtype w_new: float.
+    :return h_new: The new height of the iceberg (m).
+    :rtype h_new: float.
+    """
 
 
     # Extract values from input fields
     
-    vau = AU([t_atm, y, x])[0]
-    vav = AV([t_atm, y, x])[0]  
-    vwu = WU([t_ocean, y, x])[0] 
-    vwv = WV([t_ocean, y, x])[0]
+    vau = UA([t_atm, y, x])[0]
+    vav = VA([t_atm, y, x])[0]  
+    vwu = UW([t_ocean, y, x])[0] 
+    vwv = VW([t_ocean, y, x])[0]
     sst = SST([t_ocean, y, x])[0]
     
     
