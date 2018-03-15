@@ -252,7 +252,7 @@ def plot_return_size_vary_no_time(iip_berg, mod_berg_gr, mod_berg_bb, mod_berg_s
     return f
 
 
-def animate_winds():
+def animate_winds(atm_data, iip_berg, mod_berg):
 
     fig = plt.figure()
     ax = plt.axes(projection=ccrs.PlateCarree())
@@ -267,12 +267,12 @@ def animate_winds():
 
     ax.plot(iip_berg.lons[:], iip_berg.lats[:], color='orange')
     ax.plot(mod_berg.lons[:], mod_berg.lats[:], color='yellow')
-    wind_mag = np.sqrt(atm_data.wind_u**2 + atm_data.wind_v**2)
+    wind_mag = np.sqrt(atm_data.UA**2 + atm_data.VA**2)
     im = plt.imshow(wind_mag[0,:,:], 
                     extent=[atm_data.lons[0], atm_data.lons[-1] + atm_data.xy_res, atm_data.lats[0], atm_data.lats[-1] + atm_data.xy_res],
                     origin = 'lower', vmin=2, vmax=8)
     plt.colorbar()
-    quiv = plt.quiver(atm_data.lons[:] + atm_data.xy_res, atm_data.lats[:] + atm_data.xy_res, atm_data.wind_v[0,:,:].T, atm_data.wind_u[0,:,:].T, 
+    quiv = plt.quiver(atm_data.lons[:] + atm_data.xy_res, atm_data.lats[:] + atm_data.xy_res, atm_data.UA[0,:,:].T, atm_data.VA[0,:,:].T, 
                       scale=20, headwidth=5, width=0.005)
     title = plt.title('')
 
@@ -280,16 +280,16 @@ def animate_winds():
     def animate(i):
 
         im.set_data(wind_mag[i,:,:])
-        quiv.set_UVC(atm_data.wind_v[i,:,:].T, atm_data.wind_u[i,:,:].T)
+        quiv.set_UVC(atm_data.UA[i,:,:].T, atm_data.VA[i,:,:].T)
         title.set_text('time: {:.0f} hours'.format(i*6))
         return im
 
-    anim = FuncAnimation(fig, animate, frames=wind_mag[:,0,0].size-1)
-    HTML(anim.to_html5_video())
+    anim = FuncAnimation(fig, animate, frames=wind_mag[:,0,0].size-1, interval=1000)
+    #HTML(anim.to_html5_video())
     anim.save('plots/wind_mag.gif',writer='imagemagick')
 
 
-def animate_currents():
+def animate_currents(ocean_data, iip_berg, mod_berg):
 
     fig = plt.figure()
     ax = plt.axes(projection=ccrs.PlateCarree())
@@ -304,23 +304,23 @@ def animate_currents():
 
     ax.plot(iip_berg.lons[:], iip_berg.lats[:], color='yellow')
     ax.plot(mod_berg.lons[:], mod_berg.lats[:], color='red')
-    water_mag = np.sqrt(ocean_data.water_u**2 + ocean_data.water_v**2)
+    water_mag = np.sqrt(ocean_data.UW**2 + ocean_data.VW**2)
 
     im = plt.imshow(water_mag[0,:,:], 
                     extent=[ocean_data.lons[0], ocean_data.lons[-1] + ocean_data.xy_res, ocean_data.lats[0], ocean_data.lats[-1] + ocean_data.xy_res],
                     origin = 'lower',vmin=0, vmax=0.3)
     plt.colorbar()
-    quiv = plt.quiver(ocean_data.lons[:] + ocean_data.xy_res, ocean_data.lats[:] + ocean_data.xy_res, ocean_data.water_u[0,:,:].T, ocean_data.water_v[0,:,:].T, 
+    quiv = plt.quiver(ocean_data.lons[:] + ocean_data.xy_res, ocean_data.lats[:] + ocean_data.xy_res, ocean_data.UW[0,:,:].T, ocean_data.VW[0,:,:].T, 
                       scale=1, headwidth=5, width=0.005)
     title = plt.title('')
 
     def animate(i):
 
         im.set_data(water_mag[i,:,:])
-        quiv.set_UVC(ocean_data.water_u[i,:,:].T, ocean_data.water_v[i,:,:].T)
+        quiv.set_UVC(ocean_data.UW[i,:,:].T, ocean_data.VW[i,:,:].T)
         title.set_text('time: {:.0f} hours'.format(i))
         return im
 
-    anim = FuncAnimation(fig, animate, frames=water_mag[:,0,0].size-1)
-    HTML(anim.to_html5_video())
+    anim = FuncAnimation(fig, animate, frames=water_mag[:,0,0].size-1, interval=1000)
+    #HTML(anim.to_html5_video())
     anim.save('plots/water_mag_9.gif',writer='imagemagick')
