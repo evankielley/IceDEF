@@ -381,3 +381,93 @@ def animate_winds(atm_data, iip_berg, mod_berg):
     anim = FuncAnimation(fig, animate, frames=wind_mag[:,0,0].size-1, interval=100)
     #HTML(anim.to_html5_video())
     anim.save('plots/wind_mag.gif',writer='imagemagick')
+    
+
+def plot_turnbull(iip_berg, mod_berg):
+    
+    f = plt.figure()
+    
+    iip_times = np.asarray(iip_berg.datetimes)
+    mod_times = np.asarray(mod_berg.datetimes)
+    iip_t0 = iip_berg.datetimes[0]
+    mod_t0 = mod_berg.datetimes[0]
+    assert iip_t0 == mod_t0
+    iip_times0 = iip_times - iip_t0
+    mod_times0 = mod_times - mod_t0
+    iip_hours0, mod_hours0 = np.empty(0), np.empty(0)
+    
+    for i in range(len(iip_times0)):
+        iip_hours0 = np.append(iip_hours0, round(iip_times0[i].days*24 + iip_times0[i].seconds/3600, 1))
+        plt.text(iip_berg.lons[i], iip_berg.lats[i], '{}'.format(iip_hours0[i]))
+        
+    for j in range(len(mod_times0)):
+        mod_hours0 = np.append(mod_hours0,round(mod_times0[j].days*24 + mod_times0[j].seconds/3600, 1))
+        #plt.text(mod_berg.lons[j], mod_berg.lats[j], '{}H'.format(mod_hours0[j]))
+    ind_arr = []
+    for k in range(len(iip_times0)):
+        mod_diff = mod_hours0 - iip_hours0[k]
+        ind = np.where(mod_diff == 0.0)[0][0]
+        ind_arr.append(ind)
+        plt.scatter(mod_berg.lons[ind], mod_berg.lats[ind], color='orange')
+        plt.text(mod_berg.lons[ind], mod_berg.lats[ind], '{}'.format(mod_hours0[ind]))
+        
+    
+        
+    plt.scatter(iip_berg.lons, iip_berg.lats, label='observed', color='red')
+    plt.plot(mod_berg.lons, mod_berg.lats, label='computed', color='orange')
+
+    plt.legend()
+    plt.xlabel('Longitude'); plt.ylabel('Latitude')
+
+    return f
+
+
+def plot_turnbull_subplots(iip_berg, mod_berg):
+    
+    f, (ax1, ax2) = plt.subplots(1,2)
+    f.tight_layout()
+    
+    iip_times = np.asarray(iip_berg.datetimes)
+    mod_times = np.asarray(mod_berg.datetimes)
+    iip_t0 = iip_berg.datetimes[0]
+    mod_t0 = mod_berg.datetimes[0]
+    assert iip_t0 == mod_t0
+    iip_times0 = iip_times - iip_t0
+    mod_times0 = mod_times - mod_t0
+    iip_hours0, mod_hours0 = np.empty(0), np.empty(0)
+    
+    for i in range(len(iip_times0)):
+        iip_hours0 = np.append(iip_hours0, round(iip_times0[i].days*24 + iip_times0[i].seconds/3600, 1))
+        ax1.text(iip_berg.lons[i], iip_berg.lats[i], '{}'.format(iip_hours0[i]))
+        
+    for j in range(len(mod_times0)):
+        mod_hours0 = np.append(mod_hours0,round(mod_times0[j].days*24 + mod_times0[j].seconds/3600, 1))
+        #plt.text(mod_berg.lons[j], mod_berg.lats[j], '{}H'.format(mod_hours0[j]))
+    ind_arr = []
+    for k in range(len(iip_times0)):
+        mod_diff = mod_hours0 - iip_hours0[k]
+        ind = np.where(mod_diff == 0.0)[0][0]
+        ind_arr.append(ind)
+        ax1.scatter(mod_berg.lons[ind], mod_berg.lats[ind], color='orange')
+        ax1.text(mod_berg.lons[ind], mod_berg.lats[ind], '{}'.format(mod_hours0[ind]))
+        
+    ax1.set_xlabel('Longitude') 
+    ax2.set_ylabel('Latitude')  
+    ax1.scatter(iip_berg.lons, iip_berg.lats, label='observed', color='red')
+    ax1.plot(mod_berg.lons, mod_berg.lats, label='computed', color='orange')
+
+    dists = []
+    dist_times = []
+    for l, item in enumerate(ind_arr):
+        dist = np.sqrt( (mod_berg.lons[item] - iip_berg.lons[l])**2 + \
+                       (mod_berg.lats[item] - iip_berg.lats[l])**2 )
+        dists.append(dist)
+        dist_time = mod_hours0[item]
+        dist_times.append(dist_time)
+    
+    ax2.set_ylabel('Distance (deg)')
+    ax2.set_xlabel('Time (hrs)')
+    ax2.set_ylim(0, max(dists) + np.mean(dists))
+    ax2.scatter(dist_times, dists)
+
+    return f
