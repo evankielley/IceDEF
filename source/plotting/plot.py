@@ -5,6 +5,7 @@ from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from mpl_toolkits.basemap import Basemap
 import bisect
 from matplotlib.animation import FuncAnimation
+import netCDF4 as nc
 
 
 def plot0(iip_berg, mod_berg):
@@ -252,11 +253,32 @@ def plot_return_size_vary_no_time(iip_berg, mod_berg_gr, mod_berg_bb, mod_berg_s
     return f
 
 
-def animate_winds(atm_data, iip_berg, mod_berg):
 
+        
+def animate_currents(ocean_data, iip_berg, mod_berg):
+    
+    mod_berg_t1950 = nc.date2num(mod_berg.datetimes, 
+                                 'hours since 1950-01-01 00:00:00.0 00:00', 'standard')
+    
+    lon0 = np.where(ocean_data.lons < min(mod_berg.lons))[0][-1]
+    lonn = np.where(ocean_data.lons > max(mod_berg.lons))[0][0]
+    lat0 = np.where(ocean_data.lats < min(mod_berg.lats))[0][-1] 
+    latn = np.where(ocean_data.lats > max(mod_berg.lats))[0][0]
+    
+    UW = np.empty([len(mod_berg_t1950), 
+                len(ocean_data.lats[lat0-1:latn+1]), len(ocean_data.lons[lon0-1:lonn+1])])
+    VW = np.empty([len(mod_berg_t1950), 
+                len(ocean_data.lats[lat0-1:latn+1]), len(ocean_data.lons[lon0-1:lonn+1])])
+    
+    for i, ival in enumerate(mod_berg_t1950):
+        for j, jval in enumerate(ocean_data.lats[lat0-1:latn+1]):
+            for k, kval in enumerate(ocean_data.lons[lon0-1:lonn+1]):
+                UW[i][j][k] = ocean_data.iUW([ival,jval,kval])
+                VW[i][j][k] = ocean_data.iVW([ival,jval,kval])
+    
     fig = plt.figure()
     ax = plt.axes(projection=ccrs.PlateCarree())
-    ax.set_extent([atm_data.x_min, atm_data.x_max, atm_data.y_min, atm_data.y_max], ccrs.PlateCarree())
+    ax.set_extent([ocean_data.lons[lon0], ocean_data.lons[lonn], ocean_data.lats[lat0], ocean_data.lats[latn]], ccrs.PlateCarree())
     #ax.stock_img()
     ax.coastlines('50m')
     gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,linewidth=2, color='gray', alpha=0.5, linestyle='--')
@@ -265,62 +287,97 @@ def animate_winds(atm_data, iip_berg, mod_berg):
     gl.xformatter = LONGITUDE_FORMATTER
     gl.yformatter = LATITUDE_FORMATTER
 
-    ax.plot(iip_berg.lons[:], iip_berg.lats[:], color='orange')
-    ax.plot(mod_berg.lons[:], mod_berg.lats[:], color='yellow')
-    wind_mag = np.sqrt(atm_data.UA**2 + atm_data.VA**2)
-    im = plt.imshow(wind_mag[0,:,:], 
-                    extent=[atm_data.lons[0], atm_data.lons[-1] + atm_data.xy_res, atm_data.lats[0], atm_data.lats[-1] + atm_data.xy_res],
-                    origin = 'lower', vmin=2, vmax=8)
+    ax.scatter(iip_berg.lons[:], iip_berg.lats[:], color='black')
+    #ax.plot(mod_berg.lons[:], mod_berg.lats[:], color='black')
+    water_mag = np.sqrt(UW**2 + VW**2)
+    im = plt.imshow(water_mag[0,:,:], 
+                    extent=[ocean_data.lons[lon0-1], ocean_data.lons[lonn+1], 
+                            ocean_data.lats[lat0-1], ocean_data.lats[latn+1]],
+                    origin = 'lower', vmin=0, vmax=0.5)
+    
+    line, = plt.plot(mod_berg.lons[0], mod_berg.lats[0], color='black')
+    
     plt.colorbar()
-    quiv = plt.quiver(atm_data.lons[:] + atm_data.xy_res, atm_data.lats[:] + atm_data.xy_res, atm_data.UA[0,:,:].T, atm_data.VA[0,:,:].T, 
+    quiv = plt.quiver(ocean_data.lons[lon0-1:lonn+1], ocean_data.lats[lat0-1:latn+1], UW[0,:,:], VW[0,:,:], 
+                      scale=1, headwidth=5, width=0.005)
+    title = plt.title('time: 0 hours')
+
+
+    def animate(i):
+
+        im.set_data(water_mag[i,:,:])
+        quiv.set_UVC(UW[i,:,:].T, VW[i,:,:].T)
+        title.set_text('time: {:.0f} hours'.format(mod_berg_t1950[i]-mod_berg_t1950[0]))
+        line.set_data(mod_berg.lons[0:i+1], mod_berg.lats[0:i+1])
+        
+        
+        return im, line
+    
+    anim = FuncAnimation(fig, animate, frames=water_mag[:,0,0].size-1, interval=100)
+    #HTML(anim.to_html5_video())
+    anim.save('plots/water_mag.gif',writer='imagemagick')
+        
+    
+    
+    
+    
+def animate_winds(atm_data, iip_berg, mod_berg):
+    
+    mod_berg_t1900 = nc.date2num(mod_berg.datetimes, 
+                                 'hours since 1900-01-01 00:00:00.0 00:00', 'standard')
+    
+    lon0 = np.where(atm_data.lons < min(mod_berg.lons))[0][-1]
+    lonn = np.where(atm_data.lons > max(mod_berg.lons))[0][0]
+    lat0 = np.where(atm_data.lats < min(mod_berg.lats))[0][-1] 
+    latn = np.where(atm_data.lats > max(mod_berg.lats))[0][0]
+    
+    UA = np.empty([len(mod_berg_t1900), 
+                len(atm_data.lats[lat0-1:latn+1]), len(atm_data.lons[lon0-1:lonn+1])])
+    VA = np.empty([len(mod_berg_t1900), 
+                len(atm_data.lats[lat0-1:latn+1]), len(atm_data.lons[lon0-1:lonn+1])])
+    
+    for i, ival in enumerate(mod_berg_t1900):
+        for j, jval in enumerate(atm_data.lats[lat0-1:latn+1]):
+            for k, kval in enumerate(atm_data.lons[lon0-1:lonn+1]):
+                UA[i][j][k] = atm_data.iUA([ival,jval,kval])
+                VA[i][j][k] = atm_data.iVA([ival,jval,kval])
+    
+    fig = plt.figure()
+    ax = plt.axes(projection=ccrs.PlateCarree())
+    ax.set_extent([atm_data.lons[lon0], atm_data.lons[lonn], atm_data.lats[lat0], atm_data.lats[latn]], ccrs.PlateCarree())
+    #ax.stock_img()
+    ax.coastlines('50m')
+    gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,linewidth=2, color='gray', alpha=0.5, linestyle='--')
+    gl.xlabels_top = False
+    gl.ylabels_right = False
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+
+    ax.scatter(iip_berg.lons[:], iip_berg.lats[:], color='black')
+    wind_mag = np.sqrt(UA**2 + VA**2)
+    im = plt.imshow(wind_mag[0,:,:], 
+                    extent=[atm_data.lons[lon0-1], atm_data.lons[lonn+1], 
+                            atm_data.lats[lat0-1], atm_data.lats[latn+1]],
+                    origin = 'lower', vmin=5, vmax=15)
+    
+    line, = plt.plot(mod_berg.lons[0], mod_berg.lats[0], color='black')
+    
+    plt.colorbar()
+    quiv = plt.quiver(atm_data.lons[lon0-1:lonn+1], atm_data.lats[lat0-1:latn+1], UA[0,:,:].T, VA[0,:,:].T, 
                       scale=20, headwidth=5, width=0.005)
-    title = plt.title('')
+    title = plt.title('time: 0 hours')
 
 
     def animate(i):
 
         im.set_data(wind_mag[i,:,:])
-        quiv.set_UVC(atm_data.UA[i,:,:].T, atm_data.VA[i,:,:].T)
-        title.set_text('time: {:.0f} hours'.format(i*6))
-        return im
-
-    anim = FuncAnimation(fig, animate, frames=wind_mag[:,0,0].size-1, interval=1000)
+        quiv.set_UVC(UA[i,:,:].T, VA[i,:,:].T)
+        title.set_text('time: {:.0f} hours'.format(mod_berg_t1900[i]-mod_berg_t1900[0]))
+        line.set_data(mod_berg.lons[0:i+1], mod_berg.lats[0:i+1])
+        
+        
+        return im, line
+    
+    anim = FuncAnimation(fig, animate, frames=wind_mag[:,0,0].size-1, interval=100)
     #HTML(anim.to_html5_video())
     anim.save('plots/wind_mag.gif',writer='imagemagick')
-
-
-def animate_currents(ocean_data, iip_berg, mod_berg):
-
-    fig = plt.figure()
-    ax = plt.axes(projection=ccrs.PlateCarree())
-    ax.set_extent([ocean_data.x_min, ocean_data.x_max, ocean_data.y_min, ocean_data.y_max], ccrs.PlateCarree())
-    #ax.stock_img()
-    ax.coastlines('50m')
-    gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,linewidth=2, color='gray', alpha=0.5, linestyle='--')
-    gl.xlabels_top = False
-    gl.ylabels_right = False
-    gl.xformatter = LONGITUDE_FORMATTER
-    gl.yformatter = LATITUDE_FORMATTER
-
-    ax.plot(iip_berg.lons[:], iip_berg.lats[:], color='yellow')
-    ax.plot(mod_berg.lons[:], mod_berg.lats[:], color='red')
-    water_mag = np.sqrt(ocean_data.UW**2 + ocean_data.VW**2)
-
-    im = plt.imshow(water_mag[0,:,:], 
-                    extent=[ocean_data.lons[0], ocean_data.lons[-1] + ocean_data.xy_res, ocean_data.lats[0], ocean_data.lats[-1] + ocean_data.xy_res],
-                    origin = 'lower',vmin=0, vmax=0.3)
-    plt.colorbar()
-    quiv = plt.quiver(ocean_data.lons[:] + ocean_data.xy_res, ocean_data.lats[:] + ocean_data.xy_res, ocean_data.UW[0,:,:].T, ocean_data.VW[0,:,:].T, 
-                      scale=1, headwidth=5, width=0.005)
-    title = plt.title('')
-
-    def animate(i):
-
-        im.set_data(water_mag[i,:,:])
-        quiv.set_UVC(ocean_data.UW[i,:,:].T, ocean_data.VW[i,:,:].T)
-        title.set_text('time: {:.0f} hours'.format(i))
-        return im
-
-    anim = FuncAnimation(fig, animate, frames=water_mag[:,0,0].size-1, interval=1000)
-    #HTML(anim.to_html5_video())
-    anim.save('plots/water_mag_9.gif',writer='imagemagick')
