@@ -404,9 +404,11 @@ def plot_turnbull(iip_berg, mod_berg):
         mod_hours0 = np.append(mod_hours0,round(mod_times0[j].days*24 + mod_times0[j].seconds/3600, 1))
         #plt.text(mod_berg.lons[j], mod_berg.lats[j], '{}H'.format(mod_hours0[j]))
     ind_arr = []
+    tol = 1e-3
     for k in range(len(iip_times0)):
         mod_diff = mod_hours0 - iip_hours0[k]
-        ind = np.where(mod_diff == 0.0)[0][0]
+        #ind = np.where(mod_diff == 0.0)[0][0]
+        ind = np.where(abs(mod_diff < tol))[0][0]
         ind_arr.append(ind)
         plt.scatter(mod_berg.lons[ind], mod_berg.lats[ind], color='orange')
         plt.text(mod_berg.lons[ind], mod_berg.lats[ind], '{}'.format(mod_hours0[ind]))
