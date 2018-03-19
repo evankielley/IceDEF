@@ -21,8 +21,29 @@ def turnbull_drift(t, dt, vx, vy, x, y, l, w, h, UA, VA, UW, VW):
     Cw =  0.5 #(5.5e-3+ 2.5)/2    # water drag coefficient
     Cdw = 5.0e-4
     
-    Ak = (rhoi/rhow)*(2/np.pi)*(l+w)*h  # from Wagner
-    As = ((rhow - rhoi)/rhoi)*Ak   # from Wagner
+    # Keel info
+    keel_shape = 'triangular'
+    #keel_shape = 'rectangular'
+    #keel_shape = 'max_rectangular'
+
+    
+    if keel_shape is 'triangular':
+        Ak = (rhoi/rhow)*(2/np.pi)*(l+w)*h / 2  # from Wagner
+        As = ((rhow - rhoi)/rhoi)*Ak / 2   # from Wagner   
+    
+    elif keel_shape is 'rectangular':
+        Ak = (rhoi/rhow)*(2/np.pi)*(l+w)*h  # from Wagner
+        As = ((rhow - rhoi)/rhoi)*Ak   # from Wagner
+        
+    elif keel_shape is 'max_rectangular':
+        hk = (rhoi/rhow)*h  # max keel height
+        hs = h - hk  # max sail height
+        Ak = l*hk  # max keel area
+        As = l*hs  # max sail area 
+        
+    else:
+        print('Invalid keel shape')
+
     
     om = 7.2921e-5  # rotation rate of earth in rad/s
     f = 2*om*np.sin(np.deg2rad(y))  # Coriolis parameter (y is latitude in degrees)
@@ -39,11 +60,7 @@ def turnbull_drift(t, dt, vx, vy, x, y, l, w, h, UA, VA, UW, VW):
     # TODO: add skin drag
     Fax = (0.5 * rhoa * Ca * As) * abs(Vax - Vx) * (Vax - Vx)
     Fay = (0.5 * rhoa * Ca * As) * abs(Vay - Vy) * (Vay - Vy)
-
-    hk = (rhoi/rhow)*h  # max keel height
-    hs = h - hk  # max sail height
-    Ak = l*hk  # max keel area
-    As = l*hs  # max sail area        
+       
     
     #Ak = 7*110    # keel area (width (m) * keel depth (m))
     #Ak = l * 0.9*h
