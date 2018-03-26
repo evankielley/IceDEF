@@ -14,14 +14,33 @@ class Iceberg:
         self.length, self.width, self.height = self.get_berg_dims(size)
         
             
-    def get_berg_dims(self, size):
+    def get_berg_dims(self, size, vary=True):
         # Size must be GR, BB, SM, MED, LG, VLG, or a list of [l, w, h]
         # See https://nsidc.org/data/g00807 for more info
         
         if type(size) == list and len(size) == 3:
             l, w, h = size[0], size[1], size[2]
+            
+        elif type(size) == str and vary:
+            if size == 'GR':
+                l = np.random.uniform(0,5); w = np.random.uniform(0,5); l = np.random.uniform(0,10)
+            elif size == 'BB':
+                l = np.random.uniform(5,15); w = np.random.uniform(5,15); h = np.random.uniform(10,50)
+            elif size == 'SM':
+                l = np.random.uniform(15,60); w = np.random.uniform(15,60); h = np.random.uniform(50,150)
+            elif size == 'MED':
+                l = np.random.uniform(60,120); w = np.random.uniform(60,120); h = np.random.uniform(150,450)
+            elif size == 'LG':
+                l = np.random.uniform(120,200); w = np.random.uniform(120,200); h = np.random.uniform(450,750)
+            elif size == 'VLG':
+                l = np.random.uniform(200,500); w = np.random.uniform(200,500); h = np.random.uniform(750,1500)
+            elif size == 'GEN':
+                # no info for GEN so I assume it's LG
+                l = np.random.uniform(120,200); w = np.random.uniform(120,200); h = np.random.uniform(450,750)
+            else:
+                print('Unknown size class')
         
-        elif type(size) == str:
+        elif type(size) == str and not vary:
             if size == 'GR':
                 l = (0+5)/2; w = (0+5)/2; h = (0+1)/2*10
             elif size == 'BB':
@@ -31,13 +50,13 @@ class Iceberg:
             elif size == 'MED':
                 l = (60+120)/2; w = (60+120)/2; h = (15+45)/2*10               
             elif size == 'LG':
-                l = (120)/2; w = (120)/2; h = (45+75)/2*10                
+                l = (120+200)/2; w = (120+200)/2; h = (45+75)/2*10                
             elif size == 'VLG':
                 # Sizes have no listed upper bound
-                l = (200+200/2)/2; w = (200+200/2)/2; h = (75+75/2)/2*10     
+                l = (200+500/2)/2; w = (200+500/2)/2; h = (75+75/2)/2*10     
             # This info for GEN is wrong!
             elif size == 'GEN':
-                l = (120)/2; w = (120)/2; h = (45+75)/2*10            
+                l = (120+200)/2; w = (120+200)/2; h = (45+75)/2*10            
             else:
                 print('unknown size class')
                 l = None; w = None; h = None
