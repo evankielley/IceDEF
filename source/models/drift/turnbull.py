@@ -1,52 +1,49 @@
 import numpy as np
 
-def turnbull_drift(t, dt, vx, vy, x, y, l, w, h, UA, VA, UW, VW):
+def turnbull_drift(iceberg, UA, VA, UW, VW, dt):
+    
+    earth_radius = 6378*1e3
+    om = 7.2921e-5  # rotation rate of earth in rad/s
+    rhoa = 1.225 # density of air (kg/m^3)
+    rhow = 1027.5  # density of water (kg/m^3)
+
 
     Vax = UA
     Vay = VA
     Vcx = UW
     Vcy = VW
         
-    Vx = vx
-    Vy = vy
+    Vx = iceberg.xvels[-1]
+    Vy = iceberg.yvels[-1]
+    x = iceberg.lons[-1]
+    y = iceberg.lats[-1]
+    l = iceberg.length
+    w = iceberg.width
+    h = iceberg.height
+    berg_mass = iceberg.mass
+    Ma = 0.5*berg_mass  # added mass
         
 
     # calculate air density
     # TODO: effect of temperature and humidity
-    rhoa = 1.225 # density of air (kg/m^3)
-    rhow = 1027.5  # density of water (kg/m^3)
-    rhoi = 900
-    Ca = 1.2e-3 #+ 0.1)/2  # air drag coefficient
-    Cw =  0.5 #(5.5e-3+ 2.5)/2    # water drag coefficient
+
+    rhoi = iceberg.density
+    Ca = iceberg.air_drag_coeff  # air drag coefficient
+    Cw =  iceberg.water_drag_coeff  # water drag coefficient
     
     # Keel info
-    Cdw = 5.0e-4  # skin drag in water coefficient
-    keel_shape = 'triangular'
-    #keel_shape = 'rectangular'
-    Ab = 0
-
-    if keel_shape is 'triangular':
-        Ak = (rhoi/rhow)*(2/np.pi)*(l+w)*h / 2  # from Wagner   
-    elif keel_shape is 'rectangular':
-        Ak = (rhoi/rhow)*(2/np.pi)*(l+w)*h  # from Wagner      
-    else:
-        print('Invalid keel shape')
+    Cdw = iceberg.water_skin_drag_coeff  # skin drag in water coefficient
+    keel_shape = iceberg.keel_shape
+    Ak = iceberg.keel_area
+    Ab = iceberg.bottom_area
         
     
     # Sail info
-    Cda = 2.5e-4  # skin drag in air coefficient (Lichey and Hellmer, 2001).
-    sail_shape = 'rectangular'
-    As = ((rhow - rhoi)/rhoi)*Ak / 2   # from Wagner   
-    At = l*w  # area of top of sail
+    Cda = iceberg.air_skin_drag_coeff  # skin drag in air coefficient (Lichey and Hellmer, 2001).
+    sail_shape = iceberg.sail_shape
+    As = iceberg.sail_area  
+    At = iceberg.top_area
     
-    om = 7.2921e-5  # rotation rate of earth in rad/s
-    f = 2*om*np.sin(np.deg2rad(y))  # Coriolis parameter (y is latitude in degrees)
-
-    berg_mass = l*w*h*rhoi
-    Ma = 0.5*berg_mass  # added mass
-    
-    earth_radius = 6378*1e3
-
     
     # Air force
     Fax = (0.5*rhoa*Ca*As + rhoa*Cda*At)*abs(Vax - Vx)*(Vax - Vx)
@@ -60,6 +57,7 @@ def turnbull_drift(t, dt, vx, vy, x, y, l, w, h, UA, VA, UW, VW):
     
     
     # Coriolis force
+    f = 2*om*np.sin(np.deg2rad(y))  # Coriolis parameter (y is latitude in degrees)
     Fcx = f*Vy*berg_mass
     Fcy = -f*Vx*berg_mass
     
@@ -82,11 +80,11 @@ def turnbull_drift(t, dt, vx, vy, x, y, l, w, h, UA, VA, UW, VW):
     ay = (Fay + Fcy + Fwy + Fwpy)/(berg_mass + Ma)
     
     # Iceberg velocity
-    vx += dt*ax
-    vy += dt*ay
+    Vx += dt*ax
+    Vy += dt*ay
     
     # Iceberg position
-    y_new = y + dt*vy*(180/(np.pi*earth_radius))
-    x_new = x + dt*vx/(np.cos((((y + y_new)/2)*np.pi)/180))*(180/(np.pi*earth_radius))
+    y_new = y + dt*Vy*(180/(np.pi*earth_radius))
+    x_new = x + dt*Vx/(np.cos((((y + y_new)/2)*np.pi)/180))*(180/(np.pi*earth_radius))
     
-    return vx, vy, x_new, y_new
+    return Vx, Vy, x_new, y_new
