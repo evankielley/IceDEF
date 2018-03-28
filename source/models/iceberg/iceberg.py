@@ -5,14 +5,55 @@ import numpy as np
 
 class Iceberg:
     
-    def __init__(self, id_num, datetimes, lats, lons, size):
+    def __init__(self, id_num, datetimes, lats, lons, size, shape):
         self.id_num = id_num
         self.datetimes = datetimes
         self.lats = lats
         self.lons = lons
         self.size = size
         self.length, self.width, self.height = self.get_berg_dims(size)
-        
+        self.shape = shape
+        self.shape_factor, self.height2draft_ratio = self.get_shape_factor(shape)
+    
+    
+    def get_shape_factor(self, shape):
+        if shape == 'BLK':
+            shape_factor = 0.5
+            height2draft_ratio = 1/5
+        elif shape == 'TAB':
+            shape_factor = 0.5
+            height2draft_ratio = 1/5
+        elif shape =='NTB':
+            shape_factor = 0.41
+            height2draft_ratio = 1/5
+        elif shape == 'DOM':
+            shape_factor = 0.41
+            height2draft_ratio = 1/4
+        elif shape == 'WDG':
+            shape_factor = 0.33
+            height2draft_ratio = 1/5
+        elif shape == 'PIN':
+            shape_factor = 0.25
+            height2draft_ratio = 1/2
+        elif shape == 'DD':
+            shape_factor = 0.15
+            height2draft_ratio = 1/1
+        elif shape == 'ISL':
+            # no info for ISL so assume BLK
+            shape_factor = 0.5
+            height2draft_ratio = 1/5
+        elif shape == 'RAD':
+            # no info for RAD so assume BLK
+            shape_factor = 0.5
+            height2draft_ratio = 1/5
+        elif shape == 'GEN':
+            # no info for GEN so assume BLK
+            shape_factor = 0.5
+            height2draft_ratio = 1/5
+        else:
+            print('Unknown shape {}'.format(shape))
+        return shape_factor, height2draft_ratio
+    
             
     def get_berg_dims(self, size, vary=True):
         # Size must be GR, BB, SM, MED, LG, VLG, or a list of [l, w, h]
@@ -23,7 +64,7 @@ class Iceberg:
             
         elif type(size) == str and vary:
             if size == 'GR':
-                l = np.random.uniform(0,5); w = np.random.uniform(0,5); l = np.random.uniform(0,10)
+                l = np.random.uniform(0,5); w = np.random.uniform(0,5); h = np.random.uniform(0,10)
             elif size == 'BB':
                 l = np.random.uniform(5,15); w = np.random.uniform(5,15); h = np.random.uniform(10,50)
             elif size == 'SM':
@@ -64,11 +105,10 @@ class Iceberg:
         return l, w, h
 
 
-def get_berg_df(chosen_track_ind):
+def get_berg_df(season_year, chosen_track_ind):
 
     # Choose iceberg year (2002 - 2015 available)
     # Note: Iceberg Season starts in November so many datasets include dates from year-1
-    season_year = 2015
     iip_url_base = 'ftp://sidads.colorado.edu/pub/DATASETS/NOAA/G00807/' 
     iip_filename = 'IIP_{}IcebergSeason.csv'.format(season_year)
     iip_url = iip_url_base + iip_filename
