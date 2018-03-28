@@ -5,54 +5,88 @@ import numpy as np
 
 class Iceberg:
     
-    def __init__(self, id_num, datetimes, lats, lons, size, shape):
+    density = 900
+    keel_shape = 'triangular'
+    sail_shape = 'rectangular'
+    
+    def __init__(self, id_num, datetimes, xvels, yvels, lats, lons, size, shape):
         self.id_num = id_num
         self.datetimes = datetimes
+        self.xvels = xvels
+        self.yvels = yvels
         self.lats = lats
         self.lons = lons
         self.size = size
         self.length, self.width, self.height = self.get_berg_dims(size)
+        self.mass = self.length*self.width*self.height*self.density
         self.shape = shape
-        self.shape_factor, self.height2draft_ratio = self.get_shape_factor(shape)
+        self.shape_factor, self.height2draft_ratio, self.sail_height, self.keel_depth = self.get_shape_info(shape, self.height)
+        self.bottom_area, self.top_area, self.sail_area, self.keel_area = self.get_cross_sectional_areas(self.length, self.width, self.sail_height, self.keel_depth)
+        self.air_drag_coeff, self.water_drag_coeff, self.air_skin_drag_coeff, self.water_skin_drag_coeff = self.get_drag_coeffs()
+        
     
+    def get_cross_sectional_areas(self, length, width, sail_height, keel_depth):
+        rhow = 1027.5
+        bottom_area = 0
+        top_area = length*width
+        keel_area = keel_depth*length/2
+        sail_area = sail_height*length
+        return bottom_area, top_area, keel_area, sail_area
+        
     
-    def get_shape_factor(self, shape):
-        if shape == 'BLK':
+    def get_drag_coeffs(vary_air=True, vary_water=True):
+        
+        air_skin_drag_coeff = 2.5e-4
+        water_skin_drag_coeff = 5.0e-4
+        
+        if vary_air:
+            air_drag_coeff = np.random.uniform(0.01,2.5)
+        else:
+            air_drag_coeff = 1.2e-3
+            
+        if vary_water:
+            water_drag_coeff = np.random.uniform(0.01,2.5)
+        else:
+            water_drag_coeff = 0.5
+            
+            
+        return air_drag_coeff, water_drag_coeff, air_skin_drag_coeff, water_skin_drag_coeff
+    
+    def get_shape_info(self, shape, height):
+        if shape == 'BLK' or 'TAB' or 'ISL' or 'RAD' or 'GEN':
+            # no info for ISL, RAD, or GEN so assume BLK
             shape_factor = 0.5
-            height2draft_ratio = 1/5
-        elif shape == 'TAB':
-            shape_factor = 0.5
-            height2draft_ratio = 1/5
+            height2draft_ratio = 1/6
+            sail_height = height2draft_ratio*height
+            keel_depth = height - sail_height
         elif shape =='NTB':
             shape_factor = 0.41
-            height2draft_ratio = 1/5
+            height2draft_ratio = 1/6
+            sail_height = height2draft_ratio*height
+            keel_depth = height - sail_height
         elif shape == 'DOM':
             shape_factor = 0.41
-            height2draft_ratio = 1/4
+            height2draft_ratio = 1/5
+            sail_height = height2draft_ratio*height
+            keel_depth = height - sail_height
         elif shape == 'WDG':
             shape_factor = 0.33
-            height2draft_ratio = 1/5
+            height2draft_ratio = 1/6
+            sail_height = height2draft_ratio*height
+            keel_depth = height - sail_height
         elif shape == 'PIN':
             shape_factor = 0.25
-            height2draft_ratio = 1/2
+            height2draft_ratio = 1/3
+            sail_height = height2draft_ratio*height
+            keel_depth = height - sail_height
         elif shape == 'DD':
             shape_factor = 0.15
-            height2draft_ratio = 1/1
-        elif shape == 'ISL':
-            # no info for ISL so assume BLK
-            shape_factor = 0.5
-            height2draft_ratio = 1/5
-        elif shape == 'RAD':
-            # no info for RAD so assume BLK
-            shape_factor = 0.5
-            height2draft_ratio = 1/5
-        elif shape == 'GEN':
-            # no info for GEN so assume BLK
-            shape_factor = 0.5
-            height2draft_ratio = 1/5
+            height2draft_ratio = 1/2
+            sail_height = height2draft_ratio*height
+            keel_depth = height - sail_height
         else:
             print('Unknown shape {}'.format(shape))
-        return shape_factor, height2draft_ratio
+        return shape_factor, height2draft_ratio, sail_height, keel_depth
     
             
     def get_berg_dims(self, size, vary=True):
