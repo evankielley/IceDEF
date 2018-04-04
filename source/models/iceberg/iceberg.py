@@ -17,10 +17,10 @@ class Iceberg:
         self.lats = lats
         self.lons = lons
         self.size = size
-        self.length, self.width, self.height = self.get_berg_dims(size)
-        self.mass = self.length*self.width*self.height*self.density
+        self.length, self.width, self.sail_height = self.get_berg_dims(size)
         self.shape = shape
-        self.shape_factor, self.height2draft_ratio, self.sail_height, self.keel_depth = self.get_shape_info(shape, self.height)
+        self.shape_factor, self.height2draft_ratio, self.height, self.keel_depth = self.get_shape_info(shape, self.sail_height)
+        self.mass = self.length*self.width*self.height*self.density
         self.bottom_area, self.top_area, self.sail_area, self.keel_area = self.get_cross_sectional_areas(self.length, self.width, self.sail_height, self.keel_depth)
         self.air_drag_coeff, self.water_drag_coeff, self.air_skin_drag_coeff, self.water_skin_drag_coeff = self.get_drag_coeffs()
         
@@ -34,7 +34,7 @@ class Iceberg:
         return bottom_area, top_area, keel_area, sail_area
         
     
-    def get_drag_coeffs(vary_air=True, vary_water=True):
+    def get_drag_coeffs(vary_air=False, vary_water=False):
         
         air_skin_drag_coeff = 2.5e-4
         water_skin_drag_coeff = 5.0e-4
@@ -52,41 +52,41 @@ class Iceberg:
             
         return air_drag_coeff, water_drag_coeff, air_skin_drag_coeff, water_skin_drag_coeff
     
-    def get_shape_info(self, shape, height):
+    def get_shape_info(self, shape, sail_height):
         if shape == 'BLK' or 'TAB' or 'ISL' or 'RAD' or 'GEN':
             # no info for ISL, RAD, or GEN so assume BLK
             shape_factor = 0.5
-            height2draft_ratio = 1/6
-            sail_height = height2draft_ratio*height
-            keel_depth = height - sail_height
+            height2draft_ratio = 1/5
+            keel_depth = sail_height/height2draft_ratio
+            height = sail_height + keel_depth
         elif shape =='NTB':
             shape_factor = 0.41
-            height2draft_ratio = 1/6
-            sail_height = height2draft_ratio*height
-            keel_depth = height - sail_height
+            height2draft_ratio = 1/5
+            keel_depth = sail_height/height2draft_ratio
+            height = sail_height + keel_depth
         elif shape == 'DOM':
             shape_factor = 0.41
-            height2draft_ratio = 1/5
-            sail_height = height2draft_ratio*height
-            keel_depth = height - sail_height
+            height2draft_ratio = 1/4
+            keel_depth = sail_height/height2draft_ratio
+            height = sail_height + keel_depth
         elif shape == 'WDG':
             shape_factor = 0.33
-            height2draft_ratio = 1/6
-            sail_height = height2draft_ratio*height
-            keel_depth = height - sail_height
+            height2draft_ratio = 1/5
+            keel_depth = sail_height/height2draft_ratio
+            height = sail_height + keel_depth
         elif shape == 'PIN':
             shape_factor = 0.25
-            height2draft_ratio = 1/3
-            sail_height = height2draft_ratio*height
-            keel_depth = height - sail_height
+            height2draft_ratio = 1/2
+            keel_depth = sail_height/height2draft_ratio
+            height = sail_height + keel_depth
         elif shape == 'DD':
             shape_factor = 0.15
-            height2draft_ratio = 1/2
-            sail_height = height2draft_ratio*height
-            keel_depth = height - sail_height
+            height2draft_ratio = 1/1
+            keel_depth = sail_height/height2draft_ratio
+            height = sail_height + keel_depth
         else:
             print('Unknown shape {}'.format(shape))
-        return shape_factor, height2draft_ratio, sail_height, keel_depth
+        return shape_factor, height2draft_ratio, height, keel_depth
     
             
     def get_berg_dims(self, size, vary=True):
@@ -148,10 +148,6 @@ def get_berg_df(season_year, chosen_track_ind):
     iip_url = iip_url_base + iip_filename
     r = urllib.request.urlretrieve(iip_url)
     iip_df = pd.read_csv(r[0])
-
-    #iip_df['SIGHTING_TIME'] = pd.to_datetime(iip_df['SIGHTING_TIME'], format='%H%M')
-    #print(iip_df['SIGHTING_TIME'].dtype)
-    #print(iip_df['SIGHTING_TIME'].values[:2])
     iip_df['TIMESTAMP'] = pd.to_datetime(iip_df['SIGHTING_DATE'], format='%m/%d/%Y')
     iip_df['TIMESTAMP'] += pd.to_timedelta(pd.to_datetime(iip_df['SIGHTING_TIME'], format='%H%M').dt.hour, unit='h')
     iip_df['TIMESTAMP'] += pd.to_timedelta(pd.to_datetime(iip_df['SIGHTING_TIME'], format='%H%M').dt.minute, unit='m')
