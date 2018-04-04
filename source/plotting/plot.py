@@ -306,7 +306,7 @@ def animate_currents(ocean_data, iip_berg, mod_berg):
     def animate(i):
 
         im.set_data(water_mag[i,:,:])
-        quiv.set_UVC(UW[i,:,:].T, VW[i,:,:].T)
+        quiv.set_UVC(UW[i,:,:], VW[i,:,:])
         title.set_text('time: {:.0f} hours'.format(mod_berg_t1950[i]-mod_berg_t1950[0]))
         line.set_data(mod_berg.lons[0:i+1], mod_berg.lats[0:i+1])
         
@@ -363,7 +363,7 @@ def animate_winds(atm_data, iip_berg, mod_berg):
     line, = plt.plot(mod_berg.lons[0], mod_berg.lats[0], color='black')
     
     plt.colorbar()
-    quiv = plt.quiver(atm_data.lons[lon0-1:lonn+1], atm_data.lats[lat0-1:latn+1], UA[0,:,:].T, VA[0,:,:].T, 
+    quiv = plt.quiver(atm_data.lons[lon0-1:lonn+1], atm_data.lats[lat0-1:latn+1], UA[0,:,:], VA[0,:,:], 
                       scale=20, headwidth=5, width=0.005)
     title = plt.title('time: 0 hours')
 
@@ -371,7 +371,7 @@ def animate_winds(atm_data, iip_berg, mod_berg):
     def animate(i):
 
         im.set_data(wind_mag[i,:,:])
-        quiv.set_UVC(UA[i,:,:].T, VA[i,:,:].T)
+        quiv.set_UVC(UA[i,:,:], VA[i,:,:])
         title.set_text('time: {:.0f} hours'.format(mod_berg_t1900[i]-mod_berg_t1900[0]))
         line.set_data(mod_berg.lons[0:i+1], mod_berg.lats[0:i+1])
         
