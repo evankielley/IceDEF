@@ -147,22 +147,29 @@ def get_berg_df(season_year, chosen_track_ind):
     iip_filename = 'IIP_{}IcebergSeason.csv'.format(season_year)
     iip_url = iip_url_base + iip_filename
     r = urllib.request.urlretrieve(iip_url)
-    iip_df = pd.read_csv(r[0], converters={'TIME':str})
-    iip_df['TIMESTAMP'] = pd.to_datetime(iip_df['DATE'] + 'T' + iip_df['TIME'])
+    iip_df = pd.read_csv(r[0])
+
+    #iip_df['SIGHTING_TIME'] = pd.to_datetime(iip_df['SIGHTING_TIME'], format='%H%M')
+    #print(iip_df['SIGHTING_TIME'].dtype)
+    #print(iip_df['SIGHTING_TIME'].values[:2])
+    iip_df['TIMESTAMP'] = pd.to_datetime(iip_df['SIGHTING_DATE'], format='%m/%d/%Y')
+    iip_df['TIMESTAMP'] += pd.to_timedelta(pd.to_datetime(iip_df['SIGHTING_TIME'], format='%H%M').dt.hour, unit='h')
+    iip_df['TIMESTAMP'] += pd.to_timedelta(pd.to_datetime(iip_df['SIGHTING_TIME'], format='%H%M').dt.minute, unit='m')
+   
 
 
     # Choose the min number of observations for an eligible iceberg
     min_num_obs = 10
     eligible_bergs = np.asarray(
-        iip_df['BERG_NUMBER'].value_counts()\
-        .loc[iip_df['BERG_NUMBER'].value_counts() > min_num_obs].index)
+        iip_df['ICEBERG_NUMBER'].value_counts()\
+        .loc[iip_df['ICEBERG_NUMBER'].value_counts() > min_num_obs].index)
 
     chosen_inds_arr = []
 
     for i in range(eligible_bergs.size):
 
         iip_berg_id = eligible_bergs[i]
-        iip_berg_df = iip_df.loc[iip_df['BERG_NUMBER'] == iip_berg_id]
+        iip_berg_df = iip_df.loc[iip_df['ICEBERG_NUMBER'] == iip_berg_id]
         
         ind0 = iip_berg_df.index.tolist()[0]
         indf = iip_berg_df.index.tolist()[-1]
