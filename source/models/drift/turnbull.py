@@ -6,6 +6,7 @@ def turnbull_drift(iceberg, UA, VA, UW, VW, dt):
     om = 7.2921e-5  # rotation rate of earth in rad/s
     rhoa = 1.225 # density of air (kg/m^3)
     rhow = 1027.5  # density of water (kg/m^3)
+    rhoi = 900
 
 
     Vax = UA
@@ -17,9 +18,9 @@ def turnbull_drift(iceberg, UA, VA, UW, VW, dt):
     Vy = iceberg.yvels[-1]
     x = iceberg.lons[-1]
     y = iceberg.lats[-1]
-    l = iceberg.length
-    w = iceberg.width
-    h = iceberg.height
+    l = iceberg.length[-1]
+    w = iceberg.width[-1]
+    h = iceberg.height[-1]
     berg_mass = iceberg.mass
     Ma = 0.5*berg_mass  # added mass
         
@@ -34,15 +35,18 @@ def turnbull_drift(iceberg, UA, VA, UW, VW, dt):
     # Keel info
     Cdw = iceberg.water_skin_drag_coeff  # skin drag in water coefficient
     keel_shape = iceberg.keel_shape
-    Ak = iceberg.keel_area
-    Ab = iceberg.bottom_area
-        
+    #Ak = iceberg.keel_area
+    #Ab = iceberg.bottom_area
+    Ak = (rhoi/rhow)*(2/np.pi)*(l+w)*h / 2
+    Ab = 0
     
     # Sail info
     Cda = iceberg.air_skin_drag_coeff  # skin drag in air coefficient (Lichey and Hellmer, 2001).
     sail_shape = iceberg.sail_shape
-    As = iceberg.sail_area  
-    At = iceberg.top_area
+    #As = iceberg.sail_area  
+    #At = iceberg.top_area
+    As = ((rhow - rhoi)/rhoi)*Ak / 2
+    At = l*w
     
     
     # Air force
