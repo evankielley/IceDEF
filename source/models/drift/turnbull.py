@@ -35,18 +35,18 @@ def turnbull_drift(iceberg, UA, VA, UW, VW, dt):
     # Keel info
     Cdw = iceberg.water_skin_drag_coeff  # skin drag in water coefficient
     keel_shape = iceberg.keel_shape
-    #Ak = iceberg.keel_area
-    #Ab = iceberg.bottom_area
-    Ak = (rhoi/rhow)*(2/np.pi)*(l+w)*h / 2
-    Ab = 0
+    Ak = iceberg.keel_area
+    Ab = iceberg.bottom_area
+    #Ak = (rhoi/rhow)*(2/np.pi)*(l+w)*h / 2
+    #Ab = 0
     
     # Sail info
     Cda = iceberg.air_skin_drag_coeff  # skin drag in air coefficient (Lichey and Hellmer, 2001).
     sail_shape = iceberg.sail_shape
-    #As = iceberg.sail_area  
-    #At = iceberg.top_area
-    As = ((rhow - rhoi)/rhoi)*Ak / 2
-    At = l*w
+    As = iceberg.sail_area  
+    At = iceberg.top_area
+    #As = ((rhow - rhoi)/rhoi)*Ak / 2
+    #At = l*w
     
     
     # Air force
