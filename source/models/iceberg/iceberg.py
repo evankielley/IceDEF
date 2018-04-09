@@ -21,7 +21,7 @@ class Iceberg:
         self.shape = shape
         self.shape_factor, self.height2draft_ratio, self.height, self.keel_depth = self.get_shape_info(shape, self.sail_height)
         self.mass = self.length*self.width*self.height*self.density
-        self.bottom_area, self.top_area, self.sail_area, self.keel_area = self.get_cross_sectional_areas(self.length, self.width, self.sail_height, self.keel_depth)
+        self.bottom_area, self.top_area, self.keel_area, self.sail_area = self.get_cross_sectional_areas(self.length, self.width, self.sail_height, self.keel_depth)
         self.air_drag_coeff, self.water_drag_coeff, self.air_skin_drag_coeff, self.water_skin_drag_coeff = self.get_drag_coeffs()
         
     
@@ -86,6 +86,7 @@ class Iceberg:
             height = sail_height + keel_depth
         else:
             print('Unknown shape {}'.format(shape))
+            
         return shape_factor, height2draft_ratio, height, keel_depth
     
             
@@ -93,22 +94,24 @@ class Iceberg:
         # Size must be GR, BB, SM, MED, LG, VLG, or a list of [l, w, h]
         # See https://nsidc.org/data/g00807 for more info
         
+        # Note: h is sail height
+        
         if type(size) == list and len(size) == 3:
             l, w, h = size[0], size[1], size[2]
             
         elif type(size) == str and vary:
             if size == 'GR':
-                l = np.random.uniform(0,5); w = np.random.uniform(0,5); h = np.random.uniform(0,10)
+                l = np.random.uniform(0,5); w = np.random.uniform(0,5); h = np.random.uniform(0,1)
             elif size == 'BB':
-                l = np.random.uniform(5,15); w = np.random.uniform(5,15); h = np.random.uniform(10,50)
+                l = np.random.uniform(5,15); w = np.random.uniform(5,15); h = np.random.uniform(1,5)
             elif size == 'SM':
-                l = np.random.uniform(15,60); w = np.random.uniform(15,60); h = np.random.uniform(50,150)
+                l = np.random.uniform(15,60); w = np.random.uniform(15,60); h = np.random.uniform(5,15)
             elif size == 'MED':
-                l = np.random.uniform(60,120); w = np.random.uniform(60,120); h = np.random.uniform(150,450)
+                l = np.random.uniform(60,120); w = np.random.uniform(60,120); h = np.random.uniform(15,45)
             elif size == 'LG':
-                l = np.random.uniform(120,200); w = np.random.uniform(120,200); h = np.random.uniform(450,750)
+                l = np.random.uniform(120,200); w = np.random.uniform(120,200); h = np.random.uniform(45,75)
             elif size == 'VLG':
-                l = np.random.uniform(200,500); w = np.random.uniform(200,500); h = np.random.uniform(750,1500)
+                l = np.random.uniform(200,500); w = np.random.uniform(200,500); h = np.random.uniform(75,150)
             elif size == 'GEN':
                 # no info for GEN so I assume it's LG
                 l = np.random.uniform(120,200); w = np.random.uniform(120,200); h = np.random.uniform(450,750)
