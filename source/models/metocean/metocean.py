@@ -56,6 +56,17 @@ class ECMWF_Ocean(Metocean):
         self.iUW = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.UW)
         self.iVW = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.VW)
         self.iSST = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.SST)
+        self.mean_u = np.mean(self.ds.variables['uo'][:,0,:,:].flatten())  # mean u
+        self.mean_v = np.mean(self.ds.variables['vo'][:,0,:,:].flatten())  # mean v
+        self.mean_u_mag = np.mean(abs(self.ds.variables['uo'][:,0,:,:].flatten()))  # mean magnitude of u
+        self.mean_v_mag = np.mean(abs(self.ds.variables['vo'][:,0,:,:].flatten()))  # mean magnitude of v
+        self.mean_mag = np.sqrt(self.mean_u_mag**2 + self.mean_v_mag**2)  # mean magnitude of resultant (m/s)
+        self.mean_dir = np.arctan(self.mean_v/self.mean_u)  # mean direction (radians)
+        self.std_u = np.std(self.ds.variables['uo'][:,0,:,:].flatten())  # std of u
+        self.std_v = np.std(self.ds.variables['vo'][:,0,:,:].flatten())  # std of v
+        self.std_u_mag = np.std(abs(self.ds.variables['uo'][:,0,:,:].flatten()))  # std of magnitude of u
+        self.std_v_mag = np.std(abs(self.ds.variables['vo'][:,0,:,:].flatten()))  # std of magnitude of v
+
 
 
     
