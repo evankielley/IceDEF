@@ -34,7 +34,7 @@ class Iceberg:
         return bottom_area, top_area, keel_area, sail_area
         
     
-    def get_drag_coeffs(vary_air=False, vary_water=False):
+    def get_drag_coeffs(vary_air=True, vary_water=True):
         
         air_skin_drag_coeff = 2.5e-4
         water_skin_drag_coeff = 5.0e-4
