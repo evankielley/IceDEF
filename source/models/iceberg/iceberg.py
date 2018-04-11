@@ -22,7 +22,7 @@ class Iceberg:
         self.shape_factor, self.height2draft_ratio, self.height, self.keel_depth = self.get_shape_info(shape, self.sail_height)
         self.mass = self.length*self.width*self.height*self.density
         self.bottom_area, self.top_area, self.keel_area, self.sail_area = self.get_cross_sectional_areas(self.length, self.width, self.sail_height, self.keel_depth)
-        self.air_drag_coeff, self.water_drag_coeff, self.air_skin_drag_coeff, self.water_skin_drag_coeff = self.get_drag_coeffs()
+        self.air_drag_coeff, self.water_drag_coeff, self.air_skin_drag_coeff, self.water_skin_drag_coeff = self.get_drag_coeffs() 
         
     
     def get_cross_sectional_areas(self, length, width, sail_height, keel_depth):
@@ -196,4 +196,4 @@ def get_berg_df(season_year, chosen_track_ind):
 
     iip_berg_df = iip_df.loc[chosen_inds_arr[chosen_track_ind]].reset_index()
 
-    return iip_berg_df
+    return iip_berg_df, iip_df, chosen_inds_arr
