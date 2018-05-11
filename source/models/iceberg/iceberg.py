@@ -167,7 +167,26 @@ class Iceberg:
                 
         return l, w, h
 
+def get_iip_df(season_year):
+    # Choose iceberg year (2002 - 2015 available)
+    # Note: Iceberg Season starts in November so many datasets include dates from year-1
+    iip_url_base = 'ftp://sidads.colorado.edu/pub/DATASETS/NOAA/G00807/' 
+    iip_filename = 'IIP_{}IcebergSeason.csv'.format(season_year)
+    iip_url = iip_url_base + iip_filename
+    r = urllib.request.urlretrieve(iip_url)
+    iip_df = pd.read_csv(r[0])
+    return iip_df
+    
+def add_datetime_column(iip_df):
+    iip_df['TIMESTAMP'] = pd.to_datetime(iip_df['SIGHTING_DATE'], format='%m/%d/%Y')
+    iip_df = iip_df.loc[iip_df['SIGHTING_TIME'] >= 100]
+    iip_df['TIMESTAMP'] += pd.to_timedelta(pd.to_datetime(iip_df['SIGHTING_TIME'], format='%H%M').dt.hour, unit='h')
+    iip_df['TIMESTAMP'] += pd.to_timedelta(pd.to_datetime(iip_df['SIGHTING_TIME'], format='%H%M').dt.minute, unit='m')
+    return iip_df
+    
 
+    
+    
 def get_berg_df(season_year, chosen_track_ind):
 
     # Choose iceberg year (2002 - 2015 available)
