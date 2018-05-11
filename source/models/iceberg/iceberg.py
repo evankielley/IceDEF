@@ -1,15 +1,41 @@
+"""This module contains a class, Iceberg, which creates an iceberg object with many initial parameters and a function, get_berg_df, which extracts a data frame from an IIP iceberg database CSV file.
+"""
+
 import urllib
 import pandas as pd
 import numpy as np
 
 
 class Iceberg:
+    """Creates an iceberg object to be later used in drift simulation.
+
+    Attributes:
+        density (float): density of the iceberg
+        keel_shape (str): shape of the iceberg keel
+        sail_shape (str): shape of the iceberg sail
+
+    """
     
     density = 900
     keel_shape = 'triangular'
     sail_shape = 'rectangular'
     
     def __init__(self, id_num, datetimes, xvels, yvels, lats, lons, size, shape):
+        """Instantiate iceberg object with necessary initial values.
+
+        Note:
+            All parameters that are lists must align.
+
+        Args:
+            id_num (int): iceberg ID number
+            datetimes (list of datetime.datetime): list of iceberg's datetimes
+            xvels (list of float): list of x-components of iceberg velocites
+            yvels (list of float): list of y-components of iceberg velocites
+            lats (list of float): list of iceberg latitudes
+            lons (list of float): list of iceberg longitudes
+            size (str): size of the iceberg (can be GR, BB, MED, LG, VLG, or GEN)
+            shape (str): shape of the iceberg. Can be BLK, TAB, ISL, GEN, RAD, NTB, DOM, WDG, PIN, or DD
+        """
         self.id_num = id_num
         self.datetimes = datetimes
         self.xvels = xvels
