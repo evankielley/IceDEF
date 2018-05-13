@@ -1,4 +1,4 @@
-"""This module contains a class, Iceberg, which creates an iceberg object with many initial parameters and a function, get_berg_df, which extracts a data frame from an IIP iceberg database CSV file.
+"""This module can create an iceberg object and can extract a data frame from the IIP iceberg sighting database.
 """
 
 import urllib
