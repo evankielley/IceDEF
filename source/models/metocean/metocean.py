@@ -1,3 +1,9 @@
+"""This module can instantiate objects which contain ECMWF ocean and atmospheric data for a particular time and space range.
+
+Specifically, the ECMWF_Ocean class creates an object which contains ocean current velocity and SST among other attributes. And the ECMWF_Atm class creates an object which contains wind velocity, etc. 
+
+"""
+
 import scipy.interpolate as interp
 import datetime
 from datetime import date, timedelta
@@ -16,8 +22,6 @@ class Metocean(object):
         self.t_min = t_min - timedelta(hours = self.t_res)
         self.t_max = t_max + timedelta(hours = self.t_res)
 
-                                           
-    
     def convert_datetime2time(self, t, t_units, t_calendar, t_offset=0):
                                                 
         dt += timedelta(hours = t_offset)
@@ -66,9 +70,6 @@ class ECMWF_Ocean(Metocean):
         self.std_v = np.std(self.ds.variables['vo'][:,0,:,:].flatten())  # std of v
         self.std_u_mag = np.std(abs(self.ds.variables['uo'][:,0,:,:].flatten()))  # std of magnitude of u
         self.std_v_mag = np.std(abs(self.ds.variables['vo'][:,0,:,:].flatten()))  # std of magnitude of v
-
-
-
     
     def get_filenames(self, t_min, t_max, path):
 
@@ -125,7 +126,6 @@ class ECMWF_Atm(Metocean):
         self.std_u_mag = np.std(abs(self.ds.variables['eastward_wind'][:,0,:,:].flatten()))  # std of magnitude of u
         self.std_v_mag = np.std(abs(self.ds.variables['northward_wind'][:,0,:,:].flatten()))  # std of magnitude of v
         
-
     def get_filenames(self, t_min, t_max, path):
 
         d1 = date(self.t_min.year, self.t_min.month, self.t_min.day)  # start date
