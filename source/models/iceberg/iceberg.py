@@ -13,6 +13,9 @@ class Iceberg:
         density (float): density of the iceberg
         keel_shape (str): shape of the iceberg keel
         sail_shape (str): shape of the iceberg sail
+        
+    Todo:
+        * Add cross-sectional area info into get_shape_info function then remove get_cross_sectional areas
 
     """
     
@@ -52,7 +55,6 @@ class Iceberg:
         
     
     def get_cross_sectional_areas(self, length, width, sail_height, keel_depth):
-        rhow = 1027.5
         bottom_area = 0
         top_area = length*width
         keel_area = keel_depth*length/2
@@ -66,14 +68,14 @@ class Iceberg:
         water_skin_drag_coeff = 5.0e-4
         
         if vary_air:
-            air_drag_coeff = np.random.uniform(0.01,2.5)
+            air_drag_coeff = np.random.uniform(0.5,2.5)
         else:
-            air_drag_coeff = 1.2e-3
+            air_drag_coeff = 1.5
             
         if vary_water:
-            water_drag_coeff = np.random.uniform(0.01,2.5)
+            water_drag_coeff = np.random.uniform(0.5,2.5)
         else:
-            water_drag_coeff = 0.5
+            water_drag_coeff = 1.5
             
             
         return air_drag_coeff, water_drag_coeff, air_skin_drag_coeff, water_skin_drag_coeff
