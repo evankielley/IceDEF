@@ -96,8 +96,8 @@ def turnbull_drift(iceberg, UA, VA, UW, VW, dt):
     ay = (Fay + Fcy + Fwy + Fwpy)/(M + Ma)  # y-component of iceberg acceleration (m/s^2)
     
     # Iceberg velocity
-    Vx_new += dt*ax  # x-component of iceberg velocity (m/s)
-    Vy_new += dt*ay  # y-component of iceberg velocity (m/s)
+    Vx_new = Vx + dt*ax  # x-component of iceberg velocity (m/s)
+    Vy_new = Vy + dt*ay  # y-component of iceberg velocity (m/s)
     
     # Iceberg position (note the conversion from meters back to degrees)
     y_new = y + dt*Vy_new*(180/(np.pi*earth_radius))  # y-component of iceberg position (degrees latitude)
