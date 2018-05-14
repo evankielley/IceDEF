@@ -185,62 +185,24 @@ def add_datetime_column(iip_df):
     iip_df['TIMESTAMP'] += pd.to_timedelta(pd.to_datetime(iip_df['SIGHTING_TIME'], format='%H%M').dt.hour, unit='h')
     iip_df['TIMESTAMP'] += pd.to_timedelta(pd.to_datetime(iip_df['SIGHTING_TIME'], format='%H%M').dt.minute, unit='m')
     return iip_df
+
+def get_time_dense_df(iip_df, max_hours):
+    # max_hours is the desired max time between observations for individual icebergs (must be int)
     
+    max_timedelta = np.timedelta64(60*max_hours, 'm')
+    new_df = pd.DataFrame()
 
+    for iceberg_number in iip_df['ICEBERG_NUMBER'].unique():
+        tmp_df = iip_df.loc[iip_df['ICEBERG_NUMBER'] == iceberg_number].reset_index(drop=True)
+        for i in range(len(tmp_df) - 1):
+            if (tmp_df['TIMESTAMP'][i+1] - tmp_df['TIMESTAMP'][i]) < max_timedelta:
+                new_df = new_df.append(tmp_df.loc[i])
+                new_df = new_df.append(tmp_df.loc[i+1])
     
-    
-def get_berg_df(season_year, chosen_track_ind):
+    new_df['ICEBERG_NUMBER'] = new_df['ICEBERG_NUMBER'].astype(int)
+    new_df['ICEBERG_YEAR'] = new_df['ICEBERG_YEAR'].astype(int)
+    new_df['SIGHTING_TIME'] = new_df['SIGHTING_TIME'].astype(int)
 
-    # Choose iceberg year (2002 - 2015 available)
-    # Note: Iceberg Season starts in November so many datasets include dates from year-1
-    iip_url_base = 'ftp://sidads.colorado.edu/pub/DATASETS/NOAA/G00807/' 
-    iip_filename = 'IIP_{}IcebergSeason.csv'.format(season_year)
-    iip_url = iip_url_base + iip_filename
-    r = urllib.request.urlretrieve(iip_url)
-    iip_df = pd.read_csv(r[0])
-    iip_df['TIMESTAMP'] = pd.to_datetime(iip_df['SIGHTING_DATE'], format='%m/%d/%Y')
-    iip_df['TIMESTAMP'] += pd.to_timedelta(pd.to_datetime(iip_df['SIGHTING_TIME'], format='%H%M').dt.hour, unit='h')
-    iip_df['TIMESTAMP'] += pd.to_timedelta(pd.to_datetime(iip_df['SIGHTING_TIME'], format='%H%M').dt.minute, unit='m')
-   
-
-
-    # Choose the min number of observations for an eligible iceberg
-    min_num_obs = 10
-    eligible_bergs = np.asarray(
-        iip_df['ICEBERG_NUMBER'].value_counts()\
-        .loc[iip_df['ICEBERG_NUMBER'].value_counts() > min_num_obs].index)
-
-    chosen_inds_arr = []
-
-    for i in range(eligible_bergs.size):
-
-        iip_berg_id = eligible_bergs[i]
-        iip_berg_df = iip_df.loc[iip_df['ICEBERG_NUMBER'] == iip_berg_id]
-        
-        ind0 = iip_berg_df.index.tolist()[0]
-        indf = iip_berg_df.index.tolist()[-1]
-        
-        max_time_dif = np.timedelta64(24*60, 'm')
-        
-        chosen_inds = []
-
-        for j in range(len(iip_berg_df)-1):
-
-            time_dif = (iip_berg_df.TIMESTAMP.values[j+1] - \
-                        iip_berg_df.TIMESTAMP.values[j]).astype('timedelta64[m]')
-            
-            if time_dif < max_time_dif:
-                chosen_inds.append(j+ind0)
-
-            elif len(chosen_inds) > 1:
-                chosen_inds_arr.append(chosen_inds)
-                chosen_inds = []
-            else:
-                chosen_inds = []
-
-        if len(chosen_inds) > 1:
-            chosen_inds_arr.append(chosen_inds)
-
-    iip_berg_df = iip_df.loc[chosen_inds_arr[chosen_track_ind]].reset_index()
-
-    return iip_berg_df, iip_df, chosen_inds_arr
+    new_df = new_df.drop_duplicates().reset_index(drop=True)
+                
+    return new_df
