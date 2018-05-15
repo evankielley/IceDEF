@@ -20,7 +20,7 @@ class Iceberg:
 
         
     Todo:
-        * Add cross-sectional area info into get_shape_info function then remove get_cross_sectional areas
+        * Add function docstrings
 
     """
     
@@ -62,6 +62,22 @@ class Iceberg:
        
     
     def get_shape_info(self):
+        """This function returns information pertaining to the shape and dimensions of the iceberg.
+        
+        Note:
+            All units are ANSI. Dimensions are in meters, areas are meters squared, and masses are kilograms.
+        
+        Returns:
+            shape_factor (float): constant that is specified according to iceberg shape classification
+            height2draft_ratio (float): constant that dictates the ratio of the iceberg above water versus below
+            height (float): total height of the iceberg (sail_height + keel_depth) (meters)
+            keel_depth (float): depth of the iceberg keel (meters)
+            bottom_area (float): area of the bottom face of the iceberg (meters squared)
+            top_area (float): area of the top face of the iceberg (meters squared)
+            keel_area (float): area of the keel of the iceberg (meters squared)
+            sail_area (float): area of the sail of the iceberg (meters squared)
+            mass (float): mass of the iceberg (kilograms)
+        """
         
         shape = self.shape
         
@@ -110,10 +126,18 @@ class Iceberg:
     
             
     def get_berg_dims(self):
-        # Size must be GR, BB, SM, MED, LG, VLG, or a list of [l, w, h]
-        # See https://nsidc.org/data/g00807 for more info
+        """This function returns numeric values for the dimensions of the iceberg (length, width, and sail height).
         
-        # Note: h is sail height
+        Note:
+            This function relies on there being a valid size attribute for the iceberg object.
+            This can be a list of numeric values, [l, w, sail_height] or a string representing a size classification code.
+            See https://nsidc.org/data/g00807 for more information.
+            
+        Returns:
+            l (float): length of the iceberg (meters)
+            w (float): width of the iceberg (meters)
+            h (float): height of the sail of the iceberg (meters)
+        """
         
         size = self.size
         
@@ -148,8 +172,18 @@ class Iceberg:
     
 
 def get_iip_df(season_year):
-    # Choose iceberg year (2002 - 2015 available)
-    # Note: Iceberg Season starts in November so many datasets include dates from year-1
+    """This function returns the IIP iceberg sighting database file for a particular year as a pandas data frame.
+    
+    Note:
+       The iceberg seasons from 2002-2017 are available and the iceberg Season starts in November each year.
+    
+    Args:
+        season_year (int): iceberg season year of the desired data frame
+        
+    Returns:
+        iip_df (Dataframe): IIP iceberg sighting database file for season_year specified
+    """
+    
     iip_url_base = 'ftp://sidads.colorado.edu/pub/DATASETS/NOAA/G00807/' 
     iip_filename = 'IIP_{}IcebergSeason.csv'.format(season_year)
     iip_url = iip_url_base + iip_filename
@@ -157,15 +191,37 @@ def get_iip_df(season_year):
     iip_df = pd.read_csv(r[0])
     return iip_df
     
+    
 def add_datetime_column(iip_df):
+    """This function adds a column of datetimes to an IIP iceberg sighting database data frame.
+    
+    The arg iip_df should be obtained through the get_iip_df function. 
+    This function will take information from the SIGHTING_DATE and SIGHTING_TIME columns and convert into datetimes in a new column.
+    
+    Args:
+        iip_df (Dataframe): IIP iceberg sighting dataframe
+        
+    Returns:
+        iip_df (Dataframe): IIP iceberg sighting dataframe with an added column, TIMESTAMP, with sighting datetimes    
+    """
+    
     iip_df['TIMESTAMP'] = pd.to_datetime(iip_df['SIGHTING_DATE'], format='%m/%d/%Y')
     iip_df = iip_df.loc[iip_df['SIGHTING_TIME'] >= 100]
     iip_df['TIMESTAMP'] += pd.to_timedelta(pd.to_datetime(iip_df['SIGHTING_TIME'], format='%H%M').dt.hour, unit='h')
     iip_df['TIMESTAMP'] += pd.to_timedelta(pd.to_datetime(iip_df['SIGHTING_TIME'], format='%H%M').dt.minute, unit='m')
     return iip_df
 
+
 def get_time_dense_df(iip_df, max_hours):
-    # max_hours is the desired max time between observations for individual icebergs (must be int)
+    """This function returns a new dataframe with only the rows of observations that are within the max time difference specified.
+    
+    Args:
+        iip_df (Dataframe): IIP iceberg sighting dataframe with an added column, TIMESTAMP, with sighting datetimes
+        max_hours (int): max number of hours desired between observations (hours)
+        
+    Returns:
+        new_df (Dataframe): IIP iceberg sighting dataframe with only rows of observations that are within the max hours specified
+    """
     
     max_timedelta = np.timedelta64(60*max_hours, 'm')
     new_df = pd.DataFrame()
