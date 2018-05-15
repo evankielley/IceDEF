@@ -13,6 +13,11 @@ class Iceberg:
         density (float): density of the iceberg
         keel_shape (str): shape of the iceberg keel
         sail_shape (str): shape of the iceberg sail
+        air_drag_coeff (float): air drag coefficient for the iceberg
+        water_drag_coeff (float): water drag coefficient for the iceberg
+        air_skin_drag_coeff (float): air skin drag coefficient for the iceberg
+        water_skin_drag_coeff (float): water skin drag coefficient for the iceberg
+
         
     Todo:
         * Add cross-sectional area info into get_shape_info function then remove get_cross_sectional areas
@@ -22,6 +27,10 @@ class Iceberg:
     density = 900
     keel_shape = 'triangular'
     sail_shape = 'rectangular'
+    air_drag_coeff = 1.25
+    water_drag_coeff = 1.25
+    air_skin_drag_coeff = 2.5e-4
+    water_skin_drag_coeff = 5.0e-4
     
     def __init__(self, id_num, datetimes, xvels, yvels, lats, lons, size, shape):
         """Instantiate iceberg object with necessary initial values.
@@ -39,6 +48,7 @@ class Iceberg:
             size (str): size of the iceberg (can be GR, BB, MED, LG, VLG, or GEN)
             shape (str): shape of the iceberg. Can be BLK, TAB, ISL, GEN, RAD, NTB, DOM, WDG, PIN, or DD
         """
+        
         self.id_num = id_num
         self.datetimes = datetimes
         self.xvels = xvels
@@ -46,107 +56,71 @@ class Iceberg:
         self.lats = lats
         self.lons = lons
         self.size = size
-        self.length, self.width, self.sail_height = self.get_berg_dims(size)
         self.shape = shape
-        self.shape_factor, self.height2draft_ratio, self.height, self.keel_depth = self.get_shape_info(shape, self.sail_height)
-        self.mass = self.length*self.width*self.height*self.density
-        self.bottom_area, self.top_area, self.keel_area, self.sail_area = self.get_cross_sectional_areas(self.length, self.width, self.sail_height, self.keel_depth)
-        self.air_drag_coeff, self.water_drag_coeff, self.air_skin_drag_coeff, self.water_skin_drag_coeff = self.get_drag_coeffs() 
-        
+        self.length, self.width, self.sail_height = self.get_berg_dims()
+        self.shape_factor, self.height2draft_ratio, self.height, self.keel_depth, self.bottom_area, self.top_area, self.keel_area, self.sail_area, self.mass = self.get_shape_info()
+       
     
-    def get_cross_sectional_areas(self, length, width, sail_height, keel_depth):
-        bottom_area = 0
-        top_area = length*width
-        keel_area = keel_depth*length/2
-        sail_area = sail_height*length
-        return bottom_area, top_area, keel_area, sail_area
+    def get_shape_info(self):
         
-    
-    def get_drag_coeffs(vary_air=True, vary_water=True):
+        shape = self.shape
         
-        air_skin_drag_coeff = 2.5e-4
-        water_skin_drag_coeff = 5.0e-4
-        
-        if vary_air:
-            air_drag_coeff = np.random.uniform(0.5,2.5)
-        else:
-            air_drag_coeff = 1.5
-            
-        if vary_water:
-            water_drag_coeff = np.random.uniform(0.5,2.5)
-        else:
-            water_drag_coeff = 1.5
-            
-            
-        return air_drag_coeff, water_drag_coeff, air_skin_drag_coeff, water_skin_drag_coeff
-    
-    def get_shape_info(self, shape, sail_height):
         if shape == 'BLK' or 'TAB' or 'ISL' or 'RAD' or 'GEN':
             # no info for ISL, RAD, or GEN so assume BLK
             shape_factor = 0.5
             height2draft_ratio = 1/5
-            keel_depth = sail_height/height2draft_ratio
-            height = sail_height + keel_depth
+            keel_depth = self.sail_height/height2draft_ratio
+            height = self.sail_height + keel_depth
         elif shape =='NTB':
             shape_factor = 0.41
             height2draft_ratio = 1/5
-            keel_depth = sail_height/height2draft_ratio
-            height = sail_height + keel_depth
+            keel_depth = self.sail_height/height2draft_ratio
+            height = self.sail_height + keel_depth
         elif shape == 'DOM':
             shape_factor = 0.41
             height2draft_ratio = 1/4
-            keel_depth = sail_height/height2draft_ratio
-            height = sail_height + keel_depth
+            keel_depth = self.sail_height/height2draft_ratio
+            height = self.sail_height + keel_depth
         elif shape == 'WDG':
             shape_factor = 0.33
             height2draft_ratio = 1/5
-            keel_depth = sail_height/height2draft_ratio
-            height = sail_height + keel_depth
+            keel_depth = self.sail_height/height2draft_ratio
+            height = self.sail_height + keel_depth
         elif shape == 'PIN':
             shape_factor = 0.25
             height2draft_ratio = 1/2
-            keel_depth = sail_height/height2draft_ratio
-            height = sail_height + keel_depth
+            keel_depth = self.sail_height/height2draft_ratio
+            height = self.sail_height + keel_depth
         elif shape == 'DD':
             shape_factor = 0.15
             height2draft_ratio = 1/1
-            keel_depth = sail_height/height2draft_ratio
-            height = sail_height + keel_depth
+            keel_depth = self.sail_height/height2draft_ratio
+            height = self.sail_height + keel_depth
         else:
             print('Unknown shape {}'.format(shape))
             
-        return shape_factor, height2draft_ratio, height, keel_depth
+        bottom_area = 0
+        top_area = self.length*self.width
+        keel_area = keel_depth*self.length/2
+        sail_area = self.sail_height*self.length
+        
+        mass = self.length*self.width*self.height*Iceberg.density
+            
+        return shape_factor, height2draft_ratio, height, keel_depth, bottom_area, top_area, keel_area, sail_area, mass
     
             
-    def get_berg_dims(self, size, vary=True):
+    def get_berg_dims(self):
         # Size must be GR, BB, SM, MED, LG, VLG, or a list of [l, w, h]
         # See https://nsidc.org/data/g00807 for more info
         
         # Note: h is sail height
         
+        size = self.size
+        
         if type(size) == list and len(size) == 3:
             l, w, h = size[0], size[1], size[2]
             
-        elif type(size) == str and vary:
-            if size == 'GR':
-                l = np.random.uniform(0,5); w = np.random.uniform(0,5); h = np.random.uniform(0,1)
-            elif size == 'BB':
-                l = np.random.uniform(5,15); w = np.random.uniform(5,15); h = np.random.uniform(1,5)
-            elif size == 'SM':
-                l = np.random.uniform(15,60); w = np.random.uniform(15,60); h = np.random.uniform(5,15)
-            elif size == 'MED':
-                l = np.random.uniform(60,120); w = np.random.uniform(60,120); h = np.random.uniform(15,45)
-            elif size == 'LG':
-                l = np.random.uniform(120,200); w = np.random.uniform(120,200); h = np.random.uniform(45,75)
-            elif size == 'VLG':
-                l = np.random.uniform(200,500); w = np.random.uniform(200,500); h = np.random.uniform(75,150)
-            elif size == 'GEN':
-                # no info for GEN so I assume it's LG
-                l = np.random.uniform(120,200); w = np.random.uniform(120,200); h = np.random.uniform(450,750)
-            else:
-                print('Unknown size class')
-        
-        elif type(size) == str and not vary:
+        elif type(size) == str:
             if size == 'GR':
                 l = (0+5)/2; w = (0+5)/2; h = (0+1)/2*10
             elif size == 'BB':
@@ -165,9 +139,13 @@ class Iceberg:
                 l = (120+200)/2; w = (120+200)/2; h = (45+75)/2*10            
             else:
                 print('unknown size class')
-                l = None; w = None; h = None
+                l = None; w = None; h = None               
+        else:
+            l, w, h = None, None, None
+            print('Invalid size entry. Please enter a list of floats [l, w, h] or a valid size class as a string')
                 
         return l, w, h
+    
 
 def get_iip_df(season_year):
     # Choose iceberg year (2002 - 2015 available)
