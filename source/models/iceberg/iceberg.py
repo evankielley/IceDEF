@@ -17,11 +17,6 @@ class Iceberg:
         water_drag_coeff (float): water drag coefficient for the iceberg
         air_skin_drag_coeff (float): air skin drag coefficient for the iceberg
         water_skin_drag_coeff (float): water skin drag coefficient for the iceberg
-
-        
-    Todo:
-        * Add function docstrings
-
     """
     
     density = 900
