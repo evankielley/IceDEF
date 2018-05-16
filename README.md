@@ -1,6 +1,17 @@
 # IceDEF
 Iceberg Drift Ensemble Forecasting
 
+### Quickstart
+
+1. Clone this repository
+2. Install Miniconda (or Anaconda)
+3. Create and activate the icedef conda environment
+    - conda env create -f environment.yml
+    - conda activate icedef
+4. Run jupyter 
+    - jupyter notebook
+
+
 ## Authors
 
 * **James Munroe** - *Initial work* - [jmunroe](https://github.com/jmunroe)
