@@ -1,7 +1,4 @@
 """This module can instantiate objects which contain ECMWF ocean and atmospheric data for a particular time and space range.
-
-Specifically, the ECMWF_Ocean class creates an object which contains ocean current velocity and SST among other attributes. And the ECMWF_Atm class creates an object which contains wind velocity, etc. 
-
 """
 
 import scipy.interpolate as interp
@@ -13,8 +10,20 @@ import numpy as np
 
 
 class Metocean(object):
+    """This class acts as a superclass that defines the spatial and temporal bounds for the data of its subclasses.
+    """
 
     def __init__(self, x_min, x_max, y_min, y_max, t_min, t_max):
+        """Instantiate a metocean object with spatial and temporal bounds.
+        
+        Args:
+            x_min (float): minimum line of longitude for data region (degrees)
+            x_max (float): maximum line of longitude for data region (degrees)
+            y_min (float): minimum line of latitude for data region (degrees)
+            y_max (float): maximum line of latitude for data region (degrees)
+            t_min (datetime.datetime): minimum time for data time space
+            t_max (datetime.datetime): maximum time for data time space
+        """
         self.x_min = x_min - abs(x_min-x_max) - self.xy_res
         self.x_max = x_max + abs(x_min-x_max) + self.xy_res
         self.y_min = y_min - abs(y_min-y_max) - self.xy_res
@@ -32,8 +41,22 @@ class Metocean(object):
 
 
 class ECMWF_Ocean(Metocean):
+    """This class creates an object which contains ocean data for surface current velocity and SST amongst other attributes.
     
-    # product identifier: GLOBAL_ANALYSIS_FORECAST_PHY_001_024
+    Note: 
+        Product identifier: GLOBAL_ANALYSIS_FORECAST_PHY_001_024
+    
+    Args:
+        Metocean (class): parent class
+        
+    Attributes:
+        path (str): path to the directory of data files needed
+        xy_res (float): spatial resolution of the ocean model (degrees)
+        t_res (float): temporal resolution of the ocean model (hours)
+        t_units (str): time units used in NetCDF data files
+        t_calendar (str): time calendar used in NetCDF files
+    """
+    
 
     path = 'ftp://data.munroelab.ca/pub/ECMWF/ocean/daily/'
     xy_res = 1/12  # spatial resolution in degrees lat/lon
@@ -72,6 +95,17 @@ class ECMWF_Ocean(Metocean):
         self.std_v_mag = np.std(abs(self.ds.variables['vo'][:,0,:,:].flatten()))  # std of magnitude of v
     
     def get_filenames(self, t_min, t_max, path):
+        """This function returns the NetCDF files needed to access the desired ocean data (and their filenames)
+        
+        Args:
+            t_min (datetime.datetime): minimum time for the data time space
+            t_max (datetime.datetime): maximum time for the data time space
+            path (str): path to the directory that contains the necessary data files
+            
+        Returns:
+            filenames (list of str): list of the filenames of the files returned
+            files (list): list of files accessed through server
+        """
 
         d1 = date(self.t_min.year, self.t_min.month, self.t_min.day)  # start date
         d2 = date(self.t_max.year, self.t_max.month, self.t_max.day)  # end date
@@ -90,8 +124,22 @@ class ECMWF_Ocean(Metocean):
 
 
 class ECMWF_Atm(Metocean):
+    """This class creates an object which contains atmospheric data for 10 meter wind velocity amongst other attributes.
     
-    # product identifier: WIND_GLO_WIND_L4_NRT_OBSERVATIONS_012_004
+    Note: 
+        Product identifier: WIND_GLO_WIND_L4_NRT_OBSERVATIONS_012_004
+    
+    Args:
+        Metocean (class): parent class
+        
+    Attributes:
+        path (str): path to the directory of data files needed
+        xy_res (float): spatial resolution of the atmospheric model (degrees)
+        t_res (float): temporal resolution of the atmospheric model (hours)
+        t_units (str): time units used in NetCDF data files
+        t_calendar (str): time calendar used in NetCDF files
+    """
+    
     path = 'ftp://data.munroelab.ca/pub/ECMWF/atm/daily/'
     xy_res = 1/4  # spatial resolution in degrees lat/lon
     t_res = 6  # temporal resolution in hours
@@ -127,6 +175,17 @@ class ECMWF_Atm(Metocean):
         self.std_v_mag = np.std(abs(self.ds.variables['northward_wind'][:,0,:,:].flatten()))  # std of magnitude of v
         
     def get_filenames(self, t_min, t_max, path):
+        """This function returns the NetCDF files needed to access the desired ocean data (and their filenames)
+        
+        Args:
+            t_min (datetime.datetime): minimum time for the data time space
+            t_max (datetime.datetime): maximum time for the data time space
+            path (str): path to the directory that contains the necessary data files
+            
+        Returns:
+            filenames (list of str): list of the filenames of the files returned
+            files (list): list of files accessed through server
+        """
 
         d1 = date(self.t_min.year, self.t_min.month, self.t_min.day)  # start date
         d2 = date(self.t_max.year, self.t_max.month, self.t_max.day)  # end date
