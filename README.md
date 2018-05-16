@@ -1,6 +1,8 @@
 # IceDEF
 Iceberg Drift Ensemble Forecasting
 
+[![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/jmunroe/IceDEF/master)
+
 ### Quickstart
 
 1. Clone this repository
