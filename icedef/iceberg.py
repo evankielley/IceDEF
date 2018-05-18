@@ -60,7 +60,7 @@ class Iceberg:
         """This function returns information pertaining to the shape and dimensions of the iceberg.
         
         Note:
-            All units are ANSI. Dimensions are in meters, areas are meters squared, and masses are kilograms.
+            All units are SI. Dimensions are in meters, areas are meters squared, and masses are kilograms.
         
         Returns:
             shape_factor (float): constant that is specified according to iceberg shape classification
@@ -115,7 +115,7 @@ class Iceberg:
         keel_area = keel_depth*self.length/2
         sail_area = self.sail_height*self.length
         
-        mass = self.length*self.width*self.height*Iceberg.density
+        mass = self.length*self.width*height*Iceberg.density
             
         return shape_factor, height2draft_ratio, height, keel_depth, bottom_area, top_area, keel_area, sail_area, mass
     
