@@ -8,8 +8,9 @@ Todo:
 """
 
 import numpy as np
+import netCDF4 as nc
 
-def turnbull_drift(iceberg, UA, VA, UW, VW, dt):
+def drift(iceberg, ocean_data, atm_data):
     """Computes the new velocity and position of an iceberg after one timestep.
     
     The equations of motion of this function come from the following research paper:
@@ -22,7 +23,7 @@ def turnbull_drift(iceberg, UA, VA, UW, VW, dt):
     and are best described there.
     
     Notes:
-        All units are ANSI. Specifically, velocities are in meters per second, positions are in degrees latitude or 
+        All units are SI. Specifically, velocities are in meters per second, positions are in degrees latitude or 
         longitude, size dimensions are in meters, masses are in kilograms, times are in seconds, and forces are in Newtons.
     
     Args:
@@ -49,10 +50,11 @@ def turnbull_drift(iceberg, UA, VA, UW, VW, dt):
     rhoi = 900  # density of iceberg (kg/m^3)
     
     # Iceberg Attributes
-    Vx = iceberg.xvels[-1]  # x-component of iceberg velocity (m/s)
-    Vy = iceberg.yvels[-1]  # y-component of iceberg velocity (m/s)
-    x = iceberg.lons[-1]  # x-component of iceberg position (degrees longitude)
-    y = iceberg.lats[-1]  # y-component of iceberg position (degrees latitiude)
+    T = iceberg.T
+    X = iceberg.X  # x-component of iceberg position (degrees longitude)
+    Y = iceberg.Y  # y-component of iceberg position (degrees latitiude)
+    Vx = iceberg.Vx  # x-component of iceberg velocity (m/s)
+    Vy = iceberg.Vy  # y-component of iceberg velocity (m/s)
     M = iceberg.mass  # iceberg mass (kg)
     Ma = 0.5*M  # added iceberg mass (kg)
     Ca = iceberg.air_drag_coeff  # air drag coefficient
@@ -65,11 +67,14 @@ def turnbull_drift(iceberg, UA, VA, UW, VW, dt):
     At = iceberg.top_area  # cross-sectional area of the iceberg's top face (m^2)
     
     # Wind and ocean current velocities
-    Vax = UA  # u-component of air velocity (m/s)
-    Vay = VA  # v-component of air velocity (m/s)
-    Vcx = UW  # u-component of ocean current velocity (m/s)
-    Vcy = VW  # v-component of ocean current velocity (m/s)
+    T_ocean = nc.date2num(T, ocean_data.t_units, ocean_data.t_calendar)
+    T_atm = nc.date2num(T, atm_data.t_units, atm_data.t_calendar)
+    Vax = atm_data.iUA([T_atm, Y, X])[0]  # u-component of air velocity (m/s)
+    Vay = atm_data.iVA([T_atm, Y, X])[0]  # v-component of air velocity (m/s)
+    Vcx = ocean_data.iUW([T_ocean, Y, X])[0]  # u-component of ocean current velocity (m/s)
+    Vcy = ocean_data.iVW([T_ocean, Y, X])[0]  # v-component of ocean current velocity (m/s)
     
+
     # Air force
     Fax = (0.5*rhoa*Ca*As + rhoa*Cda*At)*abs(Vax - Vx)*(Vax - Vx)  # x-component of the force of wind on iceberg (N)
     Fay = (0.5*rhoa*Ca*As + rhoa*Cda*At)*abs(Vay - Vy)*(Vay - Vy)  # y-component of the force of wind on iceberg (N)
@@ -79,7 +84,7 @@ def turnbull_drift(iceberg, UA, VA, UW, VW, dt):
     Fwy = (0.5*rhow*Cw*Ak + rhow*Cdw*Ab)*abs(Vcy - Vy)*(Vcy - Vy)  # y-component of the force of ocean current on iceberg (N)
       
     # Coriolis force
-    f = 2*om*np.sin(np.deg2rad(y))  # Coriolis parameter
+    f = 2*om*np.sin(np.deg2rad(Y))  # Coriolis parameter
     Fcx = f*Vy*M  # x-component of the Coriolis force on iceberg
     Fcy = -f*Vx*M  # y-component of the Coriolis force on iceberg
       
@@ -92,15 +97,17 @@ def turnbull_drift(iceberg, UA, VA, UW, VW, dt):
     Fwpy = M*(Amwy - f*Vwmy)  # y-component of water pressure gradient force (N)
       
     # Iceberg acceleration                
-    ax = (Fax + Fcx + Fwx + Fwpx)/(M + Ma)  # x-component of iceberg acceleration (m/s^2)
-    ay = (Fay + Fcy + Fwy + Fwpy)/(M + Ma)  # y-component of iceberg acceleration (m/s^2)
+    Ax = (Fax + Fcx + Fwx + Fwpx)/(M + Ma)  # x-component of iceberg acceleration (m/s^2)
+    Ay = (Fay + Fcy + Fwy + Fwpy)/(M + Ma)  # y-component of iceberg acceleration (m/s^2)
     
     # Iceberg velocity
-    Vx_new = Vx + dt*ax  # x-component of iceberg velocity (m/s)
-    Vy_new = Vy + dt*ay  # y-component of iceberg velocity (m/s)
+    #Vx_new = Vx + dt*ax  # x-component of iceberg velocity (m/s)
+    #Vy_new = Vy + dt*ay  # y-component of iceberg velocity (m/s)
     
     # Iceberg position (note the conversion from meters back to degrees)
-    y_new = y + dt*Vy_new*(180/(np.pi*earth_radius))  # y-component of iceberg position (degrees latitude)
-    x_new = x + dt*Vx_new/(np.cos((((y + y_new)/2)*np.pi)/180))*(180/(np.pi*earth_radius))  # x-component of iceberg position (degrees longitude)
+    #y_new = y + dt*Vy_new*(180/(np.pi*earth_radius))  # y-component of iceberg position (degrees latitude)
+    #x_new = x + dt*Vx_new/(np.cos((((y + y_new)/2)*np.pi)/180))*(180/(np.pi*earth_radius))  # x-component of iceberg position (degrees longitude)
     
-    return Vx_new, Vy_new, x_new, y_new
+    #return Vx_new, Vy_new, x_new, y_new
+    
+    return Ax, Ay
