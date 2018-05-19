@@ -27,34 +27,33 @@ class Iceberg:
     air_skin_drag_coeff = 2.5e-4
     water_skin_drag_coeff = 5.0e-4
     
-    def __init__(self, id_num, datetimes, xvels, yvels, lats, lons, size, shape):
+    def __init__(self, ID, T, X, Y, Vx, Vy, size, shape):
         """Instantiate iceberg object with necessary initial values.
 
         Note:
             All parameters that are lists must align.
 
         Args:
-            id_num (int): iceberg ID number
-            datetimes (list of datetime.datetime): list of iceberg's datetimes
-            xvels (list of float): list of x-components of iceberg velocites
-            yvels (list of float): list of y-components of iceberg velocites
-            lats (list of float): list of iceberg latitudes
-            lons (list of float): list of iceberg longitudes
+            ID (int): iceberg ID number
+            T (datetime): datetime of the iceberg
+            Vx (float): x-component of iceberg velocity
+            Vy (float): y-component of iceberg velocity
+            Y (float): iceberg latitude
+            X (float): iceberg longitude
             size (str): size of the iceberg (can be GR, BB, MED, LG, VLG, or GEN)
             shape (str): shape of the iceberg. Can be BLK, TAB, ISL, GEN, RAD, NTB, DOM, WDG, PIN, or DD
         """
-        
-        self.id_num = id_num
-        self.datetimes = datetimes
-        self.xvels = xvels
-        self.yvels = yvels
-        self.lats = lats
-        self.lons = lons
+        self.ID = ID
+        self.T = T
+        self.Vx = Vx
+        self.Vy = Vy
+        self.Y = Y
+        self.X = X
         self.size = size
         self.shape = shape
         self.length, self.width, self.sail_height = self.get_berg_dims()
         self.shape_factor, self.height2draft_ratio, self.height, self.keel_depth, self.bottom_area, self.top_area, self.keel_area, self.sail_area, self.mass = self.get_shape_info()
-       
+        self.history = {'T': [], 'X': [], 'Y': [], 'Vx': [], 'Vy': []}
     
     def get_shape_info(self):
         """This function returns information pertaining to the shape and dimensions of the iceberg.
@@ -191,13 +190,13 @@ def add_datetime_column(iip_df):
     """This function adds a column of datetimes to an IIP iceberg sighting database data frame.
     
     The arg iip_df should be obtained through the get_iip_df function. 
-    This function will take information from the SIGHTING_DATE and SIGHTING_TIME columns and convert into datetimes in a new column.
+    This function will take information from the SIGHTING_DATE and SIGHTING_TIME columns and convert into T in a new column.
     
     Args:
         iip_df (Dataframe): IIP iceberg sighting dataframe
         
     Returns:
-        iip_df (Dataframe): IIP iceberg sighting dataframe with an added column, TIMESTAMP, with sighting datetimes    
+        iip_df (Dataframe): IIP iceberg sighting dataframe with an added column, TIMESTAMP, with sighting T    
     """
     
     iip_df['TIMESTAMP'] = pd.to_datetime(iip_df['SIGHTING_DATE'], format='%m/%d/%Y')
@@ -211,7 +210,7 @@ def get_time_dense_df(iip_df, max_hours):
     """This function returns a new dataframe with only the rows of observations that are within the max time difference specified.
     
     Args:
-        iip_df (Dataframe): IIP iceberg sighting dataframe with an added column, TIMESTAMP, with sighting datetimes
+        iip_df (Dataframe): IIP iceberg sighting dataframe with an added column, TIMESTAMP, with sighting T
         max_hours (int): max number of hours desired between observations (hours)
         
     Returns:
