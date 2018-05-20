@@ -50,7 +50,7 @@ def drift(iceberg, ocean_data, atm_data):
     rhoi = 900  # density of iceberg (kg/m^3)
     
     # Iceberg Attributes
-    T = iceberg.T
+    T = iceberg.T  # time of the iceberg (datetime)
     X = iceberg.X  # x-component of iceberg position (degrees longitude)
     Y = iceberg.Y  # y-component of iceberg position (degrees latitiude)
     Vx = iceberg.Vx  # x-component of iceberg velocity (m/s)
