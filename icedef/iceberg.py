@@ -164,6 +164,20 @@ class Iceberg:
                 
         return l, w, h
     
+    
+def clone_iceberg_state(berg):
+    """This function clones the current state of an iceberg and returns the clone.
+    
+    Args:
+        berg (icedef.iceberg.Iceberg): Iceberg object to be cloned.
+        
+    Returns:
+        clone (icedef.iceberg.Iceberg): clone of the current state of the iceberg provided.
+    """
+    
+    clone = Iceberg(berg.ID, berg.T, berg.X, berg.Y, berg.Vx, berg.Vy, berg.size, berg.shape)
+    return clone
+    
 
 def get_iip_df(season_year):
     """This function returns the IIP iceberg sighting database file for a particular year as a pandas data frame.
@@ -234,3 +248,48 @@ def get_time_dense_df(iip_df, max_hours):
     new_df = new_df.drop_duplicates().reset_index(drop=True)
                 
     return new_df
+
+
+def get_iip_iceberg(iip_season=2015, method='index', identifier=range(3283, 3285)):
+    """This function returns an Iceberg object (based off an IIP spreadsheet) and its associated DataFrame.
+    
+    Args:
+        iip_season (int): iceberg season (year) of the IIP Iceberg Sighting data of interest
+        identifier (range or int): can be either IIP spreadsheet indices as a range or an Iceberg ID as an int.
+        method (str): method to be used to retrieve iceberg data from spreadsheet, can be either 'index' or 'ID'
+        
+    Returns:
+        iip_berg_df (pandas.core.frame.DataFrame): DataFrame of the iceberg specified.
+        iip_berg (icedef.iceberg.Iceberg): Iceberg object made from IIP spreadsheet data specified. 
+    """
+    
+    iip_df = get_iip_df(2015)
+    iip_df = add_datetime_column(iip_df)
+    
+    if method == 'index':
+        if isinstance(identifier, range):
+            iip_berg_df = iip_df.loc[iip_df.index[identifier]].reset_index()
+        else:
+            print('Invalid identifier for index method. Identifier should be range')
+            
+    elif method == 'ID':
+        if isinstance(identifier, int):
+            iip_berg_df = iip_df.loc[iip_df['ICEBERG_NUMBER'] == identifier].reset_index()
+        else:
+            print('Invalid identifier for ID method. Identifier should be int')
+            
+    ID = iip_berg_df['ICEBERG_NUMBER'].loc[0]
+    T = iip_berg_df['TIMESTAMP'].dt.to_pydatetime()[0]
+    X = iip_berg_df['SIGHTING_LONGITUDE'].loc[0]
+    Y = iip_berg_df['SIGHTING_LATITUDE'].loc[0]
+    Vx = 0
+    Vy = 0
+    size = iip_berg_df['SIZE'].loc[0]
+    shape = iip_berg_df['SHAPE'].loc[0]
+    
+    iip_berg = Iceberg(ID, T, X, Y, Vx, Vy, size, shape)
+    iip_berg.history['T'] = iip_berg_df['TIMESTAMP'].dt.to_pydatetime()
+    iip_berg.history['X'] = iip_berg_df['SIGHTING_LONGITUDE'].loc[:].tolist()
+    iip_berg.history['Y'] = iip_berg_df['SIGHTING_LATITUDE'].loc[:].tolist()
+    
+    return iip_berg_df, iip_berg
