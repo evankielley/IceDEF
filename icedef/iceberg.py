@@ -263,7 +263,7 @@ def get_iip_iceberg(iip_season=2015, method='index', identifier=range(3283, 3285
         iip_berg (icedef.iceberg.Iceberg): Iceberg object made from IIP spreadsheet data specified. 
     """
     
-    iip_df = get_iip_df(2015)
+    iip_df = get_iip_df(iip_season)
     iip_df = add_datetime_column(iip_df)
     
     if method == 'index':
