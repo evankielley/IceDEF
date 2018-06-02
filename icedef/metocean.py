@@ -7,6 +7,7 @@ from datetime import date, timedelta
 import urllib
 import netCDF4 as nc
 import numpy as np
+import numba
 
 
 class Metocean(object):
@@ -37,6 +38,9 @@ class Metocean(object):
         t = nc.date2num(t, t_units, t_calendar)
         
         return t
+    
+
+
 
 
 
@@ -120,6 +124,63 @@ class ECMWF_Ocean(Metocean):
             files.append(urllib.request.urlretrieve(filenames[i])[0])
 
         return filenames, files
+    
+    def get_interpolated_uv_velocities(self, t0, y0, x0):
+        """This function returns the linearly interpolated value of data at a specific point.
+
+        Args:
+            data (Metocean): object generated from one of the subclasses of Metocean
+            x0 (float): x-coordinate of interest (degrees longitude)
+            y0 (float): y-coordinate of interest (degrees latitude)
+
+        Returns:
+            D (float): value of data at x0, y0, t0 obtained through linear interpolation
+        """
+
+        # get min max of data grid vectors
+        xmin = self.lons[0]; xmax = self.lons[-1]
+        ymin = self.lats[0]; ymax = self.lats[-1]
+        tmin = self.times[0]; tmax = self.times[-1]
+
+        # check to ensure x0, y0, and t0 are within their respective grid vectors
+        if not xmin <= x0 <= xmax:
+            print('x0 value, {}, not within xmin, {}, and xmax, {}.'.format(x0, xmin, xmax))
+            return None
+        elif not ymin <= y0 <= ymax:
+            print('y0 value, {}, not within ymin, {}, and ymax, {}.'.format(y0, ymin, ymax))
+            return None
+        elif not tmin <= t0 <= tmax:
+            print('t0 value, {}, not within tmin, {}, and tmax, {}.'.format(t0, tmin, tmax))
+            return None
+        else:
+            pass
+
+        # get intervals between nodes of data grid vectors
+        dx = self.xy_res
+        dy = self.xy_res
+        dt = self.t_res
+
+        # get fractional indices of x0, y0, and t0 in data grid vectors
+        i = (x0 - xmin)/dx
+        j = (y0 - ymin)/dy
+        n = (t0 - tmin)/dt
+
+        # get floor index of nearest data grid vector node and its remaining fractional bit
+        (i0, di), (j0, dj), (n0, dn) = [(int(np.floor(x)), x - np.floor(x)) for x in [i, j, n]]
+
+        # extract cube of 8 data points
+        Au = self.UW[n0:n0+2, j0:j0+2, i0:i0+2]
+        Av = self.VW[n0:n0+2, j0:j0+2, i0:i0+2]
+
+        # get weighted average along each dimension
+        Bu = dn* Au[0, :, :] + (1-dn)*Au[1, :, :]
+        Bv = dn* Av[0, :, :] + (1-dn)*Av[1, :, :]
+        Cu = dj * Bu[0, :] + (1-dj)*Bu[1, :]
+        Cv = dj * Bv[0, :] + (1-dj)*Bv[1, :]
+        Du = di * Cu[0] + (1-di)*Cu[1]
+        Dv = di * Cv[0] + (1-di)*Cv[1]
+
+        return Du, Dv
 
 
 
@@ -200,3 +261,60 @@ class ECMWF_Atm(Metocean):
             files.append(urllib.request.urlretrieve(filenames[i])[0])
 
         return filenames, files
+    
+    def get_interpolated_uv_velocities(self, t0, y0, x0):
+        """This function returns the linearly interpolated value of data at a specific point.
+
+        Args:
+            t0 (float): time of interest (hours since 1900)
+            x0 (float): x-coordinate of interest (degrees longitude)
+            y0 (float): y-coordinate of interest (degrees latitude)
+
+        Returns:
+            D (float): value of data at x0, y0, t0 obtained through linear interpolation
+        """
+
+        # get min max of data grid vectors
+        xmin = self.lons[0]; xmax = self.lons[-1]
+        ymin = self.lats[0]; ymax = self.lats[-1]
+        tmin = self.times[0]; tmax = self.times[-1]
+
+        # check to ensure x0, y0, and t0 are within their respective grid vectors
+        if not xmin <= x0 <= xmax:
+            print('x0 value, {}, not within xmin, {}, and xmax, {}.'.format(x0, xmin, xmax))
+            return None
+        elif not ymin <= y0 <= ymax:
+            print('y0 value, {}, not within ymin, {}, and ymax, {}.'.format(y0, ymin, ymax))
+            return None
+        elif not tmin <= t0 <= tmax:
+            print('t0 value, {}, not within tmin, {}, and tmax, {}.'.format(t0, tmin, tmax))
+            return None
+        else:
+            pass
+
+        # get intervals between nodes of data grid vectors
+        dx = self.xy_res
+        dy = self.xy_res
+        dt = self.t_res
+
+        # get fractional indices of x0, y0, and t0 in data grid vectors
+        i = (x0 - xmin)/dx
+        j = (y0 - ymin)/dy
+        n = (t0 - tmin)/dt
+
+        # get floor index of nearest data grid vector node and its remaining fractional bit
+        (i0, di), (j0, dj), (n0, dn) = [(int(np.floor(x)), x - np.floor(x)) for x in [i, j, n]]
+
+        # extract cube of 8 data points
+        Au = self.UA[n0:n0+2, j0:j0+2, i0:i0+2]
+        Av = self.VA[n0:n0+2, j0:j0+2, i0:i0+2]
+
+        # get weighted average along each dimension
+        Bu = dn* Au[0, :, :] + (1-dn)*Au[1, :, :]
+        Bv = dn* Av[0, :, :] + (1-dn)*Av[1, :, :]
+        Cu = dj * Bu[0, :] + (1-dj)*Bu[1, :]
+        Cv = dj * Bv[0, :] + (1-dj)*Bv[1, :]
+        Du = di * Cu[0] + (1-di)*Cu[1]
+        Dv = di * Cv[0] + (1-di)*Cv[1]
+
+        return Du, Dv
