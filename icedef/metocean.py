@@ -10,6 +10,31 @@ import numpy as np
 import numba
 
 
+@numba.jit
+def linear_interpolator(data, dn, dj, di, n0, j0, i0):
+    
+    A = data[n0:n0+2, j0:j0+2, i0:i0+2]
+    B = dn*A[0, :, :] + (1-dn)*A[1, :, :]
+    C = dj*B[0, :] + (1-dj)*B[1, :]
+    D = di*C[0] + (1-di)*C[1]
+    
+    return D
+    
+@numba.jit
+def get_interpolated_value(data_u, data_v, xmin, dx, ymin, dy, tmin, dt, x0, y0, t0):
+
+    i = (x0 - xmin)/dx
+    j = (y0 - ymin)/dy
+    n = (t0 - tmin)/dt
+
+    (i0, di), (j0, dj), (n0, dn) = [(int(np.floor(x)), x - np.floor(x)) for x in [i, j, n]]
+    
+    u = linear_interpolator(data_u,  dn, dj, di, n0, j0, i0)
+    v = linear_interpolator(data_v,  dn, dj, di, n0, j0, i0)
+       
+    return u, v 
+
+
 class Metocean(object):
     """This class acts as a superclass that defines the spatial and temporal bounds for the data of its subclasses.
     """
@@ -74,6 +99,7 @@ class ECMWF_Ocean(Metocean):
         
         self.filenames, self.files = self.get_filenames(self.t_min, self.t_max, self.path)
         self.ds = nc.MFDataset(self.files)
+        
         self.times = self.ds.variables['time'][:]
         self.datetimes = nc.num2date(self.times, self.t_units, self.t_calendar)
         self.t1900 = nc.date2num(self.datetimes, 'hours since 1900-01-01 00:00:00.0 00:00', 'standard')
@@ -81,22 +107,29 @@ class ECMWF_Ocean(Metocean):
         self.t2000 = nc.date2num(self.datetimes, 'hours since 2000-01-01 00:00:00.0 00:00', 'standard')
         self.lats = self.ds.variables['latitude'][:]
         self.lons = self.ds.variables['longitude'][:]
+        self.xmin = self.lons[0]
+        self.dx = np.diff(self.lons).mean()
+        self.ymin = self.lats[0]
+        self.dy = np.diff(self.lats).mean()
+        self.tmin = self.times[0]
+        self.dt = np.diff(self.times).mean()
+        
         self.UW = np.asarray(self.ds.variables['uo'][:,0,:,:])
         self.VW = np.asarray(self.ds.variables['vo'][:,0,:,:])
         self.SST = np.asarray(self.ds.variables['thetao'][:,0,:,:])
         self.iUW = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.UW)
         self.iVW = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.VW)
         self.iSST = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.SST)
-        self.mean_u = np.mean(self.ds.variables['uo'][:,0,:,:].flatten())  # mean u
-        self.mean_v = np.mean(self.ds.variables['vo'][:,0,:,:].flatten())  # mean v
-        self.mean_u_mag = np.mean(abs(self.ds.variables['uo'][:,0,:,:].flatten()))  # mean magnitude of u
-        self.mean_v_mag = np.mean(abs(self.ds.variables['vo'][:,0,:,:].flatten()))  # mean magnitude of v
-        self.mean_mag = np.sqrt(self.mean_u_mag**2 + self.mean_v_mag**2)  # mean magnitude of resultant (m/s)
-        self.mean_dir = np.arctan(self.mean_v/self.mean_u)  # mean direction (radians)
-        self.std_u = np.std(self.ds.variables['uo'][:,0,:,:].flatten())  # std of u
-        self.std_v = np.std(self.ds.variables['vo'][:,0,:,:].flatten())  # std of v
-        self.std_u_mag = np.std(abs(self.ds.variables['uo'][:,0,:,:].flatten()))  # std of magnitude of u
-        self.std_v_mag = np.std(abs(self.ds.variables['vo'][:,0,:,:].flatten()))  # std of magnitude of v
+        
+
+        
+    def get_interpolated_velocities(self, t0, y0, x0):
+        
+        u, v = get_interpolated_value(self.UW, self.VW, self.xmin, 
+                                      self.dx, self.ymin, self.dy, 
+                                      self.tmin, self.dt, x0, y0, t0)
+        return u, v
+        
     
     def get_filenames(self, t_min, t_max, path):
         """This function returns the NetCDF files needed to access the desired ocean data (and their filenames)
@@ -125,65 +158,7 @@ class ECMWF_Ocean(Metocean):
 
         return filenames, files
     
-    def get_interpolated_uv_velocities(self, t0, y0, x0):
-        """This function returns the linearly interpolated value of data at a specific point.
-
-        Args:
-            data (Metocean): object generated from one of the subclasses of Metocean
-            x0 (float): x-coordinate of interest (degrees longitude)
-            y0 (float): y-coordinate of interest (degrees latitude)
-
-        Returns:
-            D (float): value of data at x0, y0, t0 obtained through linear interpolation
-        """
-
-        # get min max of data grid vectors
-        xmin = self.lons[0]; xmax = self.lons[-1]
-        ymin = self.lats[0]; ymax = self.lats[-1]
-        tmin = self.times[0]; tmax = self.times[-1]
-
-        # check to ensure x0, y0, and t0 are within their respective grid vectors
-        if not xmin <= x0 <= xmax:
-            print('x0 value, {}, not within xmin, {}, and xmax, {}.'.format(x0, xmin, xmax))
-            return None
-        elif not ymin <= y0 <= ymax:
-            print('y0 value, {}, not within ymin, {}, and ymax, {}.'.format(y0, ymin, ymax))
-            return None
-        elif not tmin <= t0 <= tmax:
-            print('t0 value, {}, not within tmin, {}, and tmax, {}.'.format(t0, tmin, tmax))
-            return None
-        else:
-            pass
-
-        # get intervals between nodes of data grid vectors
-        dx = self.xy_res
-        dy = self.xy_res
-        dt = self.t_res
-
-        # get fractional indices of x0, y0, and t0 in data grid vectors
-        i = (x0 - xmin)/dx
-        j = (y0 - ymin)/dy
-        n = (t0 - tmin)/dt
-
-        # get floor index of nearest data grid vector node and its remaining fractional bit
-        (i0, di), (j0, dj), (n0, dn) = [(int(np.floor(x)), x - np.floor(x)) for x in [i, j, n]]
-
-        # extract cube of 8 data points
-        Au = self.UW[n0:n0+2, j0:j0+2, i0:i0+2]
-        Av = self.VW[n0:n0+2, j0:j0+2, i0:i0+2]
-
-        # get weighted average along each dimension
-        Bu = dn* Au[0, :, :] + (1-dn)*Au[1, :, :]
-        Bv = dn* Av[0, :, :] + (1-dn)*Av[1, :, :]
-        Cu = dj * Bu[0, :] + (1-dj)*Bu[1, :]
-        Cv = dj * Bv[0, :] + (1-dj)*Bv[1, :]
-        Du = di * Cu[0] + (1-di)*Cu[1]
-        Dv = di * Cv[0] + (1-di)*Cv[1]
-
-        return Du, Dv
-
-
-
+ 
 class ECMWF_Atm(Metocean):
     """This class creates an object which contains atmospheric data for 10 meter wind velocity amongst other attributes.
     
@@ -213,6 +188,7 @@ class ECMWF_Atm(Metocean):
         
         self.filenames, self.files = self.get_filenames(self.t_min, self.t_max, self.path)
         self.ds = nc.MFDataset(self.files)
+        
         self.times = self.ds.variables['time'][:]
         self.datetimes = nc.num2date(self.times, self.t_units, self.t_calendar)
         self.t1900 = nc.date2num(self.datetimes, 'hours since 1900-01-01 00:00:00.0 00:00', 'standard')
@@ -220,20 +196,18 @@ class ECMWF_Atm(Metocean):
         self.t2000 = nc.date2num(self.datetimes, 'hours since 2000-01-01 00:00:00.0 00:00', 'standard')
         self.lats = self.ds.variables['latitude'][:]
         self.lons = self.ds.variables['longitude'][:]
+        self.xmin = self.lons[0]
+        self.dx = np.diff(self.lons).mean()
+        self.ymin = self.lats[0]
+        self.dy = np.diff(self.lats).mean()
+        self.tmin = self.times[0]
+        self.dt = np.diff(self.times).mean()
+        
         self.UA = np.asarray(self.ds.variables['eastward_wind'][:,0,:,:])
         self.VA = np.asarray(self.ds.variables['northward_wind'][:,0,:,:])
         self.iUA = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.UA)
         self.iVA = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.VA)
-        self.mean_u = np.mean(self.ds.variables['eastward_wind'][:,0,:,:].flatten())  # mean u
-        self.mean_v = np.mean(self.ds.variables['northward_wind'][:,0,:,:].flatten())  # mean v
-        self.mean_u_mag = np.mean(abs(self.ds.variables['eastward_wind'][:,0,:,:].flatten()))  # mean magnitude of u
-        self.mean_v_mag = np.mean(abs(self.ds.variables['northward_wind'][:,0,:,:].flatten()))  # mean magnitude of v
-        self.mean_mag = np.sqrt(self.mean_u_mag**2 + self.mean_v_mag**2)  # mean magnitude of resultant (m/s)
-        self.mean_dir = np.arctan(self.mean_v/self.mean_u)  # mean direction (radians)
-        self.std_u = np.std(self.ds.variables['eastward_wind'][:,0,:,:].flatten())  # std of u
-        self.std_v = np.std(self.ds.variables['northward_wind'][:,0,:,:].flatten())  # std of v
-        self.std_u_mag = np.std(abs(self.ds.variables['eastward_wind'][:,0,:,:].flatten()))  # std of magnitude of u
-        self.std_v_mag = np.std(abs(self.ds.variables['northward_wind'][:,0,:,:].flatten()))  # std of magnitude of v
+
         
     def get_filenames(self, t_min, t_max, path):
         """This function returns the NetCDF files needed to access the desired ocean data (and their filenames)
@@ -261,60 +235,3 @@ class ECMWF_Atm(Metocean):
             files.append(urllib.request.urlretrieve(filenames[i])[0])
 
         return filenames, files
-    
-    def get_interpolated_uv_velocities(self, t0, y0, x0):
-        """This function returns the linearly interpolated value of data at a specific point.
-
-        Args:
-            t0 (float): time of interest (hours since 1900)
-            x0 (float): x-coordinate of interest (degrees longitude)
-            y0 (float): y-coordinate of interest (degrees latitude)
-
-        Returns:
-            D (float): value of data at x0, y0, t0 obtained through linear interpolation
-        """
-
-        # get min max of data grid vectors
-        xmin = self.lons[0]; xmax = self.lons[-1]
-        ymin = self.lats[0]; ymax = self.lats[-1]
-        tmin = self.times[0]; tmax = self.times[-1]
-
-        # check to ensure x0, y0, and t0 are within their respective grid vectors
-        if not xmin <= x0 <= xmax:
-            print('x0 value, {}, not within xmin, {}, and xmax, {}.'.format(x0, xmin, xmax))
-            return None
-        elif not ymin <= y0 <= ymax:
-            print('y0 value, {}, not within ymin, {}, and ymax, {}.'.format(y0, ymin, ymax))
-            return None
-        elif not tmin <= t0 <= tmax:
-            print('t0 value, {}, not within tmin, {}, and tmax, {}.'.format(t0, tmin, tmax))
-            return None
-        else:
-            pass
-
-        # get intervals between nodes of data grid vectors
-        dx = self.xy_res
-        dy = self.xy_res
-        dt = self.t_res
-
-        # get fractional indices of x0, y0, and t0 in data grid vectors
-        i = (x0 - xmin)/dx
-        j = (y0 - ymin)/dy
-        n = (t0 - tmin)/dt
-
-        # get floor index of nearest data grid vector node and its remaining fractional bit
-        (i0, di), (j0, dj), (n0, dn) = [(int(np.floor(x)), x - np.floor(x)) for x in [i, j, n]]
-
-        # extract cube of 8 data points
-        Au = self.UA[n0:n0+2, j0:j0+2, i0:i0+2]
-        Av = self.VA[n0:n0+2, j0:j0+2, i0:i0+2]
-
-        # get weighted average along each dimension
-        Bu = dn* Au[0, :, :] + (1-dn)*Au[1, :, :]
-        Bv = dn* Av[0, :, :] + (1-dn)*Av[1, :, :]
-        Cu = dj * Bu[0, :] + (1-dj)*Bu[1, :]
-        Cv = dj * Bv[0, :] + (1-dj)*Bv[1, :]
-        Du = di * Cu[0] + (1-di)*Cu[1]
-        Dv = di * Cv[0] + (1-di)*Cv[1]
-
-        return Du, Dv
