@@ -7,32 +7,7 @@ from datetime import date, timedelta
 import urllib
 import netCDF4 as nc
 import numpy as np
-import numba
 
-
-@numba.jit
-def linear_interpolator(data, dn, dj, di, n0, j0, i0):
-    
-    A = data[n0:n0+2, j0:j0+2, i0:i0+2]
-    B = dn*A[0, :, :] + (1-dn)*A[1, :, :]
-    C = dj*B[0, :] + (1-dj)*B[1, :]
-    D = di*C[0] + (1-di)*C[1]
-    
-    return D
-    
-@numba.jit
-def get_interpolated_value(data_u, data_v, xmin, dx, ymin, dy, tmin, dt, x0, y0, t0):
-
-    i = (x0 - xmin)/dx
-    j = (y0 - ymin)/dy
-    n = (t0 - tmin)/dt
-
-    (i0, di), (j0, dj), (n0, dn) = [(int(np.floor(x)), x - np.floor(x)) for x in [i, j, n]]
-    
-    u = linear_interpolator(data_u,  dn, dj, di, n0, j0, i0)
-    v = linear_interpolator(data_v,  dn, dj, di, n0, j0, i0)
-       
-    return u, v 
 
 
 class Metocean(object):
@@ -63,10 +38,6 @@ class Metocean(object):
         t = nc.date2num(t, t_units, t_calendar)
         
         return t
-    
-
-
-
 
 
 class ECMWF_Ocean(Metocean):
@@ -107,13 +78,6 @@ class ECMWF_Ocean(Metocean):
         self.t2000 = nc.date2num(self.datetimes, 'hours since 2000-01-01 00:00:00.0 00:00', 'standard')
         self.lats = self.ds.variables['latitude'][:]
         self.lons = self.ds.variables['longitude'][:]
-        self.xmin = self.lons[0]
-        self.dx = np.diff(self.lons).mean()
-        self.ymin = self.lats[0]
-        self.dy = np.diff(self.lats).mean()
-        self.tmin = self.times[0]
-        self.dt = np.diff(self.times).mean()
-        
         self.UW = np.asarray(self.ds.variables['uo'][:,0,:,:])
         self.VW = np.asarray(self.ds.variables['vo'][:,0,:,:])
         self.SST = np.asarray(self.ds.variables['thetao'][:,0,:,:])
@@ -122,13 +86,6 @@ class ECMWF_Ocean(Metocean):
         self.iSST = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.SST)
         
 
-        
-    def get_interpolated_velocities(self, t0, y0, x0):
-        
-        u, v = get_interpolated_value(self.UW, self.VW, self.xmin, 
-                                      self.dx, self.ymin, self.dy, 
-                                      self.tmin, self.dt, x0, y0, t0)
-        return u, v
         
     
     def get_filenames(self, t_min, t_max, path):
@@ -196,13 +153,6 @@ class ECMWF_Atm(Metocean):
         self.t2000 = nc.date2num(self.datetimes, 'hours since 2000-01-01 00:00:00.0 00:00', 'standard')
         self.lats = self.ds.variables['latitude'][:]
         self.lons = self.ds.variables['longitude'][:]
-        self.xmin = self.lons[0]
-        self.dx = np.diff(self.lons).mean()
-        self.ymin = self.lats[0]
-        self.dy = np.diff(self.lats).mean()
-        self.tmin = self.times[0]
-        self.dt = np.diff(self.times).mean()
-        
         self.UA = np.asarray(self.ds.variables['eastward_wind'][:,0,:,:])
         self.VA = np.asarray(self.ds.variables['northward_wind'][:,0,:,:])
         self.iUA = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.UA)
