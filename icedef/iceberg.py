@@ -10,13 +10,15 @@ class Iceberg:
     """Creates an iceberg object to be later used in drift simulation.
 
     Attributes:
-        density (float): density of the iceberg
+        size_dim_dict (dict): iceberg dimension ranges according to IIP size classes
+        shape_info_dict (dict): iceberg shape factors and height to draft ratios according to IIP shape classes
+        rho (float): density of the iceberg
         keel_shape (str): shape of the iceberg keel
         sail_shape (str): shape of the iceberg sail
-        air_drag_coeff (float): air drag coefficient for the iceberg
-        water_drag_coeff (float): water drag coefficient for the iceberg
-        air_skin_drag_coeff (float): air skin drag coefficient for the iceberg
-        water_skin_drag_coeff (float): water skin drag coefficient for the iceberg
+        Cda (float): air drag coefficient for the iceberg
+        Cdw (float): water drag coefficient for the iceberg
+        Csda (float): air skin drag coefficient for the iceberg
+        Csdw (float): water skin drag coefficient for the iceberg
     """
     
     # dictionary values are of the form: [L_min, L_max, W_min, W_max, Hs_min, Hs_max]
@@ -51,12 +53,9 @@ class Iceberg:
     def __init__(self, ID, T, X, Y, Vx, Vy, size, shape):
         """Instantiate iceberg object with necessary initial values.
 
-        Note:
-            All parameters that are lists must align.
-
         Args:
             ID (int): iceberg ID number
-            T (datetime): datetime of the iceberg
+            T (datetime.datetime): datetime of the iceberg
             Vx (float): x-component of iceberg velocity
             Vy (float): y-component of iceberg velocity
             Y (float): iceberg latitude
@@ -73,17 +72,29 @@ class Iceberg:
         self.X = X
         self.size = size
         self.shape = shape
+        
+        #: list of float: L is length (m), W is width (m), Hs is sail height (m)
         self.L, self.W, self.Hs = self.get_berg_dims()
+        #: list of float: H is height (m), Hk is keel height (m), Ab is bottom face area (m^2), At is top face area (m^2)
+        #: list of float: Ak is keel face area (m^2), As is sail face area (m^2), M is mass (kg)
         self.H, self.Hk, self.Ab, self.At, self.Ak, self.As, self.M = self.get_shape_info()
+        
+        #: dict of float: dictionary of the time, position, and velocities of the iceberg prior to its current state
         self.history = {'T': [], 'X': [], 'Y': [], 'Vx': [], 'Vy': []}
  
     
     def vary_drag_coeffs(self):
+        """This function updates the air and water drag coefficients by drawing new values from a uniform distribution
+        """
         self.Cda = np.random.uniform(0.5, 2.5)
         self.Cdw = np.random.uniform(0.5, 2.5)
     
     
     def vary_berg_dims(self):
+        """This function updates the iceberg's dims by drawing new values from a uniform distribution bounding by size class min and max.
+        
+        Also, the parameters which depend on the dims such as the area and mass also get updated accordingly.
+        """
         
         size = self.size
         self.L, self.W, self.Hs = self.get_berg_dims(fixed=False)
@@ -101,14 +112,14 @@ class Iceberg:
         
         Note:
             This function relies on there being a valid size attribute for the iceberg object.
-            This can be a list of numeric values, [l, w, sail_height] or a string representing a size classification code.
+            This can be a list of numeric values, [L, W, Hs] or a string representing a size classification code.
             See https://nsidc.org/data/g00807 for more information.
             Varying the dimensions can only happen if the iceberg is initialized with a size class (str) and not a list of dimensions.
             
         Returns:
-            L (float): length of the iceberg (meters)
-            W (float): width of the iceberg (meters)
-            Hs (float): height of the sail of the iceberg (meters)
+            L (float): length of the iceberg (m)
+            W (float): width of the iceberg (m)
+            Hs (float): height of the sail of the iceberg (m)
         """
         
         
@@ -139,16 +150,18 @@ class Iceberg:
         Note:
             All units are SI. Dimensions are in meters, areas are meters squared, and masses are kilograms.
         
+        Attributes:
+            SF (float): constant that is specified according to iceberg shape classification
+            H2D (float): constant that dictates the ratio of the iceberg above water versus below
+        
         Returns:
-            shape_factor (float): constant that is specified according to iceberg shape classification
-            height2draft_ratio (float): constant that dictates the ratio of the iceberg above water versus below
-            height (float): total height of the iceberg (sail_height + keel_depth) (meters)
-            keel_depth (float): depth of the iceberg keel (meters)
-            bottom_area (float): area of the bottom face of the iceberg (meters squared)
-            top_area (float): area of the top face of the iceberg (meters squared)
-            keel_area (float): area of the keel of the iceberg (meters squared)
-            sail_area (float): area of the sail of the iceberg (meters squared)
-            mass (float): mass of the iceberg (kilograms)
+            H (float): total height of the iceberg (m)
+            Hk (float): height of the iceberg keel (m)
+            Ab (float): area of the bottom face of the iceberg (m^2)
+            At (float): area of the top face of the iceberg (m^2)
+            Ak (float): area of the keel of the iceberg (m^2)
+            As (float): area of the sail of the iceberg (m^2)
+            M (float): mass of the iceberg (kg)
         """
         
         SF, H2D = self.shape_info_dict[self.shape]
@@ -206,7 +219,7 @@ def get_iip_df(season_year):
         season_year (int): iceberg season year of the desired data frame
         
     Returns:
-        iip_df (Dataframe): IIP iceberg sighting database file for season_year specified
+        iip_df (pandas.core.frame.DataFrame): IIP iceberg sighting database file for season_year specified
     """
     
     iip_url_base = 'ftp://sidads.colorado.edu/pub/DATASETS/NOAA/G00807/' 
@@ -225,10 +238,10 @@ def add_datetime_column(iip_df):
     This function will take information from the SIGHTING_DATE and SIGHTING_TIME columns and convert into T in a new column.
     
     Args:
-        iip_df (Dataframe): IIP iceberg sighting dataframe
+        iip_df (pandas.core.frame.DataFrame): IIP iceberg sighting dataframe
         
     Returns:
-        iip_df (Dataframe): IIP iceberg sighting dataframe with an added column, TIMESTAMP, with sighting T    
+        iip_df (pandas.core.frame.DataFrame): IIP iceberg sighting dataframe with an added column, TIMESTAMP, with sighting T    
     """
     
     iip_df['TIMESTAMP'] = pd.to_datetime(iip_df['SIGHTING_DATE'], format='%m/%d/%Y')
@@ -243,11 +256,11 @@ def get_time_dense_df(iip_df, max_hours):
     """This function returns a new dataframe with only the rows of observations that are within the max time difference specified.
     
     Args:
-        iip_df (Dataframe): IIP iceberg sighting dataframe with an added column, TIMESTAMP, with sighting T
+        iip_df (pandas.core.frame.DataFrame): IIP iceberg sighting dataframe with an added column, TIMESTAMP, with sighting T
         max_hours (int): max number of hours desired between observations (hours)
         
     Returns:
-        new_df (Dataframe): IIP iceberg sighting dataframe with only rows of observations that are within the max hours specified
+        new_df (pandas.core.frame.DataFrame): IIP iceberg sighting dataframe with only rows of observations that are within the max hours specified
     """
     
     max_timedelta = np.timedelta64(60*max_hours, 'm')

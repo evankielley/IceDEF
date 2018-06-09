@@ -1,4 +1,10 @@
 """Iceberg drift model from Wagner et al, 2017.
+
+This module can simulate the drifting and melting of an iceberg over one timestep.
+
+For information on the equations of motion used, please see:
+    Wagner, T.J., R.W. Dell, and I. Eisenman, 2017: An Analytical Model of Iceberg Drift. 
+    J. Phys. Oceanogr., 47, 1605–1616, https://doi.org/10.1175/JPO-D-16-0262.1 
 """
 
 import numpy as np
@@ -7,17 +13,31 @@ import netCDF4 as nc
 
 
 def drift(iceberg, vau, vav, vwu, vwv, dt):
+    """This function simulates the drift of an iceberg over one timestep.
+    
+    Args: 
+        iceberg (icedef.iceberg.Iceberg): iceberg object
+        vau (float): u-component of wind speed (m/s)
+        vav (float): v-component of wind speed (m/s)
+        vwu (float): u-component of current speed (m/s)
+        vwv (float): v-component of current speed (m/s)
+        dt (float): timestep (s)
+        
+    Returns:
+        viu (float): u-component of iceberg speed after one timestep (m/s)
+        viv (float): v-component of iceberg speed after one timestep (m/s)
+    """
+    
     
     # Constants
-    R = 6378*1e3
-    om = 7.2921e-5
-    rhow = 1027
-    rhoa = 1.2
-    rhoi = iceberg.rho
+    om = 7.2921e-5  # rotation rate of Earth (rad/s)
+    rhoa = 1.225 # density of air (kg/m^3)
+    rhow = 1027.5  # density of water (kg/m^3)
+    rhoi = iceberg.rho  # density of iceberg (kg/m^3)
     drho = rhow - rhoi
-    Cw = iceberg.Cdw
-    Ca = iceberg.Cda
-    gam = np.sqrt(rhoa*drho/rhow/rhoi*(Ca/Cw))
+    Cw = iceberg.Cdw  # water drag coefficient
+    Ca = iceberg.Cda  # air drag coefficent
+    gam = np.sqrt(rhoa*drho/rhow/rhoi*(Ca/Cw))  # dimensionless parameter
    
     # Iceberg attributes
     t = iceberg.T  # time of the iceberg (datetime)
@@ -59,6 +79,22 @@ def drift(iceberg, vau, vav, vwu, vwv, dt):
 
     
 def melt(iceberg, vau, vav, vwu, vwv, sst, dt):
+    """This function simulates the melting of an iceberg after one timestep.
+    
+    Args: 
+        iceberg (icedef.iceberg.Iceberg): iceberg object
+        vau (float): u-component of wind speed (m/s)
+        vav (float): v-component of wind speed (m/s)
+        vwu (float): u-component of current speed (m/s)
+        vwv (float): v-component of current speed (m/s)
+        sst (float): sea-surface temperature (C)
+        dt (float): timestep (s)
+    
+    Returns:
+        l_new (float): length of the iceberg after one timestep (m)
+        w_new (float): width of the iceberg after one timestep (m)
+        h_new (float): height of the iceberg after one timestep (m)
+    """
     
     # Constants
     sst0 = -4

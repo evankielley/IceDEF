@@ -35,6 +35,16 @@ class Metocean(object):
 
         
     def convert_datetime2time(self, t, t_units, t_calendar, t_offset=0):
+        """This function converts a datetime into the new time format specified
+        
+        Args:
+            t (datetime.datetime): time to be converted
+            t_units (str): units of time (specified in NetCDF file)
+            t_calendar (str): time calendar (specified in NetCDF file)
+            
+        Returns:
+            t (float): converted time (hours since some date)
+        """
                                                 
         dt += timedelta(hours = t_offset)
         t = nc.date2num(t, t_units, t_calendar)
@@ -85,6 +95,8 @@ class Metocean(object):
         return filenames, files
 
 
+    
+    
 class ECMWF_Ocean(Metocean):
     """This class creates an object which contains ocean data for surface current velocity and SST amongst other attributes.
     
@@ -95,6 +107,7 @@ class ECMWF_Ocean(Metocean):
         Metocean (class): parent class
         
     Attributes:
+        model_id (str): product identifier for the dataset
         path (str): path to the directory of data files needed
         xy_res (float): spatial resolution of the ocean model (degrees)
         t_res (float): temporal resolution of the ocean model (hours)
@@ -113,25 +126,58 @@ class ECMWF_Ocean(Metocean):
         
         super().__init__(x_min, x_max, y_min, y_max, t_min, t_max)
         
+        #: bool: will attempt to cache data files if True
         self.cache = cache
+        
+        #: list of str: filenames is a list of data filenames, files is a list of their associated file handles
         self.filenames, self.files = self.get_filenames()
+        
+        #: netCDF4._netCDF4.MFDataset: dataset of NetCDF4 files
         self.ds = nc.MFDataset(self.files)
         
+        #: list of float: list of times for the data in format according to t_units  
         self.times = self.ds.variables['time'][:]
+        
+        #: datetime.datetime: list of datetimes for the corresponding data times
         self.datetimes = nc.num2date(self.times, self.t_units, self.t_calendar)
+        
+        #: list of float: list of times for the data in hours since the year 1900
         self.t1900 = nc.date2num(self.datetimes, 'hours since 1900-01-01 00:00:00.0 00:00', 'standard')
+        
+        #: list of float: list of times for the data in hours since the year 1950
         self.t1950 = nc.date2num(self.datetimes, 'hours since 1950-01-01 00:00:00.0 00:00', 'standard')
+        
+        #: list of float: list of times for the data in hours since the year 2000
         self.t2000 = nc.date2num(self.datetimes, 'hours since 2000-01-01 00:00:00.0 00:00', 'standard')
+        
+        #: list of float: list of latitudes for the data
         self.lats = self.ds.variables['latitude'][:]
+        
+        #: list of float: list of longitudes for the data
         self.lons = self.ds.variables['longitude'][:]
+        
+        #: numpy.ndarray: 3-D data field ([time, lat, lon]) for the u-component of current velocity (m/s)
         self.UW = np.asarray(self.ds.variables['uo'][:,0,:,:])
+        
+        #: numpy.ndarray: 3-D data field ([time, lat, lon]) for the v-component of current velocity (m/s)
         self.VW = np.asarray(self.ds.variables['vo'][:,0,:,:])
+        
+        #: numpy.ndarray: 3-D data field ([time, lat, lon]) for the sea-surface temperature (C)
         self.SST = np.asarray(self.ds.variables['thetao'][:,0,:,:])
+        
+        #: scipy.interpolate.interpolate.RegularGridInterpolator: interpolator of UW
         self.iUW = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.UW)
+        
+        #: scipy.interpolate.interpolate.RegularGridInterpolator: interpolator of VW
         self.iVW = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.VW)
+        
+        #: scipy.interpolate.interpolate.RegularGridInterpolator: interpolator of SST
         self.iSST = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.SST)
     
  
+
+
+
 class ECMWF_Atm(Metocean):
     """This class creates an object which contains atmospheric data for 10 meter wind velocity amongst other attributes.
     
@@ -142,6 +188,7 @@ class ECMWF_Atm(Metocean):
         Metocean (class): parent class
         
     Attributes:
+        model_id (str): product identifier for the dataset
         path (str): path to the directory of data files needed
         xy_res (float): spatial resolution of the atmospheric model (degrees)
         t_res (float): temporal resolution of the atmospheric model (hours)
@@ -160,20 +207,44 @@ class ECMWF_Atm(Metocean):
         
         super().__init__(x_min, x_max, y_min, y_max, t_min, t_max)
         
+        #: bool: will attempt to cache data files if True
         self.cache = cache
+        
+        #: list of str: filenames is a list of data filenames, files is a list of their associated file handles
         self.filenames, self.files = self.get_filenames()
+        
+        #: netCDF4._netCDF4.MFDataset: dataset of NetCDF4 files
         self.ds = nc.MFDataset(self.files)
         
+        #: list of float: list of times for the data in format according to t_units
         self.times = self.ds.variables['time'][:]
-        self.datetimes = nc.num2date(self.times, self.t_units, self.t_calendar)
-        self.t1900 = nc.date2num(self.datetimes, 'hours since 1900-01-01 00:00:00.0 00:00', 'standard')
-        self.t1950 = nc.date2num(self.datetimes, 'hours since 1950-01-01 00:00:00.0 00:00', 'standard')
-        self.t2000 = nc.date2num(self.datetimes, 'hours since 2000-01-01 00:00:00.0 00:00', 'standard')
-        self.lats = self.ds.variables['latitude'][:]
-        self.lons = self.ds.variables['longitude'][:]
-        self.UA = np.asarray(self.ds.variables['eastward_wind'][:,0,:,:])
-        self.VA = np.asarray(self.ds.variables['northward_wind'][:,0,:,:])
-        self.iUA = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.UA)
-        self.iVA = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.VA)
-
         
+        #: datetime.datetime: list of datetimes for the corresponding data times
+        self.datetimes = nc.num2date(self.times, self.t_units, self.t_calendar)
+        
+        #: list of float: list of times for the data in hours since the year 1900
+        self.t1900 = nc.date2num(self.datetimes, 'hours since 1900-01-01 00:00:00.0 00:00', 'standard')
+        
+        #: list of float: list of times for the data in hours since the year 1950
+        self.t1950 = nc.date2num(self.datetimes, 'hours since 1950-01-01 00:00:00.0 00:00', 'standard')
+        
+        #: list of float: list of times for the data in hours since the year 2000
+        self.t2000 = nc.date2num(self.datetimes, 'hours since 2000-01-01 00:00:00.0 00:00', 'standard')
+        
+        #: list of float: list of latitudes for the data
+        self.lats = self.ds.variables['latitude'][:]
+        
+        #: list of float: list of longitudes for the data
+        self.lons = self.ds.variables['longitude'][:]
+        
+        #: numpy.ndarray: 3-D data field ([time, lat, lon]) for the u-component of wind velocity (m/s)
+        self.UA = np.asarray(self.ds.variables['eastward_wind'][:,0,:,:])
+        
+        #: numpy.ndarray: 3-D data field ([time, lat, lon]) for the u-component of wind velocity (m/s)
+        self.VA = np.asarray(self.ds.variables['northward_wind'][:,0,:,:])
+        
+        #: scipy.interpolate.interpolate.RegularGridInterpolator: interpolator of UA
+        self.iUA = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.UA)
+        
+        #: scipy.interpolate.interpolate.RegularGridInterpolator: interpolator of VA
+        self.iVA = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.VA)

@@ -1,6 +1,15 @@
 """Iceberg drift model.
 
-Computes the new x and y components of iceberg position and velocity after one timestep.
+The module can simulate the drifting of an iceberg over one timestep.
+
+The equations of motion used come from the following research paper:
+    
+    Turnbull, Ian & Fournier, Nicolas & Stolwijk, Michiel & Fosnaes, Tor & Mcgonigal, David. (2014). 
+    Operational iceberg drift forecasting in Northwest Greenland. 
+    Cold Regions Science and Technology. 
+    110. 10.1016/j.coldregions.2014.10.006.
+    
+    and are best described there.
 
 Todo:
     * Extend turnbull_drift to include n-layer keel
@@ -11,34 +20,22 @@ import numpy as np
 import netCDF4 as nc
 
 def drift(iceberg, Vax, Vay, Vcx, Vcy, dt):
-    """Computes the new velocity and position of an iceberg after one timestep.
-    
-    The equations of motion of this function come from the following research paper:
-    
-    Turnbull, Ian & Fournier, Nicolas & Stolwijk, Michiel & Fosnaes, Tor & Mcgonigal, David. (2014). 
-    Operational iceberg drift forecasting in Northwest Greenland. 
-    Cold Regions Science and Technology. 
-    110. 10.1016/j.coldregions.2014.10.006.
-    
-    and are best described there.
-    
+    """Simulates the drift of an iceberg over one timestep.
+      
     Notes:
-        All units are SI. Specifically, velocities are in meters per second, positions are in degrees latitude or 
-        longitude, size dimensions are in meters, masses are in kilograms, times are in seconds, and forces are in Newtons.
+        All units are SI.
     
     Args:
-        iceberg (obj): Contains variables that describe the iceberg's velocity, position, size dimensions, and mass.
-        UA (float): U-component of air velocity.
-        VA (float): V-component of air velocity.
-        UW (float): U-component of water velocity.
-        VW (float): V-component of water velocity.
-        dt (float): Timestep size.
+        iceberg (icedef.iceberg.Iceberg): iceberg object
+        Vax (float): x-component of air velocity (m/s)
+        Vay (float): y-component of air velocity (m/s)
+        Vwx (float): x-component of water velocity (m/s)
+        Vwy (float): y-component of water velocity (m/s)
+        dt (float): timestep (s)
         
     Returns:
-        Vx_new (float): New x-component of iceberg velocity
-        Vy_new (float): New y-component of iceberg velocity
-        x_new (float): New x-component of iceberg position.
-        y_new (float): New y-component of iceberg position.
+        Vx_new (float): x-component of iceberg velocity after one timestep
+        Vy_new (float): y-component of iceberg velocity after one timestep
     
     """
     
@@ -49,7 +46,7 @@ def drift(iceberg, Vax, Vay, Vcx, Vcy, dt):
     rhoi = iceberg.rho  # density of iceberg (kg/m^3)
     
     # Iceberg Attributes
-    T = iceberg.T  # time of the iceberg (datetime)
+    T = iceberg.T  # time of the iceberg (datetime.datetime)
     X = iceberg.X  # x-component of iceberg position (degrees longitude)
     Y = iceberg.Y  # y-component of iceberg position (degrees latitiude)
     Vx = iceberg.Vx  # x-component of iceberg velocity (m/s)
@@ -76,8 +73,8 @@ def drift(iceberg, Vax, Vay, Vcx, Vcy, dt):
       
     # Coriolis force
     f = 2*om*np.sin(np.deg2rad(Y))  # Coriolis parameter
-    Fcx = f*Vy*M  # x-component of the Coriolis force on iceberg
-    Fcy = -f*Vx*M  # y-component of the Coriolis force on iceberg
+    Fcx = f*Vy*M  # x-component of the Coriolis force on iceberg (N)
+    Fcy = -f*Vx*M  # y-component of the Coriolis force on iceberg (N)
       
     # Water pressure gradient force
     Vwmx = 0  # x-component of mean water current down to the iceberg keel (m/s)
