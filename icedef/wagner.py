@@ -6,7 +6,7 @@ import cmath
 import netCDF4 as nc
 
 
-def drift(iceberg, ocean_data, atm_data):
+def drift(iceberg, vau, vav, vwu, vwv, dt):
     
     # Constants
     R = 6378*1e3
@@ -25,17 +25,6 @@ def drift(iceberg, ocean_data, atm_data):
     y = iceberg.Y  # y-component of iceberg position (degrees latitiude)
     l = iceberg.length  # length of the iceberg (m)
     w = iceberg.width  # width of the iceberg (m)
-    
-
-    # Extract values from input fields 
-    t_ocean = nc.date2num(t, ocean_data.t_units, ocean_data.t_calendar)
-    t_atm = nc.date2num(t, atm_data.t_units, atm_data.t_calendar)
-    
-    vau = atm_data.iUA([t_atm, y, x])[0]
-    vav = atm_data.iVA([t_atm, y, x])[0]  
-    vwu = ocean_data.iUW([t_ocean, y, x])[0] 
-    vwv = ocean_data.iVW([t_ocean, y, x])[0]
-    sst = ocean_data.iSST([t_ocean, y, x])[0]
     
     
     # Drift
@@ -69,7 +58,7 @@ def drift(iceberg, ocean_data, atm_data):
     return viu, viv
 
     
-def melt(iceberg, ocean_data, dt):
+def melt(iceberg, vau, vav, vwu, vwv, sst, dt):
     
     # Constants
     sst0 = -4
@@ -85,10 +74,6 @@ def melt(iceberg, ocean_data, dt):
     w = iceberg.width  # width of the iceberg (m)
     h = iceberg.height  # height of the iceberg (m)
     
-
-    # Extract values from input fields
-    t_ocean = nc.date2num(t, ocean_data.t_units, ocean_data.t_calendar)
-    sst = ocean_data.iSST([t_ocean, y, x])[0]
 
     # Melt Rates
     Me = CMe1*(Cs1*np.sqrt(vau**2 + vav**2)**Cs2 + Cs3*np.sqrt(vau**2 + vav**2))
