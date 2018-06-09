@@ -197,6 +197,7 @@ def get_iip_df(season_year):
     iip_url = iip_url_base + iip_filename
     r = urllib.request.urlretrieve(iip_url)
     iip_df = pd.read_csv(r[0])
+    
     return iip_df
     
     
@@ -217,6 +218,7 @@ def add_datetime_column(iip_df):
     iip_df = iip_df.loc[iip_df['SIGHTING_TIME'] >= 100]
     iip_df['TIMESTAMP'] += pd.to_timedelta(pd.to_datetime(iip_df['SIGHTING_TIME'], format='%H%M').dt.hour, unit='h')
     iip_df['TIMESTAMP'] += pd.to_timedelta(pd.to_datetime(iip_df['SIGHTING_TIME'], format='%H%M').dt.minute, unit='m')
+    
     return iip_df
 
 
@@ -250,34 +252,46 @@ def get_time_dense_df(iip_df, max_hours):
     return new_df
 
 
-def get_iip_iceberg(iip_season=2015, method='index', identifier=range(3283, 3285)):
-    """This function returns an Iceberg object (based off an IIP spreadsheet) and its associated DataFrame.
+def get_iip_berg_df(iip_df, indices=range(3284, 3286)):
+    """This function returns a dataframe from the desired rows of an IIP Iceberg Sighting dataframe.
     
     Args:
-        iip_season (int): iceberg season (year) of the IIP Iceberg Sighting data of interest
-        identifier (range or int): can be either IIP spreadsheet indices as a range or an Iceberg ID as an int.
-        method (str): method to be used to retrieve iceberg data from spreadsheet, can be either 'index' or 'ID'
+        iip_df (pandas.core.frame.DataFrame): dataframe from IIP Iceberg Sighting database
+        indices (list or range): indices from the iip_df you wish to include in new dataframe
         
     Returns:
-        iip_berg_df (pandas.core.frame.DataFrame): DataFrame of the iceberg specified.
-        iip_berg (icedef.iceberg.Iceberg): Iceberg object made from IIP spreadsheet data specified. 
+        iip_berg_df (pandas.core.frame.DataFrame): dataframe of just chosen rows from iip_df arg
+    
     """
     
-    iip_df = get_iip_df(iip_season)
-    iip_df = add_datetime_column(iip_df)
+    if isinstance(indices, list):
+        iip_berg_df = pd.DataFrame()
+        for index in indices:
+            iip_berg_df = iip_berg_df.append(iip_df.loc[iip_df.index == index])
+            
+    elif isinstance(indices, range):
+        iip_berg_df = iip_df.loc[iip_df.index[indices]]
+        
+    else:
+        print("indices argument type invalid -- indices must be either of type list or range")
+        
+    iip_berg_df = iip_berg_df.reset_index()
+
+        
+    return iip_berg_df
+
+
+def get_iip_berg(iip_berg_df):
+    """This function returns an Iceberg object (based off an IIP spreadsheet).
     
-    if method == 'index':
-        if isinstance(identifier, range):
-            iip_berg_df = iip_df.loc[iip_df.index[identifier]].reset_index()
-        else:
-            print('Invalid identifier for index method. Identifier should be range')
-            
-    elif method == 'ID':
-        if isinstance(identifier, int):
-            iip_berg_df = iip_df.loc[iip_df['ICEBERG_NUMBER'] == identifier].reset_index()
-        else:
-            print('Invalid identifier for ID method. Identifier should be int')
-            
+    Args:
+        iip_berg_df (pandas.core.frame.DataFrame): dataframe of the IIP iceberg of interest
+        
+    Returns:
+        iip_berg (icedef.iceberg.Iceberg): Iceberg object made from data in iip_berg_df arg 
+    """
+    
+    
     ID = iip_berg_df['ICEBERG_NUMBER'].loc[0]
     T = iip_berg_df['TIMESTAMP'].dt.to_pydatetime()[0]
     X = iip_berg_df['SIGHTING_LONGITUDE'].loc[0]
@@ -292,4 +306,4 @@ def get_iip_iceberg(iip_season=2015, method='index', identifier=range(3283, 3285
     iip_berg.history['X'] = iip_berg_df['SIGHTING_LONGITUDE'].loc[:].tolist()
     iip_berg.history['Y'] = iip_berg_df['SIGHTING_LATITUDE'].loc[:].tolist()
     
-    return iip_berg_df, iip_berg
+    return iip_berg
