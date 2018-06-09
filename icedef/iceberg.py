@@ -182,7 +182,7 @@ class Iceberg:
         return H, Hk, Ab, At, Ak, As, M        
 
     
-def clone_iceberg_state(berg, vary_berg_dims=False):
+def clone_iceberg_state(berg):
     """This function clones the current state of an iceberg and returns the clone.
     
     Args:
@@ -192,7 +192,7 @@ def clone_iceberg_state(berg, vary_berg_dims=False):
         clone (icedef.iceberg.Iceberg): clone of the current state of the iceberg provided.
     """
     
-    clone = Iceberg(berg.ID, berg.T, berg.X, berg.Y, berg.Vx, berg.Vy, berg.size, berg.shape, vary_dims=vary_berg_dims)
+    clone = Iceberg(berg.ID, berg.T, berg.X, berg.Y, berg.Vx, berg.Vy, berg.size, berg.shape)
     return clone
     
 
