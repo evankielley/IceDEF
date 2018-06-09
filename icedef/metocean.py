@@ -7,6 +7,7 @@ from datetime import date, timedelta
 import urllib
 import netCDF4 as nc
 import numpy as np
+import os
 
 
 
@@ -68,7 +69,7 @@ class ECMWF_Ocean(Metocean):
         
         super().__init__(x_min, x_max, y_min, y_max, t_min, t_max)
         
-        self.filenames, self.files = self.get_filenames(self.t_min, self.t_max, self.path)
+        self.filenames, self.files = self.get_filenames()
         self.ds = nc.MFDataset(self.files)
         
         self.times = self.ds.variables['time'][:]
@@ -88,7 +89,7 @@ class ECMWF_Ocean(Metocean):
 
         
     
-    def get_filenames(self, t_min, t_max, path):
+    def get_filenames(self):
         """This function returns the NetCDF files needed to access the desired ocean data (and their filenames)
         
         Args:
@@ -105,15 +106,27 @@ class ECMWF_Ocean(Metocean):
         d2 = date(self.t_max.year, self.t_max.month, self.t_max.day)  # end date
         delta = d2 - d1  # timedelta
 
+        cache_path = os.getcwd() + '/cache/'
+        
         filenames = []
         files = []
 
         for i in range(delta.days + 1):
             new_date = d1 + timedelta(days=i)
-            filenames.append(path + str(new_date).replace('-', '') + '.nc')
-            files.append(urllib.request.urlretrieve(filenames[i])[0])
-
+            filename = str(new_date).replace('-', '') + '.nc'
+            filenames.append(filename)
+            cache_file = cache_path + filename
+            
+            if os.path.isfile(cache_file):
+                files.append(cache_file)
+            else:
+                if os.path.exists(cache_path):
+                    files.append(urllib.request.urlretrieve(self.path + filename, cache_path + filename)[0])
+                else:
+                    files.append(urllib.request.urlretrieve(self.path + filename)[0])
+            
         return filenames, files
+    
     
  
 class ECMWF_Atm(Metocean):
@@ -176,12 +189,22 @@ class ECMWF_Atm(Metocean):
         d2 = date(self.t_max.year, self.t_max.month, self.t_max.day)  # end date
         delta = d2 - d1  # timedelta
 
+        cache_path = os.getcwd() + '/cache/'
         filenames = []
         files = []
 
         for i in range(delta.days + 1):
             new_date = d1 + timedelta(days=i)
-            filenames.append(path + 'sub' + str(new_date).replace('-', '') + '.nc')
-            files.append(urllib.request.urlretrieve(filenames[i])[0])
-
+            filename = 'sub' + str(new_date).replace('-', '') + '.nc'
+            filenames.append(filename)
+            cache_file = cache_path + filename
+            
+            if os.path.isfile(cache_file):
+                files.append(cache_file)
+            else:
+                if os.path.exists(cache_path):
+                    files.append(urllib.request.urlretrieve(self.path + filename, cache_path + filename)[0])
+                else:
+                    files.append(urllib.request.urlretrieve(self.path + filename)[0])
+        
         return filenames, files
