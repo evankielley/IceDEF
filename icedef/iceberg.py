@@ -78,6 +78,11 @@ class Iceberg:
         self.history = {'T': [], 'X': [], 'Y': [], 'Vx': [], 'Vy': []}
  
     
+    def vary_drag_coeffs(self):
+        self.Cda = np.random.uniform(0.5, 2.5)
+        self.Cdw = np.random.uniform(0.5, 2.5)
+    
+    
     def vary_berg_dims(self):
         
         size = self.size
@@ -89,8 +94,7 @@ class Iceberg:
         sail_shape = self.sail_shape
         self.H, self.Hk, self.Ab, self.At, self.Ak, self.As, self.M = self.get_shape_info()
         
-        
-        
+      
     
     def get_berg_dims(self, fixed=True):
         """This function returns numeric values for the dimensions of the iceberg (length, width, and sail height).
@@ -151,13 +155,14 @@ class Iceberg:
         
         Hk = self.Hs/H2D
         H = self.Hs + Hk
-        Ab = 0
         At = self.L*self.W
         
         if self.keel_shape == 'rectangular':
+            Ab = self.L*self.W
             Ak = Hk*self.L
             Ms = self.L*self.W*self.Hs*self.rho
         elif self.keel_shape == 'triangular':
+            Ab = 0
             Ak = Hk*self.L/2
             Ms = self.L*self.W*self.Hs*self.rho/2
         else:
@@ -175,8 +180,6 @@ class Iceberg:
         M = Ms + Mk
         
         return H, Hk, Ab, At, Ak, As, M        
-        
-    
 
     
 def clone_iceberg_state(berg, vary_berg_dims=False):
