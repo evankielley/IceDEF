@@ -10,7 +10,7 @@ Todo:
 import numpy as np
 import netCDF4 as nc
 
-def drift(iceberg, ocean_data, atm_data):
+def drift(iceberg, Vax, Vay, Vcx, Vcy, dt):
     """Computes the new velocity and position of an iceberg after one timestep.
     
     The equations of motion of this function come from the following research paper:
@@ -67,12 +67,12 @@ def drift(iceberg, ocean_data, atm_data):
     At = iceberg.top_area  # cross-sectional area of the iceberg's top face (m^2)
     
     # Wind and ocean current velocities
-    T_ocean = nc.date2num(T, ocean_data.t_units, ocean_data.t_calendar)
-    T_atm = nc.date2num(T, atm_data.t_units, atm_data.t_calendar)
-    Vax = atm_data.iUA([T_atm, Y, X])[0]  # u-component of air velocity (m/s)
-    Vay = atm_data.iVA([T_atm, Y, X])[0]  # v-component of air velocity (m/s)
-    Vcx = ocean_data.iUW([T_ocean, Y, X])[0]  # u-component of ocean current velocity (m/s)
-    Vcy = ocean_data.iVW([T_ocean, Y, X])[0]  # v-component of ocean current velocity (m/s)
+    #T_ocean = nc.date2num(T, ocean_data.t_units, ocean_data.t_calendar)
+    #T_atm = nc.date2num(T, atm_data.t_units, atm_data.t_calendar)
+    #Vax = atm_data.iUA([T_atm, Y, X])[0]  # u-component of air velocity (m/s)
+    #Vay = atm_data.iVA([T_atm, Y, X])[0]  # v-component of air velocity (m/s)
+    #Vcx = ocean_data.iUW([T_ocean, Y, X])[0]  # u-component of ocean current velocity (m/s)
+    #Vcy = ocean_data.iVW([T_ocean, Y, X])[0]  # v-component of ocean current velocity (m/s)
     
 
     # Air force
@@ -101,13 +101,13 @@ def drift(iceberg, ocean_data, atm_data):
     Ay = (Fay + Fcy + Fwy + Fwpy)/(M + Ma)  # y-component of iceberg acceleration (m/s^2)
     
     # Iceberg velocity
-    #Vx_new = Vx + dt*ax  # x-component of iceberg velocity (m/s)
-    #Vy_new = Vy + dt*ay  # y-component of iceberg velocity (m/s)
+    Vx_new = Vx + dt*Ax  # x-component of iceberg velocity (m/s)
+    Vy_new = Vy + dt*Ay  # y-component of iceberg velocity (m/s)
     
     # Iceberg position (note the conversion from meters back to degrees)
     #y_new = y + dt*Vy_new*(180/(np.pi*earth_radius))  # y-component of iceberg position (degrees latitude)
     #x_new = x + dt*Vx_new/(np.cos((((y + y_new)/2)*np.pi)/180))*(180/(np.pi*earth_radius))  # x-component of iceberg position (degrees longitude)
     
-    #return Vx_new, Vy_new, x_new, y_new
+    return Vx_new, Vy_new
     
-    return Ax, Ay
+    
