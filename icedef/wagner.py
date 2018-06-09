@@ -13,18 +13,18 @@ def drift(iceberg, vau, vav, vwu, vwv, dt):
     om = 7.2921e-5
     rhow = 1027
     rhoa = 1.2
-    rhoi = 850
+    rhoi = iceberg.rho
     drho = rhow - rhoi
-    Cw = 0.9
-    Ca = 1.3
+    Cw = iceberg.Cdw
+    Ca = iceberg.Cda
     gam = np.sqrt(rhoa*drho/rhow/rhoi*(Ca/Cw))
    
     # Iceberg attributes
     t = iceberg.T  # time of the iceberg (datetime)
     x = iceberg.X  # x-component of iceberg position (degrees longitude)
     y = iceberg.Y  # y-component of iceberg position (degrees latitiude)
-    l = iceberg.length  # length of the iceberg (m)
-    w = iceberg.width  # width of the iceberg (m)
+    l = iceberg.L  # length of the iceberg (m)
+    w = iceberg.W  # width of the iceberg (m)
     
     
     # Drift
@@ -70,9 +70,9 @@ def melt(iceberg, vau, vav, vwu, vwv, sst, dt):
     t = iceberg.T  # time of the iceberg (datetime)
     x = iceberg.X  # x-component of iceberg position (degrees longitude)
     y = iceberg.Y  # y-component of iceberg position (degrees latitiude)
-    l = iceberg.length  # length of the iceberg (m)
-    w = iceberg.width  # width of the iceberg (m)
-    h = iceberg.height  # height of the iceberg (m)
+    l = iceberg.L  # length of the iceberg (m)
+    w = iceberg.W  # width of the iceberg (m)
+    h = iceberg.H  # height of the iceberg (m)
     
 
     # Melt Rates

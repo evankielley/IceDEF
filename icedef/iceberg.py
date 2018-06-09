@@ -19,15 +19,34 @@ class Iceberg:
         water_skin_drag_coeff (float): water skin drag coefficient for the iceberg
     """
     
-    density = 900
-    keel_shape = 'triangular'
-    sail_shape = 'rectangular'
-    air_drag_coeff = 1.25
-    water_drag_coeff = 1.25
-    air_skin_drag_coeff = 2.5e-4
-    water_skin_drag_coeff = 5.0e-4
+    # dictionary values are of the form: [L_min, L_max, W_min, W_max, Hs_min, Hs_max]
+    size_dim_dict = {'GR': [0, 5, 0, 5, 0, 1],
+                     'BB': [5, 15, 5, 15, 1, 5],
+                     'SM': [15, 60, 15, 60, 5, 15],
+                     'MED': [60, 120, 60, 120, 15, 45],
+                     'LG': [120, 200, 120, 200, 45, 75],
+                     'VLG': [200, 400, 200, 400, 75, 150],
+                     'GEN': [120, 200, 120, 200, 45, 75]}
+
+    # dictionary values are of the form: [SF, H2D], where SF is shape factor and H2D is the height to draft ratio
+    shape_info_dict = {'BLK': [0.5, 1/5], 
+                       'TAB': [0.5, 1/5],
+                       'ISL': [0.5, 1/5],
+                       'RAD': [0.5, 1/5],
+                       'GEN': [0.5, 1/5],
+                       'NTB': [0.41, 1/5],
+                       'DOM': [0.41, 1/4],
+                       'WDG': [0.33, 1/5],
+                       'PIN': [0.25, 1/3],
+                       'DD': [0.15, 1/1]}
+            
+    rho = 900  # iceberg density
+    Cda = 1.25  # air drag coefficient
+    Cdw = 1.25  # water drag coefficient
+    Csda = 2.5e-4  # air skin drag coefficient
+    Csdw = 5.0e-4  # water skin drag coefficient
     
-    def __init__(self, ID, T, X, Y, Vx, Vy, size, shape):
+    def __init__(self, ID, T, X, Y, Vx, Vy, size, shape, vary_dims=False):
         """Instantiate iceberg object with necessary initial values.
 
         Note:
@@ -43,6 +62,8 @@ class Iceberg:
             size (str): size of the iceberg (can be GR, BB, MED, LG, VLG, or GEN)
             shape (str): shape of the iceberg. Can be BLK, TAB, ISL, GEN, RAD, NTB, DOM, WDG, PIN, or DD
         """
+        
+        self.vary_dims = vary_dims
         self.ID = ID
         self.T = T
         self.Vx = Vx
@@ -51,10 +72,49 @@ class Iceberg:
         self.X = X
         self.size = size
         self.shape = shape
-        self.length, self.width, self.sail_height = self.get_berg_dims()
-        self.shape_factor, self.height2draft_ratio, self.height, self.keel_depth, self.bottom_area, self.top_area, self.keel_area, self.sail_area, self.mass = self.get_shape_info()
+        self.L, self.W, self.Hs = self.get_berg_dims()
+        self.H, self.Hk, self.Ab, self.At, self.Ak, self.As, self.M = self.get_shape_info()
         self.history = {'T': [], 'X': [], 'Y': [], 'Vx': [], 'Vy': []}
+ 
     
+    def get_berg_dims(self):
+        """This function returns numeric values for the dimensions of the iceberg (length, width, and sail height).
+        
+        Note:
+            This function relies on there being a valid size attribute for the iceberg object.
+            This can be a list of numeric values, [l, w, sail_height] or a string representing a size classification code.
+            See https://nsidc.org/data/g00807 for more information.
+            Varying the dimensions can only happen if the iceberg is initialized with a size class (str) and not a list of dimensions.
+            
+        Returns:
+            l (float): length of the iceberg (meters)
+            w (float): width of the iceberg (meters)
+            h (float): height of the sail of the iceberg (meters)
+        """
+        
+        
+        if type(self.size) == list and len(self.size) == 3:
+            L, W, Hs = self.size[0], self.size[1], self.size[2]
+            
+        elif type(self.size) == str:
+            
+            L_min, L_max, W_min, W_max, Hs_min, Hs_max = self.size_dim_dict[self.size]
+            
+            
+            if self.vary_dims:
+                L = np.random.uniform(L_min, L_max)
+                W = np.random.uniform(W_min, W_max)
+                Hs = np.random.uniform(Hs_min, Hs_max)
+            
+            else:
+                L = (L_min + L_max)/2
+                W = (W_min + W_max)/2
+                Hs = (Hs_min + Hs_max)/2
+    
+        return L, W, Hs
+
+
+
     def get_shape_info(self):
         """This function returns information pertaining to the shape and dimensions of the iceberg.
         
@@ -75,97 +135,22 @@ class Iceberg:
         
         shape = self.shape
         
-        if shape == 'BLK' or 'TAB' or 'ISL' or 'RAD' or 'GEN':
-            # no info for ISL, RAD, or GEN so assume BLK
-            shape_factor = 0.5
-            height2draft_ratio = 1/5
-            keel_depth = self.sail_height/height2draft_ratio
-            height = self.sail_height + keel_depth
-        elif shape =='NTB':
-            shape_factor = 0.41
-            height2draft_ratio = 1/5
-            keel_depth = self.sail_height/height2draft_ratio
-            height = self.sail_height + keel_depth
-        elif shape == 'DOM':
-            shape_factor = 0.41
-            height2draft_ratio = 1/4
-            keel_depth = self.sail_height/height2draft_ratio
-            height = self.sail_height + keel_depth
-        elif shape == 'WDG':
-            shape_factor = 0.33
-            height2draft_ratio = 1/5
-            keel_depth = self.sail_height/height2draft_ratio
-            height = self.sail_height + keel_depth
-        elif shape == 'PIN':
-            shape_factor = 0.25
-            height2draft_ratio = 1/2
-            keel_depth = self.sail_height/height2draft_ratio
-            height = self.sail_height + keel_depth
-        elif shape == 'DD':
-            shape_factor = 0.15
-            height2draft_ratio = 1/1
-            keel_depth = self.sail_height/height2draft_ratio
-            height = self.sail_height + keel_depth
-        else:
-            print('Unknown shape {}'.format(shape))
-            
-        bottom_area = 0
-        top_area = self.length*self.width
-        keel_area = keel_depth*self.length/2
-        sail_area = self.sail_height*self.length
+        SF, H2D = self.shape_info_dict[self.shape]
         
-        mass = self.length*self.width*height*Iceberg.density
-            
-        return shape_factor, height2draft_ratio, height, keel_depth, bottom_area, top_area, keel_area, sail_area, mass
+        Hk = self.Hs/H2D
+        H = self.Hs + Hk
+        Ab = 0
+        At = self.L*self.W
+        Ak = Hk*self.L
+        As = self.Hs*self.L
+        M = self.L*self.W*H*self.rho
+        
+        return H, Hk, Ab, At, Ak, As, M        
+        
     
-            
-    def get_berg_dims(self):
-        """This function returns numeric values for the dimensions of the iceberg (length, width, and sail height).
-        
-        Note:
-            This function relies on there being a valid size attribute for the iceberg object.
-            This can be a list of numeric values, [l, w, sail_height] or a string representing a size classification code.
-            See https://nsidc.org/data/g00807 for more information.
-            
-        Returns:
-            l (float): length of the iceberg (meters)
-            w (float): width of the iceberg (meters)
-            h (float): height of the sail of the iceberg (meters)
-        """
-        
-        size = self.size
-        
-        if type(size) == list and len(size) == 3:
-            l, w, h = size[0], size[1], size[2]
-            
-        elif type(size) == str:
-            if size == 'GR':
-                l = (0+5)/2; w = (0+5)/2; h = (0+1)/2*10
-            elif size == 'BB':
-                l = (5+15)/2; w = (5+15)/2; h = (1+5)/2*10        
-            elif size == 'SM':
-                l = (15+60)/2; w = (15+60)/2; h = (5+15)/2*10        
-            elif size == 'MED':
-                l = (60+120)/2; w = (60+120)/2; h = (15+45)/2*10               
-            elif size == 'LG':
-                l = (120+200)/2; w = (120+200)/2; h = (45+75)/2*10                
-            elif size == 'VLG':
-                # Sizes have no listed upper bound
-                l = (200+500/2)/2; w = (200+500/2)/2; h = (75+75/2)/2*10     
-            # This info for GEN is wrong!
-            elif size == 'GEN':
-                l = (120+200)/2; w = (120+200)/2; h = (45+75)/2*10            
-            else:
-                print('unknown size class')
-                l = None; w = None; h = None               
-        else:
-            l, w, h = None, None, None
-            print('Invalid size entry. Please enter a list of floats [l, w, h] or a valid size class as a string')
-                
-        return l, w, h
+
     
-    
-def clone_iceberg_state(berg):
+def clone_iceberg_state(berg, vary_berg_dims=False):
     """This function clones the current state of an iceberg and returns the clone.
     
     Args:
@@ -175,7 +160,7 @@ def clone_iceberg_state(berg):
         clone (icedef.iceberg.Iceberg): clone of the current state of the iceberg provided.
     """
     
-    clone = Iceberg(berg.ID, berg.T, berg.X, berg.Y, berg.Vx, berg.Vy, berg.size, berg.shape)
+    clone = Iceberg(berg.ID, berg.T, berg.X, berg.Y, berg.Vx, berg.Vy, berg.size, berg.shape, vary_dims=vary_berg_dims)
     return clone
     
 
