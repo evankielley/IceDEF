@@ -8,6 +8,92 @@ import urllib
 import netCDF4 as nc
 import numpy as np
 import os
+from scipy.stats import truncnorm
+
+
+def get_data_subset(data, xy_res, lats, lons, min_lat, max_lat, min_lon, max_lon):
+    """This function gets a spatial subset of 3D data of form [time, lat, lon]
+    
+    Note:
+        Data must have a regular and uniform grid
+    
+    Args:
+        data (numpy.ndarray): regular and uniform metocean data of the form [time, lat, lon] to extract subset from
+        xy_res (float): spatial resolution of the data
+        lats (list of float): latitude grid vector
+        lons (list of float): longitude grid vector
+        min_lat (float): lower bound for latitude of subset to be made
+        max_lat (float): upper bound for latitude of subset to be made
+        min_lon (float): lower bound for longitude of subset to be made
+        max_lon (float): upper bound for longitude of subset to be made
+    
+    Returns:
+        data_subset (numpy.ndarray): spatial subset of the original data provided
+    """
+
+    min_lat_idx = min(np.where(abs(lats - min_lat) < xy_res)[0])
+    max_lat_idx = max(np.where(abs(lats - max_lat) < xy_res)[0])
+    min_lon_idx = min(np.where(abs(lons - min_lon) < xy_res)[0])
+    max_lon_idx = max(np.where(abs(lons - max_lon) < xy_res)[0])
+
+    data_subset = data[:, min_lat_idx:max_lat_idx+1, min_lon_idx:max_lon_idx+1]
+
+    return data_subset
+
+
+def get_data_stats(data):
+    """This function gets the mean and standard deviation of a metocean dataset
+    
+    Args:
+        data (numpy.ndarray): regular and uniform metocean data of the form [time, lat, lon]
+        
+    Returns:
+        data_mean (float): mean value of the data provided
+        data_std (float): standard deviation of the data provided
+    """
+
+    data_mean = np.mean(data.flatten())
+    data_std = np.std(data.flatten())
+
+    return data_mean, data_std
+
+def get_current_offset(data):
+    """This function gets an offset value for an ocean current velocity dataset by drawing from a truncated normal distribution
+    
+    Note:
+        Distribution is truncated at -1 and 1
+    
+    Args:
+        data (numpy.ndarray): regular and uniform metocean data of the form [time, lat, lon]
+        
+    Returns:
+        data_offset (float): difference between mean data value and value drawn from the data distribution
+    """
+
+    data_mean, data_std = get_data_stats(data)
+    data_sample = truncnorm.rvs(-1,1, loc=data_mean, scale=data_std)
+    data_offset = data_mean - data_sample
+
+    return data_offset
+
+def get_wind_offset(data):
+    """This function gets an offset value for an wind velocity dataset by drawing from a truncated normal distribution
+    
+    Note:
+        Distribution is truncated at -20 and 20
+    
+    Args:
+        data (numpy.ndarray): regular and uniform metocean data of the form [time, lat, lon]
+        
+    Returns:
+        data_offset (float): difference between mean data value and value drawn from the data distribution
+    """ 
+
+    data_mean, data_std = get_data_stats(data)
+    data_sample = truncnorm.rvs(-20,20, loc=data_mean, scale=data_std)
+    data_offset = data_mean - data_sample
+
+    return data_offset
 
 
 
@@ -93,6 +179,7 @@ class Metocean(object):
                     files.append(urllib.request.urlretrieve(self.path + filename)[0])
         
         return filenames, files
+    
 
 
     
