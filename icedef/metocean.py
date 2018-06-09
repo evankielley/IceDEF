@@ -33,12 +33,56 @@ class Metocean(object):
         self.t_min = t_min - timedelta(hours = self.t_res)
         self.t_max = t_max + timedelta(hours = self.t_res)
 
+        
     def convert_datetime2time(self, t, t_units, t_calendar, t_offset=0):
                                                 
         dt += timedelta(hours = t_offset)
         t = nc.date2num(t, t_units, t_calendar)
         
         return t
+    
+    
+    def get_filenames(self):
+        """This function returns the NetCDF files needed to access the desired metocean data (and their filenames)
+            
+        Returns:
+            filenames (list of str): list of the filenames of the files returned
+            files (list): list of files accessed through server or cache
+        """
+        
+        if self.cache:
+            cache_path = 'cache/' + self.model_id
+            if not os.path.exists(cache_path):
+                try:
+                    os.makedirs(cache_path)
+                except:
+                    print("Could not make cache directory, continuing without it...")
+        else:
+            cache_path = None
+        
+        # Calculate range of dates needed for data
+        d1 = date(self.t_min.year, self.t_min.month, self.t_min.day)  # start date
+        d2 = date(self.t_max.year, self.t_max.month, self.t_max.day)  # end date
+        delta = d2 - d1  # timedelta
+    
+        filenames = []
+        files = []
+
+        for i in range(delta.days + 1):
+            new_date = d1 + timedelta(days=i)
+            filename = str(new_date).replace('-', '') + '.nc'
+            filenames.append(filename)
+            cache_file = cache_path + filename
+            
+            if os.path.isfile(cache_file):
+                files.append(cache_file)
+            else:
+                if self.cache and os.path.exists(cache_path):
+                    files.append(urllib.request.urlretrieve(self.path + filename, cache_path + filename)[0])
+                else:
+                    files.append(urllib.request.urlretrieve(self.path + filename)[0])
+        
+        return filenames, files
 
 
 class ECMWF_Ocean(Metocean):
@@ -58,7 +102,7 @@ class ECMWF_Ocean(Metocean):
         t_calendar (str): time calendar used in NetCDF files
     """
     
-
+    model_id = "GLOBAL_ANALYSIS_FORECAST_PHY_001_024"
     path = 'ftp://data.munroelab.ca/pub/ECMWF/ocean/daily/'
     xy_res = 1/12  # spatial resolution in degrees lat/lon
     t_res = 1  # temporal resolution in hours
@@ -86,55 +130,6 @@ class ECMWF_Ocean(Metocean):
         self.iUW = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.UW)
         self.iVW = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.VW)
         self.iSST = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.SST)
-        
-
-        
-    
-    def get_filenames(self):
-        """This function returns the NetCDF files needed to access the desired ocean data (and their filenames)
-        
-        Args:
-            t_min (datetime.datetime): minimum time for the data time space
-            t_max (datetime.datetime): maximum time for the data time space
-            path (str): path to the directory that contains the necessary data files
-            
-        Returns:
-            filenames (list of str): list of the filenames of the files returned
-            files (list): list of files accessed through server
-        """
-        
-        if self.cache:
-            if not os.path.exists('cache'):
-                try:
-                    os.makedirs('cache')
-                except:
-                    print("Could not make cache directory, continuing without it...")
-
-        d1 = date(self.t_min.year, self.t_min.month, self.t_min.day)  # start date
-        d2 = date(self.t_max.year, self.t_max.month, self.t_max.day)  # end date
-        delta = d2 - d1  # timedelta
-
-        cache_path = os.getcwd() + '/cache/'
-        
-        filenames = []
-        files = []
-
-        for i in range(delta.days + 1):
-            new_date = d1 + timedelta(days=i)
-            filename = str(new_date).replace('-', '') + '.nc'
-            filenames.append(filename)
-            cache_file = cache_path + filename
-            
-            if os.path.isfile(cache_file):
-                files.append(cache_file)
-            else:
-                if os.path.exists(cache_path):
-                    files.append(urllib.request.urlretrieve(self.path + filename, cache_path + filename)[0])
-                else:
-                    files.append(urllib.request.urlretrieve(self.path + filename)[0])
-            
-        return filenames, files
-    
     
  
 class ECMWF_Atm(Metocean):
@@ -154,6 +149,7 @@ class ECMWF_Atm(Metocean):
         t_calendar (str): time calendar used in NetCDF files
     """
     
+    model_id = "WIND_GLO_WIND_L4_NRT_OBSERVATIONS_012_004"
     path = 'ftp://data.munroelab.ca/pub/ECMWF/atm/daily/'
     xy_res = 1/4  # spatial resolution in degrees lat/lon
     t_res = 6  # temporal resolution in hours
@@ -181,47 +177,3 @@ class ECMWF_Atm(Metocean):
         self.iVA = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.VA)
 
         
-    def get_filenames(self):
-        """This function returns the NetCDF files needed to access the desired ocean data (and their filenames)
-        
-        Args:
-            t_min (datetime.datetime): minimum time for the data time space
-            t_max (datetime.datetime): maximum time for the data time space
-            path (str): path to the directory that contains the necessary data files
-            
-        Returns:
-            filenames (list of str): list of the filenames of the files returned
-            files (list): list of files accessed through server
-        """
-        
-        if self.cache:
-            if not os.path.exists('cache'):
-                try:
-                    os.makedirs('cache')
-                except:
-                    print("Could not make cache directory, continuing without it...")
-        
-        
-        d1 = date(self.t_min.year, self.t_min.month, self.t_min.day)  # start date
-        d2 = date(self.t_max.year, self.t_max.month, self.t_max.day)  # end date
-        delta = d2 - d1  # timedelta
-
-        cache_path = os.getcwd() + '/cache/'
-        filenames = []
-        files = []
-
-        for i in range(delta.days + 1):
-            new_date = d1 + timedelta(days=i)
-            filename = 'sub' + str(new_date).replace('-', '') + '.nc'
-            filenames.append(filename)
-            cache_file = cache_path + filename
-            
-            if os.path.isfile(cache_file):
-                files.append(cache_file)
-            else:
-                if os.path.exists(cache_path):
-                    files.append(urllib.request.urlretrieve(self.path + filename, cache_path + filename)[0])
-                else:
-                    files.append(urllib.request.urlretrieve(self.path + filename)[0])
-        
-        return filenames, files
