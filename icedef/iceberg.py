@@ -245,9 +245,9 @@ def add_datetime_column(iip_df):
     """
     
     iip_df['TIMESTAMP'] = pd.to_datetime(iip_df['SIGHTING_DATE'], format='%m/%d/%Y')
-    iip_df = iip_df.loc[iip_df['SIGHTING_TIME'] >= 100]
-    iip_df['TIMESTAMP'] += pd.to_timedelta(pd.to_datetime(iip_df['SIGHTING_TIME'], format='%H%M').dt.hour, unit='h')
-    iip_df['TIMESTAMP'] += pd.to_timedelta(pd.to_datetime(iip_df['SIGHTING_TIME'], format='%H%M').dt.minute, unit='m')
+    iip_df = iip_df.loc[iip_df['SIGHTING_TIME'] >= 100].copy()
+    iip_df.loc[:, 'TIMESTAMP'] += pd.to_timedelta(pd.to_datetime(iip_df.loc[:,'SIGHTING_TIME'], format='%H%M').dt.hour, unit='h')
+    iip_df.loc[:,'TIMESTAMP'] += pd.to_timedelta(pd.to_datetime(iip_df.loc[:,'SIGHTING_TIME'], format='%H%M').dt.minute, unit='m')
     
     return iip_df
 
