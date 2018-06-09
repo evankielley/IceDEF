@@ -65,10 +65,11 @@ class ECMWF_Ocean(Metocean):
     t_units = 'hours since 1950-01-01 00:00:00'
     t_calendar = 'standard'
     
-    def __init__(self, x_min, x_max, y_min, y_max, t_min, t_max):
+    def __init__(self, x_min, x_max, y_min, y_max, t_min, t_max, cache=True):
         
         super().__init__(x_min, x_max, y_min, y_max, t_min, t_max)
         
+        self.cache = cache
         self.filenames, self.files = self.get_filenames()
         self.ds = nc.MFDataset(self.files)
         
@@ -101,6 +102,13 @@ class ECMWF_Ocean(Metocean):
             filenames (list of str): list of the filenames of the files returned
             files (list): list of files accessed through server
         """
+        
+        if self.cache:
+            if not os.path.exists('cache'):
+                try:
+                    os.makedirs('cache')
+                except:
+                    print("Could not make cache directory, continuing without it...")
 
         d1 = date(self.t_min.year, self.t_min.month, self.t_min.day)  # start date
         d2 = date(self.t_max.year, self.t_max.month, self.t_max.day)  # end date
@@ -152,11 +160,12 @@ class ECMWF_Atm(Metocean):
     t_units = 'hours since 1900-01-01 00:00:00.0 00:00'
     t_calendar = 'standard'
     
-    def __init__(self, x_min, x_max, y_min, y_max, t_min, t_max):
+    def __init__(self, x_min, x_max, y_min, y_max, t_min, t_max, cache=True):
         
         super().__init__(x_min, x_max, y_min, y_max, t_min, t_max)
         
-        self.filenames, self.files = self.get_filenames(self.t_min, self.t_max, self.path)
+        self.cache = cache
+        self.filenames, self.files = self.get_filenames()
         self.ds = nc.MFDataset(self.files)
         
         self.times = self.ds.variables['time'][:]
@@ -172,7 +181,7 @@ class ECMWF_Atm(Metocean):
         self.iVA = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.VA)
 
         
-    def get_filenames(self, t_min, t_max, path):
+    def get_filenames(self):
         """This function returns the NetCDF files needed to access the desired ocean data (and their filenames)
         
         Args:
@@ -184,7 +193,15 @@ class ECMWF_Atm(Metocean):
             filenames (list of str): list of the filenames of the files returned
             files (list): list of files accessed through server
         """
-
+        
+        if self.cache:
+            if not os.path.exists('cache'):
+                try:
+                    os.makedirs('cache')
+                except:
+                    print("Could not make cache directory, continuing without it...")
+        
+        
         d1 = date(self.t_min.year, self.t_min.month, self.t_min.day)  # start date
         d2 = date(self.t_max.year, self.t_max.month, self.t_max.day)  # end date
         delta = d2 - d1  # timedelta
