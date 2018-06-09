@@ -45,8 +45,10 @@ class Iceberg:
     Cdw = 1.25  # water drag coefficient
     Csda = 2.5e-4  # air skin drag coefficient
     Csdw = 5.0e-4  # water skin drag coefficient
+    keel_shape = 'triangular'  # shape of keel (must be rectangular or triangular)
+    sail_shape = 'rectangular'  # shape of sail (must be rectangular or triangular)
     
-    def __init__(self, ID, T, X, Y, Vx, Vy, size, shape, vary_dims=False):
+    def __init__(self, ID, T, X, Y, Vx, Vy, size, shape):
         """Instantiate iceberg object with necessary initial values.
 
         Note:
@@ -63,7 +65,6 @@ class Iceberg:
             shape (str): shape of the iceberg. Can be BLK, TAB, ISL, GEN, RAD, NTB, DOM, WDG, PIN, or DD
         """
         
-        self.vary_dims = vary_dims
         self.ID = ID
         self.T = T
         self.Vx = Vx
@@ -77,7 +78,21 @@ class Iceberg:
         self.history = {'T': [], 'X': [], 'Y': [], 'Vx': [], 'Vy': []}
  
     
-    def get_berg_dims(self):
+    def vary_berg_dims(self):
+        
+        size = self.size
+        self.L, self.W, self.Hs = self.get_berg_dims(fixed=False)
+        
+        shape = self.shape
+        shape_info_dict = self.shape_info_dict
+        keel_shape = self.keel_shape
+        sail_shape = self.sail_shape
+        self.H, self.Hk, self.Ab, self.At, self.Ak, self.As, self.M = self.get_shape_info()
+        
+        
+        
+    
+    def get_berg_dims(self, fixed=True):
         """This function returns numeric values for the dimensions of the iceberg (length, width, and sail height).
         
         Note:
@@ -87,9 +102,9 @@ class Iceberg:
             Varying the dimensions can only happen if the iceberg is initialized with a size class (str) and not a list of dimensions.
             
         Returns:
-            l (float): length of the iceberg (meters)
-            w (float): width of the iceberg (meters)
-            h (float): height of the sail of the iceberg (meters)
+            L (float): length of the iceberg (meters)
+            W (float): width of the iceberg (meters)
+            Hs (float): height of the sail of the iceberg (meters)
         """
         
         
@@ -99,17 +114,16 @@ class Iceberg:
         elif type(self.size) == str:
             
             L_min, L_max, W_min, W_max, Hs_min, Hs_max = self.size_dim_dict[self.size]
-            
-            
-            if self.vary_dims:
-                L = np.random.uniform(L_min, L_max)
-                W = np.random.uniform(W_min, W_max)
-                Hs = np.random.uniform(Hs_min, Hs_max)
-            
-            else:
+                 
+            if fixed:
                 L = (L_min + L_max)/2
                 W = (W_min + W_max)/2
                 Hs = (Hs_min + Hs_max)/2
+            
+            else:
+                L = np.random.uniform(L_min, L_max)
+                W = np.random.uniform(W_min, W_max)
+                Hs = np.random.uniform(Hs_min, Hs_max)
     
         return L, W, Hs
 
@@ -133,17 +147,32 @@ class Iceberg:
             mass (float): mass of the iceberg (kilograms)
         """
         
-        shape = self.shape
-        
         SF, H2D = self.shape_info_dict[self.shape]
         
         Hk = self.Hs/H2D
         H = self.Hs + Hk
         Ab = 0
         At = self.L*self.W
-        Ak = Hk*self.L
-        As = self.Hs*self.L
-        M = self.L*self.W*H*self.rho
+        
+        if self.keel_shape == 'rectangular':
+            Ak = Hk*self.L
+            Ms = self.L*self.W*self.Hs*self.rho
+        elif self.keel_shape == 'triangular':
+            Ak = Hk*self.L/2
+            Ms = self.L*self.W*self.Hs*self.rho/2
+        else:
+            print("Invalid keel shape, must be rectangular or triangular")
+            
+        if self.sail_shape == 'rectangular':
+            As = self.Hs*self.L
+            Mk = self.L*self.W*Hk*self.rho
+        elif self.sail_shape == 'triangular':
+            As = self.Hs*self.L/2
+            Mk = self.L*self.W*Hk*self.rho/2
+        else:
+            print("Invalid keel shape, must be rectangular or triangular")
+        
+        M = Ms + Mk
         
         return H, Hk, Ab, At, Ak, As, M        
         
