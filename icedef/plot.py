@@ -8,6 +8,34 @@ import numpy as np
 import netCDF4 as nc
 
 
+def find_matching_value_indices(small_list, big_list):
+    """This function finds the indices from one list of the values that match the values from the other list.
+    
+    Args:
+        small_list (list of float or int): 1D list of numbers, smaller in length than big_list
+        big_list (list of float or int): 1D list of evenly spaced numbers, larger in length than small_list
+        
+    Returns:
+        matching_indices (list of int): list of all the indices of the bigger list which match the smaller list values
+        
+    """
+    
+    big_delta = big_list[1] - big_list[0]
+    
+    matching_indices = []
+    
+    for small_item in small_list:
+        for big_index, big_item in enumerate(big_list):
+            delta = abs(small_item - big_item)
+            if delta < big_delta:
+                matching_index = big_index
+                matching_indices.append(matching_index)
+                break
+    
+    return matching_indices
+
+
+
 def plot_drift_track_test_case(iip_berg, mod_berg):
     """This function plots the drift track of a simulated iceberg against its observed coordinates"
     
@@ -19,11 +47,15 @@ def plot_drift_track_test_case(iip_berg, mod_berg):
     
     buff = 0.1
 
-    berg_xmin = min(min(mod_berg.history['X']), min(iip_berg.history['X'])) 
-    berg_xmax = max(max(mod_berg.history['X']), max(iip_berg.history['X']))
-    berg_ymin = min(min(mod_berg.history['Y']), min(iip_berg.history['Y']))
-    berg_ymax = max(max(mod_berg.history['Y']), max(iip_berg.history['Y']))
-
+    iip_lons = iip_berg.history['X']
+    iip_lats = iip_berg.history['Y']
+    mod_lons = mod_berg.history['X']
+    mod_lats = mod_berg.history['Y']
+    
+    berg_xmin = min(min(mod_lons), min(iip_lons)) 
+    berg_xmax = max(max(mod_lons), max(iip_lons))
+    berg_ymin = min(min(mod_lats), min(iip_lats))
+    berg_ymax = max(max(mod_lats), max(iip_lats))
 
     m = Basemap(projection='merc', lat_0 = 57, lon_0 = -135,
                 resolution = 'l', area_thresh = 0.1,
@@ -31,45 +63,38 @@ def plot_drift_track_test_case(iip_berg, mod_berg):
                 llcrnrlat = berg_ymin - buff,
                 urcrnrlon = berg_xmax + buff, 
                 urcrnrlat = berg_ymax + buff)
+    
+    # parallels are lines of latitude, meridians are lines of longitude (labels = [left,right,top,bottom])
+    parallels = np.arange(berg_ymin, berg_ymax + buff, buff)
+    m.drawparallels(parallels,labels=[True,False,False,False])
+    meridians = np.arange(berg_xmin, berg_xmax + buff, buff)
+    m.drawmeridians(meridians,labels=[False,False,False,True])
 
     m.drawcoastlines()
     m.drawcountries()
     m.fillcontinents(color = 'coral')
     m.drawmapboundary()
 
-    mod_lons = mod_berg.history['X']
-    mod_lats = mod_berg.history['Y']
-    mod_x, mod_y = m(mod_lons, mod_lats)
-    m.plot(mod_x, mod_y, 'bo', markersize=1)
-
-    iip_lons = iip_berg.history['X']
-    iip_lats = iip_berg.history['Y']
     iip_x, iip_y = m(iip_lons, iip_lats)
-    m.plot(iip_x, iip_y, marker='X', color='black', markersize=5)
-
-    mod_times = mod_berg.history['T']
+    mod_x, mod_y = m(mod_lons, mod_lats)
+        
+    m.plot(iip_x, iip_y, color='black') 
+    m.plot(mod_x, mod_y, 'bo', markersize=1)
     
-    mod_dtimedelta = mod_times[1] - mod_times[0]
-    matching_arr = []
-    for iip_dtime in iip_berg.history['T']:
-        for mod_index, mod_dtime in enumerate(mod_berg.history['T']):
-            dtimedelta = abs(iip_dtime - mod_dtime)
-            if dtimedelta < mod_dtimedelta:
-                matching_arr.append(mod_index)
-                break
+    iip_times = iip_berg.history['T']
+    mod_times = mod_berg.history['T']
 
-    for imatch in matching_arr:
-        plt.scatter(mod_x[imatch], mod_y[imatch], marker='X', s=100, color='r')
-        plt.text(mod_x[imatch], mod_y[imatch], mod_times[imatch])
-
-
-
-    # parallels are lines of latitude, meridians are lines of longitude
-    # labels = [left,right,top,bottom]
-    parallels = np.arange(berg_ymin, berg_ymax + buff, buff)
-    m.drawparallels(parallels,labels=[True,False,False,False])
-    meridians = np.arange(berg_xmin, berg_xmax + buff, buff)
-    m.drawmeridians(meridians,labels=[False,False,False,True])
+    matching_indices = find_matching_value_indices(iip_times, mod_times)
+                
+    for i in matching_indices:
+        tdelta = mod_times[i] - mod_times[0]
+        hour_label = tdelta.days*24 + tdelta.seconds/3600
+        plt.scatter(mod_x[i], mod_y[i], color='r')
+        plt.text(mod_x[i], mod_y[i], hour_label)
+    
+    iip_hours = [(t-iip_times[0]).days*24 + (t-iip_times[0]).seconds/3600 for t in iip_times]
+    plt.scatter(iip_x, iip_y, color='r')
+    plt.text(iip_x, mod_y, iip_hours)
 
     plt.show()
 
