@@ -7,7 +7,6 @@ from matplotlib.animation import FuncAnimation
 import numpy as np
 import netCDF4 as nc
 
-
 def find_matching_value_indices(small_list, big_list):
     """This function finds the indices from one list of the values that match the values from the other list.
     
@@ -34,9 +33,43 @@ def find_matching_value_indices(small_list, big_list):
     
     return matching_indices
 
+def get_mercator_basemap(min_lon, max_lon, min_lat, max_lat):
+    
+    num_ticks = 5
+    lat_pad = abs(min_lat - max_lat)/num_ticks
+    lon_pad = abs(min_lon - max_lon)/num_ticks
+    
+    # instantiate Basemap object with mercator projection
+    m = Basemap(projection='merc', lat_0 = 57, lon_0 = -135,
+                resolution = 'l', area_thresh = 0.1,
+                llcrnrlon = min_lon - lon_pad, 
+                llcrnrlat = min_lat - lat_pad,
+                urcrnrlon = max_lon + lon_pad, 
+                urcrnrlat = max_lat + lat_pad)
+    
+    
+    # parallels are lines of latitude, meridians are lines of longitude 
+    parallels = np.round(np.arange(min_lat, max_lat + lat_pad, lat_pad), 2)
+    meridians = np.round(np.arange(min_lon, max_lon + lon_pad, lon_pad), 2)
 
+    # labels = [left,right,top,bottom]
+    m.drawparallels(parallels,labels=[True,False,False,False])
+    mers = m.drawmeridians(meridians,labels=[False,False,False,True])
+    for mer in mers:
+        try:
+            mers[mer][1][0].set_rotation(90)
+        except:
+            pass
 
-def plot_drift_track_test_case(iip_berg, mod_berg):
+    # make the land pretty
+    m.drawcoastlines()
+    m.drawcountries()
+    m.fillcontinents(color = 'coral')
+    m.drawmapboundary()
+    
+    return m
+
+def plot_drift_track_test_case(iip_berg, mod_berg, time_labels=True):
     """This function plots the drift track of a simulated iceberg against its observed coordinates"
     
     Args:
@@ -45,58 +78,141 @@ def plot_drift_track_test_case(iip_berg, mod_berg):
                             IIP iceberg but the rest comes from drift simulation.  
     """
     
-    buff = 0.1
-
+    fig, ax = plt.subplots(dpi=150)
+    ax.set_xlabel('Longitude')
+    ax.set_ylabel('Latitude')
+    ax.set_title('Comparison of Drift Model Track to IIP Observations')
+    ax.xaxis.labelpad = 60
+    ax.yaxis.labelpad = 60
+    
     iip_lons = iip_berg.history['X']
     iip_lats = iip_berg.history['Y']
     mod_lons = mod_berg.history['X']
     mod_lats = mod_berg.history['Y']
     
+    # Get min and max iceberg lons and lats for defining the plot axes ranges
     berg_xmin = min(min(mod_lons), min(iip_lons)) 
     berg_xmax = max(max(mod_lons), max(iip_lons))
     berg_ymin = min(min(mod_lats), min(iip_lats))
     berg_ymax = max(max(mod_lats), max(iip_lats))
 
-    m = Basemap(projection='merc', lat_0 = 57, lon_0 = -135,
-                resolution = 'l', area_thresh = 0.1,
-                llcrnrlon = berg_xmin - buff, 
-                llcrnrlat = berg_ymin - buff,
-                urcrnrlon = berg_xmax + buff, 
-                urcrnrlat = berg_ymax + buff)
+    # spatial buffer for expanding the plot axes ranges for better readability
+    buff = 0.1
     
-    # parallels are lines of latitude, meridians are lines of longitude (labels = [left,right,top,bottom])
-    parallels = np.arange(berg_ymin, berg_ymax + buff, buff)
-    m.drawparallels(parallels,labels=[True,False,False,False])
-    meridians = np.arange(berg_xmin, berg_xmax + buff, buff)
-    m.drawmeridians(meridians,labels=[False,False,False,True])
+    m = get_mercator_basemap(berg_xmin, berg_xmax, berg_ymin, berg_ymax)
 
-    m.drawcoastlines()
-    m.drawcountries()
-    m.fillcontinents(color = 'coral')
-    m.drawmapboundary()
-
+    # map lons and lats to x and y in meters
     iip_x, iip_y = m(iip_lons, iip_lats)
     mod_x, mod_y = m(mod_lons, mod_lats)
+
+    # scatter both sets of data points so timesteps can be seen
+    ax.scatter(iip_x, iip_y, marker='o', s=10, c='black')
+    ax.scatter(mod_x, mod_y, marker='o', s=1, c='blue')
+    
+    # if True, annotate matching points in time between datasets
+    if time_labels:
         
-    m.plot(iip_x, iip_y, color='black') 
-    m.plot(mod_x, mod_y, 'bo', markersize=1)
+        iip_times = iip_berg.history['T']
+        mod_times = mod_berg.history['T']
+
+        matching_indices = find_matching_value_indices(iip_times, mod_times)
+        
+        iip_hours = [(t-iip_times[0]).days*24 + (t-iip_times[0]).seconds/3600 for t in iip_times]
+        hour_labels = [str(round(x, 1)) for x in iip_hours]
+
+        for i, hour_label in enumerate(hour_labels):
+            ax.text(iip_x[i], iip_y[i], hour_label)
+        
+        for i, hour_label in enumerate(hour_labels):
+            
+            try:
+                j = matching_indices[i]
+            except IndexError:
+                break
+
+            if not round(iip_lons[i], 2) == round(mod_lons[j], 2):
+                ax.scatter(mod_x[j], mod_y[j], marker='o', color='red')
+                ax.text(mod_x[j], mod_y[j], hour_label)
+        
+    return fig
+
+
+
+def plot_spaghetti_test_case(iip_berg, mod_berg_list, time_labels=False):
     
+    fig, ax = plt.subplots(dpi=150)
+    ax.set_xlabel('Longitude')
+    ax.set_ylabel('Latitude')
+    ax.set_title('Comparison of Drift Model Tracks to IIP Observations')
+    ax.xaxis.labelpad = 60
+    ax.yaxis.labelpad = 60
+    
+    iip_lons = iip_berg.history['X']
+    iip_lats = iip_berg.history['Y']
+    
+    berg_xmin, berg_xmax = min(iip_lons), max(iip_lons)
+    berg_ymin, berg_ymax = min(iip_lats), max(iip_lats)
+    
+    for mod_berg in mod_berg_list:
+        
+        mod_lons = mod_berg.history['X']
+        mod_lats = mod_berg.history['Y']
+    
+        # Get min and max iceberg lons and lats for defining the plot axes ranges
+        tmp_xmin = min(min(mod_lons), min(iip_lons)) 
+        tmp_xmax = max(max(mod_lons), max(iip_lons))
+        tmp_ymin = min(min(mod_lats), min(iip_lats))
+        tmp_ymax = max(max(mod_lats), max(iip_lats))
+        
+        berg_xmin = min(berg_xmin, tmp_xmin)
+        berg_xmax = max(berg_xmax, tmp_xmax)
+        berg_ymin = min(berg_ymin, tmp_ymin)
+        berg_ymax = max(berg_ymax, tmp_ymax)
+
+    
+    m = get_mercator_basemap(berg_xmin, berg_xmax, berg_ymin, berg_ymax)
+
+
+    # map lons and lats to x and y in meters
+    iip_x, iip_y = m(iip_lons, iip_lats)
+ 
+    # get lists of iip times for comparing to mod times to later annotate plot with labels
     iip_times = iip_berg.history['T']
-    mod_times = mod_berg.history['T']
-
-    matching_indices = find_matching_value_indices(iip_times, mod_times)
-                
-    for i in matching_indices:
-        tdelta = mod_times[i] - mod_times[0]
-        hour_label = tdelta.days*24 + tdelta.seconds/3600
-        plt.scatter(mod_x[i], mod_y[i], color='r')
-        plt.text(mod_x[i], mod_y[i], hour_label)
-    
     iip_hours = [(t-iip_times[0]).days*24 + (t-iip_times[0]).seconds/3600 for t in iip_times]
-    plt.scatter(iip_x, iip_y, color='r')
-    plt.text(iip_x, mod_y, iip_hours)
+    hour_labels = [str(round(x, 1)) for x in iip_hours]
 
-    plt.show()
+
+    for i, hour_label in enumerate(hour_labels):
+        ax.scatter(iip_x[i], iip_y[i], marker='o', color='black')
+        ax.text(iip_x[i], iip_y[i], hour_label)
+        
+    
+    for mod_berg in mod_berg_list:
+        mod_lons = mod_berg.history['X']
+        mod_lats = mod_berg.history['Y']
+        mod_x, mod_y = m(mod_lons, mod_lats)
+        ax.scatter(mod_x, mod_y, marker='o', s=1)#, c='red')
+        
+        mod_times = mod_berg.history['T']
+
+        matching_indices = find_matching_value_indices(iip_times, mod_times)
+            
+        for i, hour_label in enumerate(hour_labels):
+            
+            try:
+                j = matching_indices[i]
+            except IndexError:
+                break
+                
+            if not round(iip_lons[i], 2) == round(mod_lons[j], 2):
+                ax.scatter(mod_x[j], mod_y[j], marker='o', color='red')
+                if time_labels:
+                    ax.text(mod_x[j], mod_y[j], hour_label)
+                    
+                    
+    plt.savefig('test_plot.png')
+    
+    return fig
 
 
         
