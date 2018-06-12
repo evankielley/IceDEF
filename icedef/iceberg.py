@@ -4,21 +4,15 @@
 import urllib
 import pandas as pd
 import numpy as np
+import sys
 
 
-class Iceberg:
+class Iceberg():
     """Creates an iceberg object to be later used in drift simulation.
 
     Attributes:
         size_dim_dict (dict): iceberg dimension ranges according to IIP size classes
         shape_info_dict (dict): iceberg shape factors and height to draft ratios according to IIP shape classes
-        rho (float): density of the iceberg
-        keel_shape (str): shape of the iceberg keel
-        sail_shape (str): shape of the iceberg sail
-        Cda (float): air drag coefficient for the iceberg
-        Cdw (float): water drag coefficient for the iceberg
-        Csda (float): air skin drag coefficient for the iceberg
-        Csdw (float): water skin drag coefficient for the iceberg
     """
     
     # dictionary values are of the form: [L_min, L_max, W_min, W_max, Hs_min, Hs_max]
@@ -42,16 +36,19 @@ class Iceberg:
                        'PIN': [0.25, 1/3],
                        'DD': [0.15, 1/1]}
             
-    rho = 900  # iceberg density
-    Cda = 1.25  # air drag coefficient
-    Cdw = 1.25  # water drag coefficient
-    Csda = 2.5e-4  # air skin drag coefficient
-    Csdw = 5.0e-4  # water skin drag coefficient
-    keel_shape = 'triangular'  # shape of keel (must be rectangular or triangular)
-    sail_shape = 'rectangular'  # shape of sail (must be rectangular or triangular)
+
     
     def __init__(self, ID, T, X, Y, Vx, Vy, size, shape):
         """Instantiate iceberg object with necessary initial values.
+        
+        Attributes:
+            keel_shape (str): shape of the iceberg keel
+            sail_shape (str): shape of the iceberg sail
+            rho (float): density of the iceberg
+            Cda (float): air drag coefficient for the iceberg
+            Cdw (float): water drag coefficient for the iceberg
+            Csda (float): air skin drag coefficient for the iceberg
+            Csdw (float): water skin drag coefficient for the iceberg
 
         Args:
             ID (int): iceberg ID number
@@ -64,50 +61,94 @@ class Iceberg:
             shape (str): shape of the iceberg. Can be BLK, TAB, ISL, GEN, RAD, NTB, DOM, WDG, PIN, or DD
         """
         
+        self.keel_shape = 'triangular'
+        self.sail_shape = 'rectangular'
+        self.rho = 900  
+        self.Cda = 1.25
+        self.Cdw = 1.25
+        self.Csda = 2.5e-4
+        self.Csdw = 5.0e-4      
+        
         self.ID = ID
         self.T = T
         self.Vx = Vx
         self.Vy = Vy
         self.Y = Y
         self.X = X
-        self.size = size
-        self.shape = shape
-        
-        #: list of float: L is length (m), W is width (m), Hs is sail height (m)
+        self.size = size  # static -- do not change from init value, it has dep vars
+        self.shape = shape  # static --do not change from init value, it has dep vars    
         self.L, self.W, self.Hs = self.get_berg_dims()
-        #: list of float: H is height (m), Hk is keel height (m), Ab is bottom face area (m^2), At is top face area (m^2)
-        #: list of float: Ak is keel face area (m^2), As is sail face area (m^2), M is mass (kg)
-        self.H, self.Hk, self.Ab, self.At, self.Ak, self.As, self.M = self.get_shape_info()
-        
-        #: dict of float: dictionary of the time, position, and velocities of the iceberg prior to its current state
         self.history = {'T': [], 'X': [], 'Y': [], 'Vx': [], 'Vy': []}
  
     
-    def vary_drag_coeffs(self):
-        """This function updates the air and water drag coefficients by drawing new values from a uniform distribution
-        """
-        self.Cda = np.random.uniform(0.5, 2.5)
-        self.Cdw = np.random.uniform(0.5, 2.5)
+    @property
+    def SF(self):
+        return self.shape_info_dict[self.shape][0]
     
+    @property
+    def H2D(self):
+        return self.shape_info_dict[self.shape][1]
     
-    def vary_berg_dims(self):
-        """This function updates the iceberg's dims by drawing new values from a uniform distribution bounding by size class min and max.
-        
-        Also, the parameters which depend on the dims such as the area and mass also get updated accordingly.
-        """
-        
-        size = self.size
-        self.L, self.W, self.Hs = self.get_berg_dims(fixed=False)
-        
-        shape = self.shape
-        shape_info_dict = self.shape_info_dict
-        keel_shape = self.keel_shape
-        sail_shape = self.sail_shape
-        self.H, self.Hk, self.Ab, self.At, self.Ak, self.As, self.M = self.get_shape_info()
-        
-      
+    @property
+    def Hk(self):
+        return self.Hs/self.H2D
     
-    def get_berg_dims(self, fixed=True):
+    @property
+    def H(self):
+        return self.Hk + self.Hs
+    
+    @property
+    def Ab(self):
+        if self.keel_shape == 'rectangular':
+            factor = 1
+        elif self.keel_shape == 'triangular':
+            factor = 0
+        else:
+            print('Invalid keel shape. Please choose triangular or rectangular.')
+            
+        return self.L*self.W*factor
+    
+    @property
+    def Ak(self):
+        if self.keel_shape == 'rectangular':
+            factor = 1
+        elif self.keel_shape == 'triangular':
+            factor = 0.5
+        else:
+            print('Invalid keel shape. Please choose triangular or rectangular.')
+            
+        return 0.5*(self.L+self.W)*self.Hk*factor
+    
+    @property
+    def At(self):
+        if self.sail_shape == 'rectangular':
+            factor = 1
+        elif self.sail_shape == 'triangular':
+            factor = 0
+        else:
+            print('Invalid sail shape. Please choose triangular or rectangular.')
+            
+        return self.L*self.W*factor
+    
+    @property
+    def As(self):
+        if self.sail_shape == 'rectangular':
+            factor = 1
+        elif self.sail_shape == 'triangular':
+            factor = 0.5
+        else:
+            print('Invalid sail shape. Please choose triangular or rectangular.')
+            
+        # multiply by 0.5 to get average of L and W
+        return 0.5*(self.L + self.W)*self.Hs*factor
+    
+    @property
+    def M(self):
+        #M = Mk + Ms; where Mk and Ms are the masses of the keel and sail, respectively.
+        return self.rho*self.W*(self.Ak + self.As)
+        
+    
+    def get_berg_dims(self):
         """This function returns numeric values for the dimensions of the iceberg (length, width, and sail height).
         
         Note:
@@ -130,69 +171,46 @@ class Iceberg:
             
             L_min, L_max, W_min, W_max, Hs_min, Hs_max = self.size_dim_dict[self.size]
                  
-            if fixed:
-                L = (L_min + L_max)/2
-                W = (W_min + W_max)/2
-                Hs = (Hs_min + Hs_max)/2
-            
-            else:
-                L = np.random.uniform(L_min, L_max)
-                W = np.random.uniform(W_min, W_max)
-                Hs = np.random.uniform(Hs_min, Hs_max)
+            L = (L_min + L_max)/2
+            W = (W_min + W_max)/2
+            Hs = (Hs_min + Hs_max)/2
+        
+        else:
+            print("""Invalid size type. Either specify a list of [L, W, Hs] 
+            or a str with an IIP size classification.""")
     
         return L, W, Hs
 
-
-
-    def get_shape_info(self):
-        """This function returns information pertaining to the shape and dimensions of the iceberg.
-        
-        Note:
-            All units are SI. Dimensions are in meters, areas are meters squared, and masses are kilograms.
-        
-        Attributes:
-            SF (float): constant that is specified according to iceberg shape classification
-            H2D (float): constant that dictates the ratio of the iceberg above water versus below
-        
-        Returns:
-            H (float): total height of the iceberg (m)
-            Hk (float): height of the iceberg keel (m)
-            Ab (float): area of the bottom face of the iceberg (m^2)
-            At (float): area of the top face of the iceberg (m^2)
-            Ak (float): area of the keel of the iceberg (m^2)
-            As (float): area of the sail of the iceberg (m^2)
-            M (float): mass of the iceberg (kg)
-        """
-        
-        SF, H2D = self.shape_info_dict[self.shape]
-        
-        Hk = self.Hs/H2D
-        H = self.Hs + Hk
-        At = self.L*self.W
-        
-        if self.keel_shape == 'rectangular':
-            Ab = self.L*self.W
-            Ak = Hk*self.L
-            Ms = self.L*self.W*self.Hs*self.rho
-        elif self.keel_shape == 'triangular':
-            Ab = 0
-            Ak = Hk*self.L/2
-            Ms = self.L*self.W*self.Hs*self.rho/2
-        else:
-            print("Invalid keel shape, must be rectangular or triangular")
             
-        if self.sail_shape == 'rectangular':
-            As = self.Hs*self.L
-            Mk = self.L*self.W*Hk*self.rho
-        elif self.sail_shape == 'triangular':
-            As = self.Hs*self.L/2
-            Mk = self.L*self.W*Hk*self.rho/2
-        else:
-            print("Invalid keel shape, must be rectangular or triangular")
+    def vary_L(self):
+        L_min, L_max = self.size_dim_dict[self.size][0:2]
+        self.L = np.random.uniform(L_min, L_max)
         
-        M = Ms + Mk
+    def vary_W(self):
+        W_min, W_max = self.size_dim_dict[self.size][2:4]
+        self.W = np.random.uniform(W_min, W_max)
+
+    def vary_Hs(self):
+        Hs_min, Hs_max = self.size_dim_dict[self.size][4:6]
+        self.Hs = np.random.uniform(Hs_min, Hs_max)
+    
+    def vary_all_dims(self):
+        self.vary_L()
+        self.vary_W()
+        self.vary_Hs()
+    
+    def vary_Cda(self):
+        self.Cda = np.random.uniform(0.5, 2.5)
         
-        return H, Hk, Ab, At, Ak, As, M        
+    def vary_Cdw(self):
+        self.Cdw = np.random.uniform(0.5, 2.5)
+        
+    def vary_all_drag_coeffs(self):
+        """This function updates the air and water drag coefficients by drawing new values from a uniform distribution
+        """
+        self.vary_Cda()
+        self.vary_Cdw()
+       
 
     
 def clone_iceberg_state(berg):
