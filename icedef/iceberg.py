@@ -206,8 +206,6 @@ class Iceberg():
         self.Cdw = np.random.uniform(0.5, 2.5)
         
     def vary_all_drag_coeffs(self):
-        """This function updates the air and water drag coefficients by drawing new values from a uniform distribution
-        """
         self.vary_Cda()
         self.vary_Cdw()
        
