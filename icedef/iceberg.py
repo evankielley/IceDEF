@@ -53,10 +53,12 @@ class Iceberg():
         Args:
             ID (int): iceberg ID number
             T (datetime.datetime): datetime of the iceberg
-            Vx (float): x-component of iceberg velocity
-            Vy (float): y-component of iceberg velocity
-            Y (float): iceberg latitude
             X (float): iceberg longitude
+            Y (float): iceberg latitude
+            Vx (float): x-component of iceberg velocity (m/s)
+            Vy (float): y-component of iceberg velocity (m/s)
+            Ax (float): x-component of iceberg acceleration (m/s^2)
+            Ay (float): y-component of iceberg acceleration (m/s^2)
             size (str): size of the iceberg (can be GR, BB, MED, LG, VLG, or GEN)
             shape (str): shape of the iceberg. Can be BLK, TAB, ISL, GEN, RAD, NTB, DOM, WDG, PIN, or DD
         """
@@ -222,7 +224,23 @@ class Iceberg():
         self.history['Ax'].append(self.Ax)
         self.history['Ay'].append(self.Ay)
 
+    def in_bounds(self, x_bounds, y_bounds):
+        
+        xmin = x_bounds[0]
+        xmax = x_bounds[1]
+        ymin = y_bounds[0]
+        ymax = y_bounds[1]
 
+        if not xmin < self.X < xmax:
+            print('Iceberg out-of-bounds')
+            return False
+
+        elif not ymin < self.Y < ymax:
+            print('Iceberg out-of-bounds')
+            return False
+
+        else:
+            return True
     
 def clone_iceberg_state(berg):
     """This function clones the current state of an iceberg and returns the clone.
