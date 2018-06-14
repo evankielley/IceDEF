@@ -38,7 +38,7 @@ class Iceberg():
             
 
     
-    def __init__(self, ID, T, X, Y, Vx, Vy, size, shape):
+    def __init__(self, ID, T, X, Y, Vx, Vy, Ax, Ay, size, shape):
         """Instantiate iceberg object with necessary initial values.
         
         Attributes:
@@ -71,14 +71,18 @@ class Iceberg():
         
         self.ID = ID
         self.T = T
+        self.X = X
+        self.Y = Y
         self.Vx = Vx
         self.Vy = Vy
-        self.Y = Y
-        self.X = X
+        self.Ax = Ax
+        self.Ay = Ay
         self.size = size  # static -- do not change from init value, it has dep vars
-        self.shape = shape  # static --do not change from init value, it has dep vars    
+        self.shape = shape  # static --do not change from init value, it has dep vars
+        
         self.L, self.W, self.Hs = self.get_berg_dims()
-        self.history = {'T': [], 'X': [], 'Y': [], 'Vx': [], 'Vy': []}
+        
+        self.history = {'T': [], 'X': [], 'Y': [], 'Vx': [], 'Vy': [], 'Ax': [], 'Ay': []}
  
     
     @property
@@ -221,7 +225,7 @@ def clone_iceberg_state(berg):
         clone (icedef.iceberg.Iceberg): clone of the current state of the iceberg provided.
     """
     
-    clone = Iceberg(berg.ID, berg.T, berg.X, berg.Y, berg.Vx, berg.Vy, berg.size, berg.shape)
+    clone = Iceberg(berg.ID, berg.T, berg.X, berg.Y, berg.Vx, berg.Vy, berg.Ax, berg.Ay, berg.size, berg.shape)
     return clone
     
 
@@ -344,10 +348,12 @@ def get_iip_berg(iip_berg_df):
     Y = iip_berg_df['SIGHTING_LATITUDE'].loc[0]
     Vx = 0
     Vy = 0
+    Ax = 0
+    Ay = 0
     size = iip_berg_df['SIZE'].loc[0]
     shape = iip_berg_df['SHAPE'].loc[0]
     
-    iip_berg = Iceberg(ID, T, X, Y, Vx, Vy, size, shape)
+    iip_berg = Iceberg(ID, T, X, Y, Vx, Vy, Ax, Ay, size, shape)
     iip_berg.history['T'] = iip_berg_df['TIMESTAMP'].dt.to_pydatetime()
     iip_berg.history['X'] = iip_berg_df['SIGHTING_LONGITUDE'].loc[:].tolist()
     iip_berg.history['Y'] = iip_berg_df['SIGHTING_LATITUDE'].loc[:].tolist()
