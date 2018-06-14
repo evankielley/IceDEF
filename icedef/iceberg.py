@@ -212,7 +212,16 @@ class Iceberg():
     def vary_all_drag_coeffs(self):
         self.vary_Cda()
         self.vary_Cdw()
-       
+        
+    def update_history(self):
+        self.history['T'].append(self.T)
+        self.history['X'].append(self.X)
+        self.history['Y'].append(self.Y)
+        self.history['Vx'].append(self.Vx)
+        self.history['Vy'].append(self.Vy)
+        self.history['Ax'].append(self.Ax)
+        self.history['Ay'].append(self.Ay)
+
 
     
 def clone_iceberg_state(berg):
