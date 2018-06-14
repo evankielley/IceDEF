@@ -19,7 +19,7 @@ Todo:
 import numpy as np
 import netCDF4 as nc
 
-def drift(iceberg, Vax, Vay, Vcx, Vcy, dt):
+def drift(iceberg, Vax, Vay, Vcx, Vcy):
     """Simulates the drift of an iceberg over one timestep.
       
     Notes:
@@ -31,11 +31,10 @@ def drift(iceberg, Vax, Vay, Vcx, Vcy, dt):
         Vay (float): y-component of air velocity (m/s)
         Vwx (float): x-component of water velocity (m/s)
         Vwy (float): y-component of water velocity (m/s)
-        dt (float): timestep (s)
         
     Returns:
-        Vx_new (float): x-component of iceberg velocity after one timestep
-        Vy_new (float): y-component of iceberg velocity after one timestep
+        Ax (float): x-component of iceberg acceleration after one timestep
+        Ay (float): y-component of iceberg acceleration after one timestep
     
     """
     
@@ -87,12 +86,6 @@ def drift(iceberg, Vax, Vay, Vcx, Vcy, dt):
     # Iceberg acceleration                
     Ax = (Fax + Fcx + Fwx + Fwpx)/(M + Ma)  # x-component of iceberg acceleration (m/s^2)
     Ay = (Fay + Fcy + Fwy + Fwpy)/(M + Ma)  # y-component of iceberg acceleration (m/s^2)
-    
-    # Iceberg velocity
-    Vx_new = Vx + dt*Ax  # x-component of iceberg velocity (m/s)
-    Vy_new = Vy + dt*Ay  # y-component of iceberg velocity (m/s)
-    
 
-    return Vx_new, Vy_new
-    
+    return Ax, Ay
     
