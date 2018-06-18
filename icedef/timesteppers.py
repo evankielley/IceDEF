@@ -57,8 +57,7 @@ def get_all_timesteps(t0, tf, dt):
     return t_all
 
 
-
-def euler(berg, ocean_data, atm_data, drift, t_all):
+def wrapper(berg, ocean_data, atm_data, drift, tstepper, t_all):
     
     Re = 6378*1e3  # radius of Earth
     
@@ -75,193 +74,111 @@ def euler(berg, ocean_data, atm_data, drift, t_all):
         berg.T = t
     
         Vcx, Vcy, Vax, Vay = get_interpolated_values(berg, ocean_data, atm_data)
+    
+        berg = tstepper(berg, ocean_data, atm_data, drift, Vax, Vay, Vcx, Vcy, dt)
+
+        # calculate position in degrees lat/lon
+        y_ = berg.Y
+        berg.Y += dt*berg.Vy*(180/(np.pi*Re))
+        berg.X += dt*berg.Vx/(np.cos((((y_ + berg.Y)/2)*np.pi)/180))*(180/(np.pi*Re))
+
+        # update date iceberg history if still in bounds
+        if berg.in_bounds(x_bounds, y_bounds):
+            berg.update_history()
+
+        # otherwise, terminate
+        else:
+            berg.out_of_bounds = True
+            break
         
-        
-        # integrate
+    return berg
+
+
+def euler(berg, ocean_data, atm_data, drift, Vax, Vay, Vcx, Vcy, dt):
+            
+    # explicit Euler forward scheme
+    berg.Vx += dt*berg.Ax
+    berg.Vy += dt*berg.Ay   
+    berg.Ax, berg.Ay = drift(berg, Vax, Vay, Vcx, Vcy)
+
+    return berg
+
+
+
+def ab2(berg, ocean_data, atm_data, drift, Vax, Vay, Vcx, Vcy, dt):
+    
+    i = len(berg.history['T'])
+            
+    if i < 1:
         # explicit Euler forward scheme
         berg.Vx += dt*berg.Ax
         berg.Vy += dt*berg.Ay   
         berg.Ax, berg.Ay = drift(berg, Vax, Vay, Vcx, Vcy)
 
-         
-        # calculate position in degrees lat/lon
-        y_ = berg.Y
-        berg.Y += dt*berg.Vy*(180/(np.pi*Re))
-        berg.X += dt*berg.Vx/(np.cos((((y_ + berg.Y)/2)*np.pi)/180))*(180/(np.pi*Re))
-        
-        # update date iceberg history if still in bounds
-        if berg.in_bounds(x_bounds, y_bounds):
-            berg.update_history()
-        
-        # otherwise, terminate
-        else:
-            berg.out_of_bounds = True
-            break
-      
-    return berg
-
-def ab2(berg, ocean_data, atm_data, drift, t_all):
-    
-    Re = 6378*1e3  # radius of Earth
-    
-    # determine bounding box for drift simulation
-    x_bounds, y_bounds = get_bounding_box(ocean_data, atm_data)
-    
-    
-    # get timestep
-    tdelta = t_all[1] - t_all[0]
-    dt = tdelta.seconds
-    
-    # drift iceberg for all t in t_all
-    for i, t in enumerate(t_all):
-        
-        berg.T = t
-    
-        Vcx, Vcy, Vax, Vay = get_interpolated_values(berg, ocean_data, atm_data)
-            
-        # integrate
-        if i < 1:
-            # explicit Euler forward scheme
-            berg.Vx += dt*berg.Ax
-            berg.Vy += dt*berg.Ay   
-            berg.Ax, berg.Ay = drift(berg, Vax, Vay, Vcx, Vcy)
-            
-        else:
-            # second order Adams Bashforth
-            berg.Vx += dt*(1.5*berg.Ax - 0.5*berg.history['Ax'][-1])
-            berg.Vy += dt*(1.5*berg.Ay - 0.5*berg.history['Ay'][-1])
-            berg.Ax, berg.Ay = drift(berg, Vax, Vay, Vcx, Vcy)
-         
-        # calculate position in degrees lat/lon
-        y_ = berg.Y
-        berg.Y += dt*berg.Vy*(180/(np.pi*Re))
-        berg.X += dt*berg.Vx/(np.cos((((y_ + berg.Y)/2)*np.pi)/180))*(180/(np.pi*Re))
-        
-        # update date iceberg history if still in bounds
-        if berg.in_bounds(x_bounds, y_bounds):
-            berg.update_history()
-        
-        # otherwise, terminate
-        else:
-            berg.out_of_bounds = True
-            break
-      
+    else:
+        # second order Adams Bashforth
+        berg.Vx += dt*(1.5*berg.Ax - 0.5*berg.history['Ax'][-1])
+        berg.Vy += dt*(1.5*berg.Ay - 0.5*berg.history['Ay'][-1])
+        berg.Ax, berg.Ay = drift(berg, Vax, Vay, Vcx, Vcy)
     
     return berg
 
-def ab3(berg, ocean_data, atm_data, drift, t_all):
+
+
+def ab3(berg, ocean_data, atm_data, drift, Vax, Vay, Vcx, Vcy, dt):
     
-    Re = 6378*1e3  # radius of Earth
-    
-    # determine bounding box for drift simulation
-    x_bounds, y_bounds = get_bounding_box(ocean_data, atm_data)
-    
-    # get timestep
-    tdelta = t_all[1] - t_all[0]
-    dt = tdelta.seconds
-    
-    # drift iceberg for all t in t_all
-    for i, t in enumerate(t_all):
-        
-        berg.T = t
-    
-        Vcx, Vcy, Vax, Vay = get_interpolated_values(berg, ocean_data, atm_data)
+    i = len(berg.history['T'])
             
-        # integrate
-        if i < 1:
-            # explicit Euler forward scheme
-            berg.Vx += dt*berg.Ax
-            berg.Vy += dt*berg.Ay   
-            berg.Ax, berg.Ay = drift(berg, Vax, Vay, Vcx, Vcy)
-            
-        elif i < 3:
-            # second order Adams Bashforth
-            berg.Vx += dt*(1.5*berg.Ax - 0.5*berg.history['Ax'][-1])
-            berg.Vy += dt*(1.5*berg.Ay - 0.5*berg.history['Ay'][-1])
-            berg.Ax, berg.Ay = drift(berg, Vax, Vay, Vcx, Vcy)
-         
-        else:
-            # third order Adams Bashforth
-            berg.Vx += dt/12*(23*berg.Ax-16*berg.history['Ax'][-1]+5*berg.history['Ax'][-2])
-            berg.Vy += dt/12*(23*berg.Ay-16*berg.history['Ay'][-1]+5*berg.history['Ay'][-2])
-            berg.Ax, berg.Ay = drift(berg, Vax, Vay, Vcx, Vcy)
-            
-            
-        # calculate position in degrees lat/lon
-        y_ = berg.Y
-        berg.Y += dt*berg.Vy*(180/(np.pi*Re))
-        berg.X += dt*berg.Vx/(np.cos((((y_ + berg.Y)/2)*np.pi)/180))*(180/(np.pi*Re))
-        
-        # update date iceberg history if still in bounds
-        if berg.in_bounds(x_bounds, y_bounds):
-            berg.update_history()
-        
-        # otherwise, terminate
-        else:
-            berg.out_of_bounds = True
-            break
-      
+    if i < 1:
+        # explicit Euler forward scheme
+        berg.Vx += dt*berg.Ax
+        berg.Vy += dt*berg.Ay   
+        berg.Ax, berg.Ay = drift(berg, Vax, Vay, Vcx, Vcy)
+
+    elif i < 3:
+        # second order Adams Bashforth
+        berg.Vx += dt*(1.5*berg.Ax - 0.5*berg.history['Ax'][-1])
+        berg.Vy += dt*(1.5*berg.Ay - 0.5*berg.history['Ay'][-1])
+        berg.Ax, berg.Ay = drift(berg, Vax, Vay, Vcx, Vcy)
+
+    else:
+        # third order Adams Bashforth
+        berg.Vx += dt/12*(23*berg.Ax-16*berg.history['Ax'][-1]+5*berg.history['Ax'][-2])
+        berg.Vy += dt/12*(23*berg.Ay-16*berg.history['Ay'][-1]+5*berg.history['Ay'][-2])
+        berg.Ax, berg.Ay = drift(berg, Vax, Vay, Vcx, Vcy)  
+
     
     return berg
 
-def ab4(berg, ocean_data, atm_data, drift, t_all):
-    
-    Re = 6378*1e3  # radius of Earth
-    
-    # determine bounding box for drift simulation
-    x_bounds, y_bounds = get_bounding_box(ocean_data, atm_data)
-    
-    
-    # get timestep
-    tdelta = t_all[1] - t_all[0]
-    dt = tdelta.seconds
-    
-    # drift iceberg for all t in t_all
-    for i, t in enumerate(t_all):
-        
-        berg.T = t
-    
-        Vcx, Vcy, Vax, Vay = get_interpolated_values(berg, ocean_data, atm_data)
-            
-        # integrate
-        if i < 1:
-            # explicit Euler forward scheme
-            berg.Vx += dt*berg.Ax
-            berg.Vy += dt*berg.Ay   
-            berg.Ax, berg.Ay = drift(berg, Vax, Vay, Vcx, Vcy)
-            
-        elif i < 3:
-            # second order Adams-Bashforth
-            berg.Vx += dt*(1.5*berg.Ax - 0.5*berg.history['Ax'][-1])
-            berg.Vy += dt*(1.5*berg.Ay - 0.5*berg.history['Ay'][-1])
-            berg.Ax, berg.Ay = drift(berg, Vax, Vay, Vcx, Vcy)
-         
-        else:
-            # fourth order Adams-Bashforth predictor-corrector
-            berg.Vx += dt/24*(55*berg.Ax-59*berg.history['Ax'][-1]+37*berg.history['Ax'][-2]-9*berg.history['Ax'][-3])
-            berg.Vy += dt/24*(55*berg.Ay-59*berg.history['Ay'][-1]+37*berg.history['Ay'][-2]-9*berg.history['Ay'][-3])
-            
-            Ax1, Ay1 = drift(berg, Vax, Vay, Vcx, Vcy)
-            
-            berg.Vx += dt/24*(Ax1+19*berg.Ax-5*berg.history['Ax'][-1]+berg.history['Ax'][-2])
-            berg.Vy += dt/24*(Ay1+19*berg.Ay-5*berg.history['Ay'][-1]+berg.history['Ay'][-2])
-            
-            berg.Ax, berg.Ay = drift(berg, Vax, Vay, Vcx, Vcy)
 
-            
-        # calculate position in degrees lat/lon
-        y_ = berg.Y
-        berg.Y += dt*berg.Vy*(180/(np.pi*Re))
-        berg.X += dt*berg.Vx/(np.cos((((y_ + berg.Y)/2)*np.pi)/180))*(180/(np.pi*Re))
-        
-        # update date iceberg history if still in bounds
-        if berg.in_bounds(x_bounds, y_bounds):
-            berg.update_history()
-        
-        # otherwise, terminate
-        else:
-            berg.out_of_bounds = True
-            break
-      
+
+def ab4(berg, ocean_data, atm_data, drift, Vax, Vay, Vcx, Vcy, dt):
     
+    i = len(berg.history['T'])
+    
+    if i < 1:
+        # explicit Euler forward scheme
+        berg.Vx += dt*berg.Ax
+        berg.Vy += dt*berg.Ay   
+        berg.Ax, berg.Ay = drift(berg, Vax, Vay, Vcx, Vcy)
+
+    elif i < 3:
+        # second order Adams-Bashforth
+        berg.Vx += dt*(1.5*berg.Ax - 0.5*berg.history['Ax'][-1])
+        berg.Vy += dt*(1.5*berg.Ay - 0.5*berg.history['Ay'][-1])
+        berg.Ax, berg.Ay = drift(berg, Vax, Vay, Vcx, Vcy)
+
+    else:
+        # fourth order Adams-Bashforth predictor-corrector
+        berg.Vx += dt/24*(55*berg.Ax-59*berg.history['Ax'][-1]+37*berg.history['Ax'][-2]-9*berg.history['Ax'][-3])
+        berg.Vy += dt/24*(55*berg.Ay-59*berg.history['Ay'][-1]+37*berg.history['Ay'][-2]-9*berg.history['Ay'][-3])
+
+        Ax1, Ay1 = drift(berg, Vax, Vay, Vcx, Vcy)
+
+        berg.Vx += dt/24*(Ax1+19*berg.Ax-5*berg.history['Ax'][-1]+berg.history['Ax'][-2])
+        berg.Vy += dt/24*(Ay1+19*berg.Ay-5*berg.history['Ay'][-1]+berg.history['Ay'][-2])
+
+        berg.Ax, berg.Ay = drift(berg, Vax, Vay, Vcx, Vcy)
+
+      
     return berg
