@@ -155,19 +155,21 @@ def plot_spaghetti_test_case(iip_berg, mod_berg_list, time_labels=False):
     
     for mod_berg in mod_berg_list:
         
-        mod_lons = mod_berg.history['X']
-        mod_lats = mod_berg.history['Y']
-    
-        # Get min and max iceberg lons and lats for defining the plot axes ranges
-        tmp_xmin = min(min(mod_lons), min(iip_lons)) 
-        tmp_xmax = max(max(mod_lons), max(iip_lons))
-        tmp_ymin = min(min(mod_lats), min(iip_lats))
-        tmp_ymax = max(max(mod_lats), max(iip_lats))
-        
-        berg_xmin = min(berg_xmin, tmp_xmin)
-        berg_xmax = max(berg_xmax, tmp_xmax)
-        berg_ymin = min(berg_ymin, tmp_ymin)
-        berg_ymax = max(berg_ymax, tmp_ymax)
+        if not mod_berg.out_of_bounds:
+
+            mod_lons = mod_berg.history['X']
+            mod_lats = mod_berg.history['Y']
+
+            # Get min and max iceberg lons and lats for defining the plot axes ranges
+            tmp_xmin = min(min(mod_lons), min(iip_lons)) 
+            tmp_xmax = max(max(mod_lons), max(iip_lons))
+            tmp_ymin = min(min(mod_lats), min(iip_lats))
+            tmp_ymax = max(max(mod_lats), max(iip_lats))
+
+            berg_xmin = min(berg_xmin, tmp_xmin)
+            berg_xmax = max(berg_xmax, tmp_xmax)
+            berg_ymin = min(berg_ymin, tmp_ymin)
+            berg_ymax = max(berg_ymax, tmp_ymax)
 
     
     m = get_mercator_basemap(berg_xmin, berg_xmax, berg_ymin, berg_ymax)
@@ -188,26 +190,28 @@ def plot_spaghetti_test_case(iip_berg, mod_berg_list, time_labels=False):
         
     
     for mod_berg in mod_berg_list:
-        mod_lons = mod_berg.history['X']
-        mod_lats = mod_berg.history['Y']
-        mod_x, mod_y = m(mod_lons, mod_lats)
-        ax.scatter(mod_x, mod_y, marker='o', s=1)#, c='red')
         
-        mod_times = mod_berg.history['T']
+        if not mod_berg.out_of_bounds:
+            mod_lons = mod_berg.history['X']
+            mod_lats = mod_berg.history['Y']
+            mod_x, mod_y = m(mod_lons, mod_lats)
+            ax.scatter(mod_x, mod_y, marker='o', s=1)#, c='red')
 
-        matching_indices = find_matching_value_indices(iip_times, mod_times)
-            
-        for i, hour_label in enumerate(hour_labels):
-            
-            try:
-                j = matching_indices[i]
-            except IndexError:
-                break
-                
-            if not round(iip_lons[i], 2) == round(mod_lons[j], 2):
-                ax.scatter(mod_x[j], mod_y[j], marker='o', color='red')
-                if time_labels:
-                    ax.text(mod_x[j], mod_y[j], hour_label)
+            mod_times = mod_berg.history['T']
+
+            matching_indices = find_matching_value_indices(iip_times, mod_times)
+
+            for i, hour_label in enumerate(hour_labels):
+
+                try:
+                    j = matching_indices[i]
+                except IndexError:
+                    break
+
+                if not round(iip_lons[i], 2) == round(mod_lons[j], 2):
+                    ax.scatter(mod_x[j], mod_y[j], marker='o', color='red')
+                    if time_labels:
+                        ax.text(mod_x[j], mod_y[j], hour_label)
                     
                     
     plt.savefig('test_plot.png')
