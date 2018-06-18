@@ -301,35 +301,6 @@ def add_datetime_column(iip_df):
     return iip_df
 
 
-def get_time_dense_df(iip_df, max_hours):
-    """This function returns a new dataframe with only the rows of observations that are within the max time difference specified.
-    
-    Args:
-        iip_df (pandas.core.frame.DataFrame): IIP iceberg sighting dataframe with an added column, TIMESTAMP, with sighting T
-        max_hours (int): max number of hours desired between observations (hours)
-        
-    Returns:
-        new_df (pandas.core.frame.DataFrame): IIP iceberg sighting dataframe with only rows of observations that are within the max hours specified
-    """
-    
-    max_timedelta = np.timedelta64(60*max_hours, 'm')
-    new_df = pd.DataFrame()
-
-    for iceberg_number in iip_df['ICEBERG_NUMBER'].unique():
-        tmp_df = iip_df.loc[iip_df['ICEBERG_NUMBER'] == iceberg_number].reset_index(drop=True)
-        for i in range(len(tmp_df) - 1):
-            if (tmp_df['TIMESTAMP'][i+1] - tmp_df['TIMESTAMP'][i]) < max_timedelta:
-                new_df = new_df.append(tmp_df.loc[i])
-                new_df = new_df.append(tmp_df.loc[i+1])
-    
-    new_df['ICEBERG_NUMBER'] = new_df['ICEBERG_NUMBER'].astype(int)
-    new_df['ICEBERG_YEAR'] = new_df['ICEBERG_YEAR'].astype(int)
-    new_df['SIGHTING_TIME'] = new_df['SIGHTING_TIME'].astype(int)
-
-    new_df = new_df.drop_duplicates().reset_index(drop=True)
-                
-    return new_df
-
 
 def get_iip_berg_df(iip_df, indices=range(3284, 3286)):
     """This function returns a dataframe from the desired rows of an IIP Iceberg Sighting dataframe.
@@ -388,3 +359,78 @@ def get_iip_berg(iip_berg_df):
     iip_berg.history['Y'] = iip_berg_df['SIGHTING_LATITUDE'].loc[:].tolist()
     
     return iip_berg
+
+
+def get_dense_df(iip_season, max_hours, save=False):
+
+    iip_df = add_datetime_column(get_iip_df(iip_season))
+
+    iip_df = iip_df.sort_values(['ICEBERG_NUMBER', 'TIMESTAMP'], ascending=[True, True])
+
+    iip_df = iip_df.reset_index(drop=True).drop(labels=['ICEBERG_YEAR', 'SIGHTING_DATE','SIGHTING_TIME','SIGHTING_METHOD'], axis=1)
+
+    berg_nums = iip_df['ICEBERG_NUMBER'].tolist()
+    berg_times = iip_df['TIMESTAMP'].tolist()
+
+    berg_num = berg_nums[0]
+
+    good_indices = []
+
+
+    for i, row in iip_df.iterrows():
+
+        if i+1 >= len(iip_df):
+            break
+
+        berg_num0 = berg_nums[i]
+        berg_num1 = berg_nums[i+1]
+
+        if berg_num0 == berg_num1:
+
+            time0 = berg_times[i]
+            time1 = berg_times[i+1]
+            dtime = time1 - time0
+            dt_hours = dtime.days*24 + dtime.seconds/3600
+
+            if dt_hours < max_hours:
+                good_indices.append(i)
+                good_indices.append(i+1)
+
+    good_indices = sorted(list(set(good_indices)))
+
+    iip_df2 = iip_df[iip_df.index.isin(good_indices)]
+
+    iip_df2['count'] = iip_df2.groupby('ICEBERG_NUMBER')['ICEBERG_NUMBER'].transform('count')
+
+    iip_df2 = iip_df2.sort_values(['ICEBERG_NUMBER','TIMESTAMP'], ascending=[True, True])
+
+    iip_df2 = iip_df2.reset_index(drop=True)
+
+    berg_nums = iip_df2['ICEBERG_NUMBER'].tolist()
+    berg_times = iip_df2['TIMESTAMP'].tolist()
+
+    track_num = 0
+    iip_df2['track_num'] = pd.Series(dtype=int)
+
+    for i, row in iip_df2.iterrows():
+        if i+2 > len(iip_df2):
+            break
+        berg_num0 = berg_nums[i]
+        berg_num1 = berg_nums[i+1]
+        time0 = berg_times[i]
+        time1 = berg_times[i+1]
+        dtime = time1 - time0
+        dt_hours = dtime.days*24 + dtime.seconds/3600
+        if berg_num0 == berg_num1 and dt_hours < max_hours:
+            iip_df2.loc[i, 'track_num'] = track_num
+            iip_df2.loc[i+1, 'track_num'] = track_num
+        else:
+            track_num += 1
+
+
+    iip_df2 = iip_df2.sort_values(['track_num'], ascending=[True]).reset_index(drop=True)
+    
+    if save:
+        iip_df2.to_csv(f'csvs/{iip_season}_max{max_hours}hr_tracks')
+
+    return iip_df2
