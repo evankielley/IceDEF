@@ -1,3 +1,9 @@
+cache/
+bin/
+csvs/
+papers/
+
+
 # Plots directory
 plots/
 
