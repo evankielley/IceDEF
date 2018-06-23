@@ -11,7 +11,7 @@ import os
 from scipy.stats import truncnorm
 
 
-def get_data_subset(data, xy_res, lats, lons, min_lat, max_lat, min_lon, max_lon):
+def get_data_subset(data, XY_RES, lats, lons, min_lat, max_lat, min_lon, max_lon):
     """This function gets a spatial subset of 3D data of form [time, lat, lon]
     
     Note:
@@ -19,7 +19,7 @@ def get_data_subset(data, xy_res, lats, lons, min_lat, max_lat, min_lon, max_lon
     
     Args:
         data (numpy.ndarray): regular and uniform metocean data of the form [time, lat, lon] to extract subset from
-        xy_res (float): spatial resolution of the data
+        XY_RES (float): spatial resolution of the data
         lats (list of float): latitude grid vector
         lons (list of float): longitude grid vector
         min_lat (float): lower bound for latitude of subset to be made
@@ -31,10 +31,10 @@ def get_data_subset(data, xy_res, lats, lons, min_lat, max_lat, min_lon, max_lon
         data_subset (numpy.ndarray): spatial subset of the original data provided
     """
 
-    min_lat_idx = min(np.where(abs(lats - min_lat) < xy_res)[0])
-    max_lat_idx = max(np.where(abs(lats - max_lat) < xy_res)[0])
-    min_lon_idx = min(np.where(abs(lons - min_lon) < xy_res)[0])
-    max_lon_idx = max(np.where(abs(lons - max_lon) < xy_res)[0])
+    min_lat_idx = min(np.where(abs(lats - min_lat) < XY_RES)[0])
+    max_lat_idx = max(np.where(abs(lats - max_lat) < XY_RES)[0])
+    min_lon_idx = min(np.where(abs(lons - min_lon) < XY_RES)[0])
+    max_lon_idx = max(np.where(abs(lons - max_lon) < XY_RES)[0])
 
     data_subset = data[:, min_lat_idx:max_lat_idx+1, min_lon_idx:max_lon_idx+1]
 
@@ -112,28 +112,28 @@ class Metocean(object):
             t_min (datetime.datetime): minimum time for data time space
             t_max (datetime.datetime): maximum time for data time space
         """
-        self.x_min = x_min - abs(x_min-x_max) - self.xy_res
-        self.x_max = x_max + abs(x_min-x_max) + self.xy_res
-        self.y_min = y_min - abs(y_min-y_max) - self.xy_res
-        self.y_max = y_max + abs(y_min-y_max) + self.xy_res
-        self.t_min = t_min - timedelta(hours = self.t_res)
-        self.t_max = t_max + timedelta(hours = self.t_res)
+        self.x_min = x_min - abs(x_min-x_max) - self.XY_RES
+        self.x_max = x_max + abs(x_min-x_max) + self.XY_RES
+        self.y_min = y_min - abs(y_min-y_max) - self.XY_RES
+        self.y_max = y_max + abs(y_min-y_max) + self.XY_RES
+        self.t_min = t_min - timedelta(hours = self.T_RES)
+        self.t_max = t_max + timedelta(hours = self.T_RES)
 
         
-    def convert_datetime2time(self, t, t_units, t_calendar, t_offset=0):
+    def convert_datetime2time(self, t, T_UNITS, T_CALENDAR, t_offset=0):
         """This function converts a datetime into the new time format specified
         
         Args:
             t (datetime.datetime): time to be converted
-            t_units (str): units of time (specified in NetCDF file)
-            t_calendar (str): time calendar (specified in NetCDF file)
+            T_UNITS (str): units of time (specified in NetCDF file)
+            T_CALENDAR (str): time calendar (specified in NetCDF file)
             
         Returns:
             t (float): converted time (hours since some date)
         """
                                                 
-        dt += timedelta(hours = t_offset)
-        t = nc.date2num(t, t_units, t_calendar)
+        t += timedelta(hours = t_offset)
+        t = nc.date2num(t, T_UNITS, T_CALENDAR)
         
         return t
     
@@ -147,7 +147,7 @@ class Metocean(object):
         """
         
         if self.cache:
-            cache_path = 'cache/' + self.model_id
+            cache_path = 'cache/' + self.ID
             if not os.path.exists(cache_path):
                 try:
                     os.makedirs(cache_path)
@@ -174,17 +174,27 @@ class Metocean(object):
                 files.append(cache_file)
             else:
                 if self.cache and os.path.exists(cache_path):
-                    files.append(urllib.request.urlretrieve(self.path + filename, cache_path + filename)[0])
+                    files.append(urllib.request.urlretrieve(self.PATH + filename, cache_path + filename)[0])
                 else:
-                    files.append(urllib.request.urlretrieve(self.path + filename)[0])
+                    files.append(urllib.request.urlretrieve(self.PATH + filename)[0])
         
         return filenames, files
     
+    
+    def interpolate(self, t, x, y):
+        
+        t = self.convert_datetime2time(t, self.T_UNITS, self.T_CALENDAR)
+        
+        u = self.iU([t, y, x])[0]
+        v = self.iV([t, y, x])[0]
+        
+        return u, v
+    
 
 
     
     
-class ECMWF_Ocean(Metocean):
+class ECMWFOcean(Metocean):
     """This class creates an object which contains ocean data for surface current velocity and SST amongst other attributes.
     
     Note: 
@@ -194,20 +204,20 @@ class ECMWF_Ocean(Metocean):
         Metocean (class): parent class
         
     Attributes:
-        model_id (str): product identifier for the dataset
+        ID (str): product identifier for the dataset
         path (str): path to the directory of data files needed
-        xy_res (float): spatial resolution of the ocean model (degrees)
-        t_res (float): temporal resolution of the ocean model (hours)
-        t_units (str): time units used in NetCDF data files
-        t_calendar (str): time calendar used in NetCDF files
+        XY_RES (float): spatial resolution of the ocean model (degrees)
+        T_RES (float): temporal resolution of the ocean model (hours)
+        T_UNITS (str): time units used in NetCDF data files
+        T_CALENDAR (str): time calendar used in NetCDF files
     """
     
-    model_id = "GLOBAL_ANALYSIS_FORECAST_PHY_001_024"
-    path = 'ftp://data.munroelab.ca/pub/ECMWF/ocean/daily/'
-    xy_res = 1/12  # spatial resolution in degrees lat/lon
-    t_res = 1  # temporal resolution in hours
-    t_units = 'hours since 1950-01-01 00:00:00'
-    t_calendar = 'standard'
+    ID = "GLOBAL_ANALYSIS_FORECAST_PHY_001_024"
+    PATH = 'ftp://data.munroelab.ca/pub/ECMWF/ocean/daily/'
+    XY_RES = 1/12  # spatial resolution in degrees lat/lon
+    T_RES = 1  # temporal resolution in hours
+    T_UNITS = 'hours since 1950-01-01 00:00:00'
+    T_CALENDAR = 'standard'
     
     def __init__(self, x_min, x_max, y_min, y_max, t_min, t_max, cache=True):
         
@@ -222,11 +232,11 @@ class ECMWF_Ocean(Metocean):
         #: netCDF4._netCDF4.MFDataset: dataset of NetCDF4 files
         self.ds = nc.MFDataset(self.files)
         
-        #: list of float: list of times for the data in format according to t_units  
+        #: list of float: list of times for the data in format according to T_UNITS  
         self.times = self.ds.variables['time'][:]
         
         #: datetime.datetime: list of datetimes for the corresponding data times
-        self.datetimes = nc.num2date(self.times, self.t_units, self.t_calendar)
+        self.datetimes = nc.num2date(self.times, self.T_UNITS, self.T_CALENDAR)
         
         #: list of float: list of times for the data in hours since the year 1900
         self.t1900 = nc.date2num(self.datetimes, 'hours since 1900-01-01 00:00:00.0 00:00', 'standard')
@@ -244,19 +254,19 @@ class ECMWF_Ocean(Metocean):
         self.lons = self.ds.variables['longitude'][:]
         
         #: numpy.ndarray: 3-D data field ([time, lat, lon]) for the u-component of current velocity (m/s)
-        self.UW = np.asarray(self.ds.variables['uo'][:,0,:,:])
+        self.U = np.asarray(self.ds.variables['uo'][:,0,:,:])
         
         #: numpy.ndarray: 3-D data field ([time, lat, lon]) for the v-component of current velocity (m/s)
-        self.VW = np.asarray(self.ds.variables['vo'][:,0,:,:])
+        self.V = np.asarray(self.ds.variables['vo'][:,0,:,:])
         
         #: numpy.ndarray: 3-D data field ([time, lat, lon]) for the sea-surface temperature (C)
         self.SST = np.asarray(self.ds.variables['thetao'][:,0,:,:])
         
-        #: scipy.interpolate.interpolate.RegularGridInterpolator: interpolator of UW
-        self.iUW = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.UW)
+        #: scipy.interpolate.interpolate.RegularGridInterpolator: interpolator of U
+        self.iU = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.U)
         
-        #: scipy.interpolate.interpolate.RegularGridInterpolator: interpolator of VW
-        self.iVW = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.VW)
+        #: scipy.interpolate.interpolate.RegularGridInterpolator: interpolator of V
+        self.iV = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.V)
         
         #: scipy.interpolate.interpolate.RegularGridInterpolator: interpolator of SST
         self.iSST = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.SST)
@@ -265,30 +275,30 @@ class ECMWF_Ocean(Metocean):
 
 
 
-class ECMWF_Atm(Metocean):
+class ECMWFAtm(Metocean):
     """This class creates an object which contains atmospheric data for 10 meter wind velocity amongst other attributes.
     
     Note: 
-        Product identifier: WIND_GLO_WIND_L4_NRT_OBSERVATIONS_012_004
+        Product identifier: WIND_GLO_WIND_L4_NRT_OBSERVTIONS_012_004
     
     Args:
         Metocean (class): parent class
         
     Attributes:
-        model_id (str): product identifier for the dataset
+        ID (str): product identifier for the dataset
         path (str): path to the directory of data files needed
-        xy_res (float): spatial resolution of the atmospheric model (degrees)
-        t_res (float): temporal resolution of the atmospheric model (hours)
-        t_units (str): time units used in NetCDF data files
-        t_calendar (str): time calendar used in NetCDF files
+        XY_RES (float): spatial resolution of the atmospheric model (degrees)
+        T_RES (float): temporal resolution of the atmospheric model (hours)
+        T_UNITS (str): time units used in NetCDF data files
+        T_CALENDAR (str): time calendar used in NetCDF files
     """
     
-    model_id = "WIND_GLO_WIND_L4_NRT_OBSERVATIONS_012_004"
-    path = 'ftp://data.munroelab.ca/pub/ECMWF/atm/daily/'
-    xy_res = 1/4  # spatial resolution in degrees lat/lon
-    t_res = 6  # temporal resolution in hours
-    t_units = 'hours since 1900-01-01 00:00:00.0 00:00'
-    t_calendar = 'standard'
+    ID = "WIND_GLO_WIND_L4_NRT_OBSERVTIONS_012_004"
+    PATH = 'ftp://data.munroelab.ca/pub/ECMWF/atm/daily/'
+    XY_RES = 1/4  # spatial resolution in degrees lat/lon
+    T_RES = 6  # temporal resolution in hours
+    T_UNITS = 'hours since 1900-01-01 00:00:00.0 00:00'
+    T_CALENDAR = 'standard'
     
     def __init__(self, x_min, x_max, y_min, y_max, t_min, t_max, cache=True):
         
@@ -303,11 +313,11 @@ class ECMWF_Atm(Metocean):
         #: netCDF4._netCDF4.MFDataset: dataset of NetCDF4 files
         self.ds = nc.MFDataset(self.files)
         
-        #: list of float: list of times for the data in format according to t_units
+        #: list of float: list of times for the data in format according to T_UNITS
         self.times = self.ds.variables['time'][:]
         
         #: datetime.datetime: list of datetimes for the corresponding data times
-        self.datetimes = nc.num2date(self.times, self.t_units, self.t_calendar)
+        self.datetimes = nc.num2date(self.times, self.T_UNITS, self.T_CALENDAR)
         
         #: list of float: list of times for the data in hours since the year 1900
         self.t1900 = nc.date2num(self.datetimes, 'hours since 1900-01-01 00:00:00.0 00:00', 'standard')
@@ -325,13 +335,13 @@ class ECMWF_Atm(Metocean):
         self.lons = self.ds.variables['longitude'][:]
         
         #: numpy.ndarray: 3-D data field ([time, lat, lon]) for the u-component of wind velocity (m/s)
-        self.UA = np.asarray(self.ds.variables['eastward_wind'][:,0,:,:])
+        self.U = np.asarray(self.ds.variables['eastward_wind'][:,0,:,:])
         
         #: numpy.ndarray: 3-D data field ([time, lat, lon]) for the u-component of wind velocity (m/s)
-        self.VA = np.asarray(self.ds.variables['northward_wind'][:,0,:,:])
+        self.V = np.asarray(self.ds.variables['northward_wind'][:,0,:,:])
         
-        #: scipy.interpolate.interpolate.RegularGridInterpolator: interpolator of UA
-        self.iUA = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.UA)
+        #: scipy.interpolate.interpolate.RegularGridInterpolator: interpolator of U
+        self.iU = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.U)
         
-        #: scipy.interpolate.interpolate.RegularGridInterpolator: interpolator of VA
-        self.iVA = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.VA)
+        #: scipy.interpolate.interpolate.RegularGridInterpolator: interpolator of V
+        self.iV = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.V)
