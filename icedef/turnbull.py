@@ -19,7 +19,8 @@ Todo:
 import numpy as np
 import netCDF4 as nc
 
-def drift(iceberg, Vax, Vay, Vcx, Vcy):
+def drift(t, x, y, vx, vy, constants):
+    
     """Simulates the drift of an iceberg over one timestep.
       
     Notes:
@@ -27,65 +28,51 @@ def drift(iceberg, Vax, Vay, Vcx, Vcy):
     
     Args:
         iceberg (icedef.iceberg.Iceberg): iceberg object
-        Vax (float): x-component of air velocity (m/s)
-        Vay (float): y-component of air velocity (m/s)
-        Vwx (float): x-component of water velocity (m/s)
-        Vwy (float): y-component of water velocity (m/s)
+        vax (float): x-component of air velocity (m/s)
+        vay (float): y-component of air velocity (m/s)
+        vcx (float): x-component of water velocity (m/s)
+        vcy (float): y-component of water velocity (m/s)
         
     Returns:
         Ax (float): x-component of iceberg acceleration after one timestep
         Ay (float): y-component of iceberg acceleration after one timestep
     
     """
-    
-    # Physical constants
-    om = 7.2921e-5  # rotation rate of Earth (rad/s)
-    rhoa = 1.225 # density of air (kg/m^3)
-    rhow = 1027.5  # density of water (kg/m^3)
-    rhoi = iceberg.rho  # density of iceberg (kg/m^3)
-    
-    # Iceberg Attributes
-    T = iceberg.T  # time of the iceberg (datetime.datetime)
-    X = iceberg.X  # x-component of iceberg position (degrees longitude)
-    Y = iceberg.Y  # y-component of iceberg position (degrees latitiude)
-    Vx = iceberg.Vx  # x-component of iceberg velocity (m/s)
-    Vy = iceberg.Vy  # y-component of iceberg velocity (m/s)
-    M = iceberg.M  # iceberg mass (kg)
-    Ma = 0.5*M  # added iceberg mass (kg)
-    Cda = iceberg.Cda  # air drag coefficient
-    Cdw =  iceberg.Cdw  # water drag coefficient
-    Csdw = iceberg.Csdw  # skin drag in water coefficient
-    Csda = iceberg.Csda  # skin drag in air coefficient (Lichey and Hellmer, 2001).
-    Ak = iceberg.Ak  # cross-sectional area of the iceberg's keel (m^2)
-    Ab = iceberg.Ab  # cross-sectional area of the iceberg's bottom face (m^2)
-    As = iceberg.As  # cross-sectional area of the iceberg's keel (m^2) 
-    At = iceberg.At  # cross-sectional area of the iceberg's top face (m^2)
 
+    
+    vcx, vcy, vax, vay = constants[0]
+    m,  Ak, Ab, As, At  = constants[1]
+    Cdw, Cda, Csdw, Csda = constants[2]
+    om, rhow, rhoa, rhoi = constants[3]
+    
+    
 
-    # Air force
-    Fax = (0.5*rhoa*Cda*As + rhoa*Csda*At)*abs(Vax - Vx)*(Vax - Vx)  # x-component of the force of wind on iceberg (N)
-    Fay = (0.5*rhoa*Cda*As + rhoa*Csda*At)*abs(Vay - Vy)*(Vay - Vy)  # y-component of the force of wind on iceberg (N)
+    # Wind force
+    Fax = (0.5*rhoa*Cda*As + rhoa*Csda*At)*abs(vax - vx)*(vax - vx)  # x-component of the force of wind on iceberg (N)
+    Fay = (0.5*rhoa*Cda*As + rhoa*Csda*At)*abs(vay - vy)*(vay - vy)  # y-component of the force of wind on iceberg (N)
     
     # Water force
-    Fwx = (0.5*rhow*Cdw*Ak  + rhow*Csdw*Ab)*abs(Vcx - Vx)*(Vcx - Vx)  # x-component of the force of ocean current on iceberg (N)
-    Fwy = (0.5*rhow*Cdw*Ak + rhow*Csdw*Ab)*abs(Vcy - Vy)*(Vcy - Vy)  # y-component of the force of ocean current on iceberg (N)
+    Fwx = (0.5*rhow*Cdw*Ak  + rhow*Csdw*Ab)*abs(vcx - vx)*(vcx - vx)  # x-component of the force of ocean current on iceberg (N)
+    Fwy = (0.5*rhow*Cdw*Ak + rhow*Csdw*Ab)*abs(vcy - vy)*(vcy - vy)  # y-component of the force of ocean current on iceberg (N)
       
     # Coriolis force
-    f = 2*om*np.sin(np.deg2rad(Y))  # Coriolis parameter
-    Fcx = f*Vy*M  # x-component of the Coriolis force on iceberg (N)
-    Fcy = -f*Vx*M  # y-component of the Coriolis force on iceberg (N)
+    f = 2*om*np.sin(np.deg2rad(y))  # Coriolis parameter
+    Fcx = f*vy*m  # x-component of the Coriolis force on iceberg (N)
+    Fcy = -f*vx*m  # y-component of the Coriolis force on iceberg (N)
       
     # Water pressure gradient force
-    Vwmx = 0  # x-component of mean water current down to the iceberg keel (m/s)
-    Vwmy = 0  # y-component of mean water current down to the iceberg keel (m/s)
-    Amwx = 0  # x-component of acceleration (time-derivative) of Vmw (m/s^2)
-    Amwy = 0  # y-component of acceleration (time-derivative) of Vmw (m/s^2)    
-    Fwpx = M*(Amwx + f*Vwmx)  # x-component of water pressure gradient force (N)
-    Fwpy = M*(Amwy - f*Vwmy)  # y-component of water pressure gradient force (N)
+    vwmx = 0  # x-component of mean water current down to the iceberg keel (m/s)
+    vwmy = 0  # y-component of mean water current down to the iceberg keel (m/s)
+    amwx = 0  # x-component of acceleration (time-derivative) of Vmw (m/s^2)
+    amwy = 0  # y-component of acceleration (time-derivative) of Vmw (m/s^2)    
+    Fwpx = m*(amwx + f*vwmx)  # x-component of water pressure gradient force (N)
+    Fwpy = m*(amwy - f*vwmy)  # y-component of water pressure gradient force (N)
       
     # Iceberg acceleration                
-    Ax = (Fax + Fcx + Fwx + Fwpx)/(M + Ma)  # x-component of iceberg acceleration (m/s^2)
-    Ay = (Fay + Fcy + Fwy + Fwpy)/(M + Ma)  # y-component of iceberg acceleration (m/s^2)
+    ax = (Fax + Fcx + Fwx + Fwpx)/(m + 0.5*m)  # x-component of iceberg acceleration (m/s^2)
+    ay = (Fay + Fcy + Fwy + Fwpy)/(m + 0.5*m)  # y-component of iceberg acceleration (m/s^2)
+    
+    
 
-    return Ax, Ay
+    return ax, ay
     
