@@ -1,8 +1,22 @@
+"""This module runs a drift simulation using iceberg and metocean objects and a drift function from the icedef package.
+"""
+
 import pandas as pd
 import numpy as np
 from datetime import timedelta
 
 class DriftSimulation():
+    """This class simulates the drift of an iceberg.
+    
+    Notes:
+        The ocean and atm objects should contain enough data for the intended time and space ranges of the drift simulation.
+    
+    Args:
+        berg (icedef.iceberg.Iceberg): iceberg object
+        ocean (icedef.metocean.ECMWFOcean): ocean object 
+        atm (icedef.metocean.ECMWFAtm): atmosphere object
+        drift (icedef.turnbull.drift): drift function
+    """
            
     OM = 7.2921e-5  # rotation rate of Earth (rad/s)
     RE = 6378*1e3  # radius of Earth (m)
@@ -17,16 +31,25 @@ class DriftSimulation():
         self.atm = atm
         self.drift = drift
         
-        self.y_min = min(self.ocean.lats[0], self.atm.lats[0])
-        self.y_max = max(self.ocean.lats[-1], self.atm.lats[-1])
-        self.x_min = min(self.ocean.lons[0], self.atm.lons[0])
-        self.x_max = max(self.ocean.lons[-1], self.atm.lons[-1])
-        
-        self.dt = None
-        self.nt = None
-        
-        self.history = pd.DataFrame(columns=['t', 'y', 'x', 'vax', 'vay', 'vcx', 'vcy', 'vax', 'vay'])
+        self.history = None
+
+    @property
+    def x_min(self):
+        return min(self.ocean.lons[0], self.atm.lons[0])
     
+    @property
+    def x_max(self):
+        return max(self.ocean.lons[-1], self.atm.lons[-1])
+                
+    @property
+    def y_min(self):
+        return min(self.ocean.lats[0], self.atm.lats[0])
+    
+    @property
+    def y_max(self):
+        return max(self.ocean.lats[-1], self.atm.lats[-1])
+    
+
     def interpolate(self, t, x, y):
 
         Vcx, Vcy = self.ocean.interpolate(t, x, y)
@@ -55,10 +78,7 @@ class DriftSimulation():
         
         return x1, y1
     
-    def setup_timestepper(self, dt, nt):
-        
-        self.dt = dt
-        self.nt = nt
+    def setup_timestepper(self, nt):
         
         t = [None]*(nt+1)
         x = np.empty(nt+1)
@@ -87,7 +107,7 @@ class DriftSimulation():
     
     def euler(self, dt, nt):
         
-        t, x, y, vx, vy, vcx, vcy, vax, vay, constants = self.setup_timestepper(dt, nt)
+        t, x, y, vx, vy, vcx, vcy, vax, vay, constants = self.setup_timestepper(nt)
         
         for i in range(nt):
             
@@ -116,7 +136,7 @@ class DriftSimulation():
             
     def rk2(self, dt, nt):
 
-        t, x, y, vx, vy, vcx, vcy, vax, vay, constants = self.setup_timestepper(dt, nt)
+        t, x, y, vx, vy, vcx, vcy, vax, vay, constants = self.setup_timestepper(nt)
         
         for i in range(nt):
         
