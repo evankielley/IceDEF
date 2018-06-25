@@ -1,7 +1,7 @@
 """This module can instantiate objects which contain ECMWF ocean and atmospheric data for a particular time and space range.
 """
 
-import scipy.interpolate as interp
+from scipy.interpolate import RegularGridInterpolator as RGI
 import datetime
 from datetime import date, timedelta
 import urllib
@@ -101,7 +101,7 @@ class Metocean(object):
     """This class acts as a superclass that defines the spatial and temporal bounds for the data of its subclasses.
     """
 
-    def __init__(self, x_min, x_max, y_min, y_max, t_min, t_max):
+    def __init__(self, t_min, t_max, x_min, x_max, y_min, y_max):
         """Instantiate a metocean object with spatial and temporal bounds.
         
         Args:
@@ -112,12 +112,22 @@ class Metocean(object):
             t_min (datetime.datetime): minimum time for data time space
             t_max (datetime.datetime): maximum time for data time space
         """
-        self.x_min = x_min - abs(x_min-x_max) - self.XY_RES
-        self.x_max = x_max + abs(x_min-x_max) + self.XY_RES
-        self.y_min = y_min - abs(y_min-y_max) - self.XY_RES
-        self.y_max = y_max + abs(y_min-y_max) + self.XY_RES
+        
         self.t_min = t_min - timedelta(hours = self.T_RES)
         self.t_max = t_max + timedelta(hours = self.T_RES)
+        
+        if x_min is None and x_max is None:
+            pass
+        else:
+            self.x_min = x_min - abs(x_min-x_max) - self.XY_RES
+            self.x_max = x_max + abs(x_min-x_max) + self.XY_RES
+        
+        if y_min is None and y_max is None:
+            pass
+        else:
+            self.y_min = y_min - abs(y_min-y_max) - self.XY_RES
+            self.y_max = y_max + abs(y_min-y_max) + self.XY_RES
+
 
         
     def convert_datetime2time(self, t, T_UNITS, T_CALENDAR, t_offset=0):
@@ -219,9 +229,9 @@ class ECMWFOcean(Metocean):
     T_UNITS = 'hours since 1950-01-01 00:00:00'
     T_CALENDAR = 'standard'
     
-    def __init__(self, x_min, x_max, y_min, y_max, t_min, t_max, cache=True):
+    def __init__(self, t_min, t_max, x_min=None, x_max=None, y_min=None, y_max=None, cache=True):
         
-        super().__init__(x_min, x_max, y_min, y_max, t_min, t_max)
+        super().__init__(t_min, t_max, x_min, x_max, y_min, y_max)
         
         #: bool: will attempt to cache data files if True
         self.cache = cache
@@ -237,15 +247,6 @@ class ECMWFOcean(Metocean):
         
         #: datetime.datetime: list of datetimes for the corresponding data times
         self.datetimes = nc.num2date(self.times, self.T_UNITS, self.T_CALENDAR)
-        
-        #: list of float: list of times for the data in hours since the year 1900
-        self.t1900 = nc.date2num(self.datetimes, 'hours since 1900-01-01 00:00:00.0 00:00', 'standard')
-        
-        #: list of float: list of times for the data in hours since the year 1950
-        self.t1950 = nc.date2num(self.datetimes, 'hours since 1950-01-01 00:00:00.0 00:00', 'standard')
-        
-        #: list of float: list of times for the data in hours since the year 2000
-        self.t2000 = nc.date2num(self.datetimes, 'hours since 2000-01-01 00:00:00.0 00:00', 'standard')
         
         #: list of float: list of latitudes for the data
         self.lats = self.ds.variables['latitude'][:]
@@ -263,13 +264,13 @@ class ECMWFOcean(Metocean):
         self.SST = np.asarray(self.ds.variables['thetao'][:,0,:,:])
         
         #: scipy.interpolate.interpolate.RegularGridInterpolator: interpolator of U
-        self.iU = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.U)
+        self.iU = RGI((self.times, self.lats, self.lons), self.U)
         
         #: scipy.interpolate.interpolate.RegularGridInterpolator: interpolator of V
-        self.iV = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.V)
+        self.iV = RGI((self.times, self.lats, self.lons), self.V)
         
         #: scipy.interpolate.interpolate.RegularGridInterpolator: interpolator of SST
-        self.iSST = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.SST)
+        self.iSST = RGI((self.times, self.lats, self.lons), self.SST)
     
  
 
@@ -300,9 +301,9 @@ class ECMWFAtm(Metocean):
     T_UNITS = 'hours since 1900-01-01 00:00:00.0 00:00'
     T_CALENDAR = 'standard'
     
-    def __init__(self, x_min, x_max, y_min, y_max, t_min, t_max, cache=True):
+    def __init__(self, t_min, t_max, x_min=None, x_max=None, y_min=None, y_max=None, cache=True):
         
-        super().__init__(x_min, x_max, y_min, y_max, t_min, t_max)
+        super().__init__(t_min, t_max, x_min, x_max, y_min, y_max)
         
         #: bool: will attempt to cache data files if True
         self.cache = cache
@@ -319,15 +320,6 @@ class ECMWFAtm(Metocean):
         #: datetime.datetime: list of datetimes for the corresponding data times
         self.datetimes = nc.num2date(self.times, self.T_UNITS, self.T_CALENDAR)
         
-        #: list of float: list of times for the data in hours since the year 1900
-        self.t1900 = nc.date2num(self.datetimes, 'hours since 1900-01-01 00:00:00.0 00:00', 'standard')
-        
-        #: list of float: list of times for the data in hours since the year 1950
-        self.t1950 = nc.date2num(self.datetimes, 'hours since 1950-01-01 00:00:00.0 00:00', 'standard')
-        
-        #: list of float: list of times for the data in hours since the year 2000
-        self.t2000 = nc.date2num(self.datetimes, 'hours since 2000-01-01 00:00:00.0 00:00', 'standard')
-        
         #: list of float: list of latitudes for the data
         self.lats = self.ds.variables['latitude'][:]
         
@@ -341,7 +333,7 @@ class ECMWFAtm(Metocean):
         self.V = np.asarray(self.ds.variables['northward_wind'][:,0,:,:])
         
         #: scipy.interpolate.interpolate.RegularGridInterpolator: interpolator of U
-        self.iU = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.U)
+        self.iU = RGI((self.times, self.lats, self.lons), self.U)
         
         #: scipy.interpolate.interpolate.RegularGridInterpolator: interpolator of V
-        self.iV = interp.RegularGridInterpolator((self.times, self.lats, self.lons), self.V)
+        self.iV = RGI((self.times, self.lats, self.lons), self.V)
