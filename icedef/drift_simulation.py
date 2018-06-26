@@ -18,7 +18,7 @@ class DriftSimulation():
         drift (icedef.turnbull.drift): drift function
     """
            
-    OM = 7.2921e-5  # rotation rate of Earth (rad/s)
+    OM = 7.2921e-5  # angular velocity of Earth (rad/s)
     RE = 6378*1e3  # radius of Earth (m)
     RHOA = 1.225 # density of air (kg/m^3)
     RHOW = 1027.5  # density of water (kg/m^3)
