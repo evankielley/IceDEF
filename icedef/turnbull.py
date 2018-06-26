@@ -21,7 +21,7 @@ import netCDF4 as nc
 
 def drift(t, x, y, vx, vy, constants):
     
-    """Simulates the drift of an iceberg over one timestep.
+    """Simulates the drift of an iceberg by calculating the forces that act upon it.
     
     Notes:
         The arg, constants, is a list of lists that contain the necessary constants for this drift function.
