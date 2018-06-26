@@ -22,20 +22,45 @@ import netCDF4 as nc
 def drift(t, x, y, vx, vy, constants):
     
     """Simulates the drift of an iceberg over one timestep.
-      
+    
     Notes:
-        All units are SI.
+        The arg, constants, is a list of lists that contain the necessary constants for this drift function.
+        These constants are:
+            constants[0] = vcx, vcy, vax, vay 
+            constants[1] = m,  Ak, Ab, As, At
+            constants[2] = Cdw, Cda, Csdw, Csda
+            constants[3] = om, rhow, rhoa, rhoi
+        Where:
+            vax (float): x-component of air velocity (m/s)
+            vay (float): y-component of air velocity (m/s)
+            vcx (float): x-component of water velocity (m/s)
+            vcy (float): y-component of water velocity (m/s)
+            m (float): mass of the iceberg (kg)
+            Ak (float): area of the keel face of the iceberg (m^2)
+            Ab (float): area of the bottom face of the iceberg (m^2)
+            As (float): area of the sail face of the iceberg(m^2)
+            At (float): area of the top face of the iceberg (m^2)
+            Cdw (float): water drag coefficient for the iceberg
+            Cda (float): air drag coefficient for the iceberg
+            Csdw (float): water skin drag coefficient for the iceberg
+            Csda (float): air skin drag coefficient for the iceberg
+            om (float): angular velocity of Earth (rad/s)
+            rhow (float): seawater density (kg/m^3)
+            rhoa (float): air density (kg/m^3)
+            rhoi (float): iceberg density (kg/m^3)
     
     Args:
-        iceberg (icedef.iceberg.Iceberg): iceberg object
-        vax (float): x-component of air velocity (m/s)
-        vay (float): y-component of air velocity (m/s)
-        vcx (float): x-component of water velocity (m/s)
-        vcy (float): y-component of water velocity (m/s)
+        t (datetime.datetime): time of the iceberg 
+        x (float): longitudianl position of the iceberg (degrees)
+        y (float): latitudinal position of the iceberg (degrees)
+        vx (float): x-component of the iceberg velocity (m/s)
+        vy (float): y-component of the iceberg velocity (m/s)
+        constants (list of list of float): various constants needed for drift (see notes for more details)
+
         
     Returns:
-        Ax (float): x-component of iceberg acceleration after one timestep
-        Ay (float): y-component of iceberg acceleration after one timestep
+        ax (float): x-component of iceberg acceleration after one timestep (m/s^2)
+        ay (float): y-component of iceberg acceleration after one timestep (m/s^2)
     
     """
 
