@@ -337,3 +337,52 @@ class ECMWFAtm(Metocean):
         
         #: scipy.interpolate.interpolate.RegularGridInterpolator: interpolator of V
         self.iV = RGI((self.times, self.lats, self.lons), self.V)
+    
+    
+    
+    
+class NARRAtm(Metocean):
+    
+    ID = "NCEP_North_American_Regional_Reanalysis_NARR"
+    PATH = 'ftp://data.munroelab.ca/pub/NARR/atm/daily/'
+    XY_RES = 0.25  # spatial resolution in degrees lat/lon
+    T_RES = 3  # temporal resolution in hours
+    T_UNITS = 'hours since 1800-1-1 00:00:0.0'
+    T_CALENDAR = 'standard'
+    
+    def __init__(self, t_min, t_max, x_min=None, x_max=None, y_min=None, y_max=None, cache=True):
+        
+        super().__init__(t_min, t_max, x_min, x_max, y_min, y_max)
+        
+        #: bool: will attempt to cache data files if True
+        self.cache = cache
+        
+        #: list of str: filenames is a list of data filenames, files is a list of their associated file handles
+        self.filenames, self.files = self.get_filenames()
+        
+        #: netCDF4._netCDF4.MFDataset: dataset of NetCDF4 files
+        self.ds = nc.MFDataset(self.files)
+        
+        #: list of float: list of times for the data in format according to T_UNITS
+        self.times = self.ds.variables['time'][:]
+        
+        #: datetime.datetime: list of datetimes for the corresponding data times
+        self.datetimes = nc.num2date(self.times, self.T_UNITS, self.T_CALENDAR)
+        
+        #: list of float: list of latitudes for the data
+        self.lats = self.ds.variables['lat'][:]
+        
+        #: list of float: list of longitudes for the data
+        self.lons = self.ds.variables['lon'][:]-360
+        
+        #: numpy.ndarray: 3-D data field ([time, lat, lon]) for the u-component of wind velocity (m/s)
+        self.U = np.asarray(self.ds.variables['uwnd'][:,:,:])
+        
+        #: numpy.ndarray: 3-D data field ([time, lat, lon]) for the u-component of wind velocity (m/s)
+        self.V = np.asarray(self.ds.variables['vwnd'][:,:,:])
+        
+        #: scipy.interpolate.interpolate.RegularGridInterpolator: interpolator of U
+        self.iU = RGI((self.times, self.lats, self.lons), self.U)
+        
+        #: scipy.interpolate.interpolate.RegularGridInterpolator: interpolator of V
+        self.iV = RGI((self.times, self.lats, self.lons), self.V)
