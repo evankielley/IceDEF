@@ -157,7 +157,7 @@ class Metocean(object):
         """
         
         if self.cache:
-            cache_path = 'cache/' + self.ID
+            cache_path = 'cache/' + self.ID + '/'
             if not os.path.exists(cache_path):
                 try:
                     os.makedirs(cache_path)
