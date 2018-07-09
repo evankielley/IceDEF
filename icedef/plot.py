@@ -6,6 +6,10 @@ from mpl_toolkits.basemap import Basemap
 from matplotlib.animation import FuncAnimation
 import numpy as np
 import netCDF4 as nc
+from scipy.interpolate import RegularGridInterpolator as RGI
+import cartopy.crs as ccrs
+from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+
 
 def find_matching_value_indices(small_list, big_list):
     """This function finds the indices from one list of the values that match the values from the other list.
@@ -218,145 +222,101 @@ def plot_spaghetti_test_case(iip_berg, mod_berg_list, time_labels=False):
     return fig
 
 
-        
-def animate_currents(ocean_data, iip_berg, mod_berg):
-    """This function saves a gif of the ocean current velocities alongside an iceberg drift test case.
+def berg_metocean_animation(xyt_berg, xyt_grid, grid_scales, uv_data, 
+                             fname='field_anim', v_auto = True, vmin=0, vmax=1, 
+                             scale=1, headwidth=5, width=5e-3, speed=100):
     
-    Args:
-        ocean_data (ECMWF_Ocean): ocean data for time and space of iceberg drift simulation.
-        iip_berg (Iceberg): all attributes correspond to data from a particular IIP iceberg.
-        mod_berg (Iceberg): initial attributes and final time correspond to data from a particular 
-                            IIP iceberg but the rest comes from drift simulation.
-    """
+    x_berg, y_berg, t_berg = xyt_berg
+    x_grid, y_grid, t_grid = xyt_grid
+    dx_scale, dy_scale, dt_scale = grid_scales
+    u_data, v_data = uv_data
     
+    dx = np.mean(np.diff(x_grid))
+    dy = np.mean(np.diff(y_grid))
+    dt = np.mean(np.diff(t_grid))
     
-    mod_berg_t1950 = nc.date2num(mod_berg.datetimes, 
-                                 'hours since 1950-01-01 00:00:00.0 00:00', 'standard')
+    x0 = min(x_berg) - dx
+    xf = max(x_berg) + dx
+    y0 = min(y_berg) - dy
+    yf = max(y_berg) + dy
+    t0 = min(t_berg) - dt
+    tf = max(t_berg) + dt
     
-    lon0 = np.where(ocean_data.lons < min(mod_berg.lons))[0][-1]
-    lonn = np.where(ocean_data.lons > max(mod_berg.lons))[0][0]
-    lat0 = np.where(ocean_data.lats < min(mod_berg.lats))[0][-1] 
-    latn = np.where(ocean_data.lats > max(mod_berg.lats))[0][0]
+    xid0 = np.where(abs(x_grid - x0) < dx)[0][0]
+    xidf = np.where(abs(x_grid - xf) < dx)[0][-1]
+    yid0 = np.where(abs(y_grid - y0) < dy)[0][0]
+    yidf = np.where(abs(y_grid - yf) < dy)[0][-1]
+    tid0 = np.where(abs(t_grid - t0) < dt)[0][0]
+    tidf = np.where(abs(t_grid - tf) < dt)[0][-1]
     
-    UW = np.empty([len(mod_berg_t1950), 
-                len(ocean_data.lats[lat0-1:latn+1]), len(ocean_data.lons[lon0-1:lonn+1])])
-    VW = np.empty([len(mod_berg_t1950), 
-                len(ocean_data.lats[lat0-1:latn+1]), len(ocean_data.lons[lon0-1:lonn+1])])
+    # overwrite existing variables with a subset of them
+    x_grid = x_grid[xid0:xidf+1]
+    y_grid = y_grid[yid0:yidf+1]
+    t_grid = t_grid[tid0:tidf]
+    u_data = u_data[tid0:tidf, yid0:yidf+1, xid0:xidf+1]
+    v_data = v_data[tid0:tidf, yid0:yidf+1, xid0:xidf+1]
     
-    for i, ival in enumerate(mod_berg_t1950):
-        for j, jval in enumerate(ocean_data.lats[lat0-1:latn+1]):
-            for k, kval in enumerate(ocean_data.lons[lon0-1:lonn+1]):
-                UW[i][j][k] = ocean_data.iUW([ival,jval,kval])
-                VW[i][j][k] = ocean_data.iVW([ival,jval,kval])
+    # make interpolators for u and v data
+    u_RGI = RGI((t_grid, y_grid, x_grid), u_data) 
+    v_RGI = RGI((t_grid, y_grid, x_grid), v_data)   
     
+    # overwrite again with scales 
+    x_grid = np.arange(x_grid[0], x_grid[-1], dx/dx_scale)
+    y_grid = np.arange(y_grid[0], y_grid[-1], dy/dy_scale)
+    t_grid = np.arange(t_grid[0], t_grid[-1], dt/dt_scale)
+    
+    # initialize matrices
+    u_mat = np.empty([len(t_grid), len(y_grid), len(x_grid)])
+    v_mat = np.empty([len(t_grid), len(y_grid), len(x_grid)])
+    
+    # fill matrices with interpolated values
+    for i, ival in enumerate(t_grid):
+        for j, jval in enumerate(y_grid):
+            for k, kval in enumerate(x_grid):
+                u_mat[i][j][k] = u_RGI([ival,jval,kval])
+                v_mat[i][j][k] = v_RGI([ival,jval,kval])
+    
+    # make matrix of magnitudes of u and v
+    w_mat = np.sqrt(u_mat**2 + v_mat**2)
+
+    # set colorbar bounds
+    if v_auto:
+        vmin = w_mat.min()
+        vmax = w_mat.max()
+    
+    # setup figure, background, axes, and gridlines
     fig = plt.figure()
     ax = plt.axes(projection=ccrs.PlateCarree())
-    ax.set_extent([ocean_data.lons[lon0], ocean_data.lons[lonn], ocean_data.lats[lat0], ocean_data.lats[latn]], ccrs.PlateCarree())
-    #ax.stock_img()
+    ax.set_extent([x0, xf, y0, yf], ccrs.PlateCarree())
+    ax.text(-0.2, 0.5, 'latitude', va='bottom', ha='center',
+            rotation='vertical', rotation_mode='anchor',
+            transform=ax.transAxes)
+    ax.text(0.5, -0.2, 'longitude', va='bottom', ha='center',
+            rotation='horizontal', rotation_mode='anchor',
+            transform=ax.transAxes)
+    ax.stock_img()
     ax.coastlines('50m')
-    gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,linewidth=2, color='gray', alpha=0.5, linestyle='--')
+    gl = ax.gridlines(crs=ccrs.PlateCarree(),draw_labels=True,linewidth=2,color='gray',alpha=0.5,linestyle='--')
     gl.xlabels_top = False
     gl.ylabels_right = False
     gl.xformatter = LONGITUDE_FORMATTER
     gl.yformatter = LATITUDE_FORMATTER
-
-    ax.scatter(iip_berg.lons[:], iip_berg.lats[:], color='black')
-    #ax.plot(mod_berg.lons[:], mod_berg.lats[:], color='black')
-    water_mag = np.sqrt(UW**2 + VW**2)
-    im = plt.imshow(water_mag[0,:,:], 
-                    extent=[ocean_data.lons[lon0-1], ocean_data.lons[lonn+1], 
-                            ocean_data.lats[lat0-1], ocean_data.lats[latn+1]],
-                    origin = 'lower', vmin=0, vmax=0.5)
     
-    line, = plt.plot(mod_berg.lons[0], mod_berg.lats[0], color='black')
-    
-    plt.colorbar()
-    quiv = plt.quiver(ocean_data.lons[lon0-1:lonn+1], ocean_data.lats[lat0-1:latn+1], UW[0,:,:], VW[0,:,:], 
-                      scale=1, headwidth=5, width=0.005)
+    # plot
+    im = plt.imshow(w_mat[0,:,:], extent=[x0, xf, y0, yf], origin = 'lower', vmin=vmin, vmax=vmax)
+    line, = plt.plot(x_berg[0], y_berg[0], color='black')
+    plt.colorbar()  # colorbar must be called before quiv
+    quiv = plt.quiver(x_grid, y_grid, u_mat[0,:,:], v_mat[0,:,:], scale=scale, headwidth=headwidth, width=width)
     title = plt.title('time: 0 hours')
 
-
     def animate(i):
-
-        im.set_data(water_mag[i,:,:])
-        quiv.set_UVC(UW[i,:,:], VW[i,:,:])
-        title.set_text('time: {:.0f} hours'.format(mod_berg_t1950[i]-mod_berg_t1950[0]))
-        line.set_data(mod_berg.lons[0:i+1], mod_berg.lats[0:i+1])
-        
-        
+        im.set_data(w_mat[i,:,:])
+        quiv.set_UVC(u_mat[i,:,:], v_mat[i,:,:])
+        title.set_text('time: {:.0f} hours'.format(t_grid[i]-t_grid[0]))
+        min_indx = np.argmin([abs(t) for t in t_berg - t_grid[i]])
+        line.set_data(x_berg[0:min_indx+1], y_berg[0:min_indx+1])
         return im, line
     
-    anim = FuncAnimation(fig, animate, frames=water_mag[:,0,0].size-1, interval=100)
+    anim = FuncAnimation(fig, animate, frames=w_mat[:,0,0].size-1, interval=speed)
     #HTML(anim.to_html5_video())
-    anim.save('plots/water_mag.gif',writer='imagemagick')
-        
-    
-    
-def animate_winds(atm_data, iip_berg, mod_berg):
-    """This function saves a gif of the wind velocities alongside an iceberg drift test case.
-    
-    Args:
-        atm_data (ECMWF_Atm): atmospheric data for time and space of iceberg drift simulation.
-        iip_berg (Iceberg): all attributes correspond to data from a particular IIP iceberg.
-        mod_berg (Iceberg): initial attributes and final time correspond to data from a particular 
-                            IIP iceberg but the rest comes from drift simulation.
-    """
-    
-    mod_berg_t1900 = nc.date2num(mod_berg.datetimes, 
-                                 'hours since 1900-01-01 00:00:00.0 00:00', 'standard')
-    
-    lon0 = np.where(atm_data.lons < min(mod_berg.lons))[0][-1]
-    lonn = np.where(atm_data.lons > max(mod_berg.lons))[0][0]
-    lat0 = np.where(atm_data.lats < min(mod_berg.lats))[0][-1] 
-    latn = np.where(atm_data.lats > max(mod_berg.lats))[0][0]
-    
-    UA = np.empty([len(mod_berg_t1900), 
-                len(atm_data.lats[lat0-1:latn+1]), len(atm_data.lons[lon0-1:lonn+1])])
-    VA = np.empty([len(mod_berg_t1900), 
-                len(atm_data.lats[lat0-1:latn+1]), len(atm_data.lons[lon0-1:lonn+1])])
-    
-    for i, ival in enumerate(mod_berg_t1900):
-        for j, jval in enumerate(atm_data.lats[lat0-1:latn+1]):
-            for k, kval in enumerate(atm_data.lons[lon0-1:lonn+1]):
-                UA[i][j][k] = atm_data.iUA([ival,jval,kval])
-                VA[i][j][k] = atm_data.iVA([ival,jval,kval])
-    
-    fig = plt.figure()
-    ax = plt.axes(projection=ccrs.PlateCarree())
-    ax.set_extent([atm_data.lons[lon0], atm_data.lons[lonn], atm_data.lats[lat0], atm_data.lats[latn]], ccrs.PlateCarree())
-    #ax.stock_img()
-    ax.coastlines('50m')
-    gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,linewidth=2, color='gray', alpha=0.5, linestyle='--')
-    gl.xlabels_top = False
-    gl.ylabels_right = False
-    gl.xformatter = LONGITUDE_FORMATTER
-    gl.yformatter = LATITUDE_FORMATTER
-
-    ax.scatter(iip_berg.lons[:], iip_berg.lats[:], color='black')
-    wind_mag = np.sqrt(UA**2 + VA**2)
-    im = plt.imshow(wind_mag[0,:,:], 
-                    extent=[atm_data.lons[lon0-1], atm_data.lons[lonn+1], 
-                            atm_data.lats[lat0-1], atm_data.lats[latn+1]],
-                    origin = 'lower', vmin=5, vmax=15)
-    
-    line, = plt.plot(mod_berg.lons[0], mod_berg.lats[0], color='black')
-    
-    plt.colorbar()
-    quiv = plt.quiver(atm_data.lons[lon0-1:lonn+1], atm_data.lats[lat0-1:latn+1], UA[0,:,:], VA[0,:,:], 
-                      scale=20, headwidth=5, width=0.005)
-    title = plt.title('time: 0 hours')
-
-
-    def animate(i):
-
-        im.set_data(wind_mag[i,:,:])
-        quiv.set_UVC(UA[i,:,:], VA[i,:,:])
-        title.set_text('time: {:.0f} hours'.format(mod_berg_t1900[i]-mod_berg_t1900[0]))
-        line.set_data(mod_berg.lons[0:i+1], mod_berg.lats[0:i+1])
-        
-        
-        return im, line
-    
-    anim = FuncAnimation(fig, animate, frames=wind_mag[:,0,0].size-1, interval=100)
-    #HTML(anim.to_html5_video())
-    anim.save('plots/wind_mag.gif',writer='imagemagick')
+    anim.save(f'plots/{fname}.gif',writer='imagemagick')
