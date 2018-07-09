@@ -66,8 +66,8 @@ class Iceberg():
         self.keel_shape = 'triangular'
         self.sail_shape = 'rectangular'
         self.rho = 900  
-        self.Cda = 1.25
-        self.Cdw = 1.25
+        self.Cda = 1.5
+        self.Cdw = 1.5
         self.Csda = 2.5e-4
         self.Csdw = 5.0e-4      
         
