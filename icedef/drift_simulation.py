@@ -125,13 +125,19 @@ class DriftSimulation():
             t[i+1] = t[i] + timedelta(seconds=dt)
              
             if not self.in_bounds(x[i+1], y[i+1]):
-                t, x, y, vx, vy, vcx, vcy, vax, vay = self.trim_list(i+1, t, x, y, vx, vy, vcx, vcy, vax, vay)
-                self.update_history(t, x, y, vx, vy, vcx, vcy, vax, vay)
+                t, x, y, vx, vy, vcx, vcy, vax, vay = self.trim_list(i, t, x, y, vx, vy, vcx, vcy, vax, vay)
                 break
-                
-            vcx[i+1], vcy[i+1], vax[i+1], vay[i+1] = self.interpolate(t[i+1], x[i+1], y[i+1])
+              
+            try: 
+                vcx[i+1], vcy[i+1], vax[i+1], vay[i+1] = self.interpolate(t[i+1], x[i+1], y[i+1])
+            except ValueError as e:
+                print(e)
+                t, x, y, vx, vy, vcx, vcy, vax, vay = self.trim_list(i, t, x, y, vx, vy, vcx, vcy, vax, vay)
+                break
+                  
             constants[0] = [vcx[i+1], vcy[i+1], vax[i+1], vay[i+1]]
-            self.update_history(t, x, y, vx, vy, vcx, vcy, vax, vay)
+
+        self.update_history(t, x, y, vx, vy, vcx, vcy, vax, vay)
     
             
     def rk2(self, dt, nt):
@@ -149,11 +155,16 @@ class DriftSimulation():
             half_t = t[i] + 0.5*timedelta(seconds=dt)
          
             if not self.in_bounds(half_x, half_y):
-                t, x, y, vx, vy, vcx, vcy, vax, vay = self.trim_list(i+1, t, x, y, vx, vy, vcx, vcy, vax, vay)
-                self.update_history(t, x, y, vx, vy, vcx, vcy, vax, vay)
+                t, x, y, vx, vy, vcx, vcy, vax, vay = self.trim_list(i, t, x, y, vx, vy, vcx, vcy, vax, vay)
                 break
              
-            half_vcx, half_vcy, half_vax, half_vay = self.interpolate(half_t, half_x, half_y)
+            try: 
+                half_vcx, half_vcy, half_vax, half_vay = self.interpolate(half_t, half_x, half_y)
+            except ValueError as e:
+                print(e)
+                t, x, y, vx, vy, vcx, vcy, vax, vay = self.trim_list(i, t, x, y, vx, vy, vcx, vcy, vax, vay)
+                break
+
 
             constants[0] = [half_vcx, half_vcy, half_vax, half_vay]
             half_ax, half_ay = self.drift(half_t, half_x, half_y, half_vx, half_vy, constants)
@@ -166,11 +177,16 @@ class DriftSimulation():
             t[i+1] = t[i] + timedelta(seconds=dt)
          
             if not self.in_bounds(x[i+1], y[i+1]):
-                t, x, y, vx, vy, vcx, vcy, vax, vay = self.trim_list(i+1, t, x, y, vx, vy, vcx, vcy, vax, vay)
-                self.update_history(t, x, y, vx, vy, vcx, vcy, vax, vay)
+                t, x, y, vx, vy, vcx, vcy, vax, vay = self.trim_list(i, t, x, y, vx, vy, vcx, vcy, vax, vay)
                 break
-             
-            vcx[i+1], vcy[i+1], vax[i+1], vay[i+1] = self.interpolate(t[i+1], x[i+1], y[i+1])
+            
+            try: 
+                vcx[i+1], vcy[i+1], vax[i+1], vay[i+1] = self.interpolate(t[i+1], x[i+1], y[i+1])
+            except ValueError as e:
+                print(e)
+                t, x, y, vx, vy, vcx, vcy, vax, vay = self.trim_list(i, t, x, y, vx, vy, vcx, vcy, vax, vay)
+                break
+
             constants[0] = [vcx[i+1], vcy[i+1], vax[i+1], vay[i+1]]
             
         self.update_history(t, x, y, vx, vy, vcx, vcy, vax, vay)
