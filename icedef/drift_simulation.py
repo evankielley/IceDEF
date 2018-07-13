@@ -52,10 +52,10 @@ class DriftSimulation():
 
     def interpolate(self, t, x, y):
 
-        Vcx, Vcy = self.ocean.interpolate(t, x, y)
-        Vax, Vay = self.atm.interpolate(t, x, y)
+        vcx, vcy = self.ocean.interpolate(t, x, y)
+        vax, vay = self.atm.interpolate(t, x, y)
         
-        return Vcx, Vcy, Vax, Vay
+        return vcx, vcy, vax, vay
     
     def in_bounds(self, x, y):
         
@@ -90,11 +90,11 @@ class DriftSimulation():
         vax = np.empty(nt+1)
         vay = np.empty(nt+1)
         
-        t[0] = self.berg.T
-        x[0] = self.berg.X
-        y[0] = self.berg.Y
-        vx[0] = self.berg.Vx
-        vy[0] = self.berg.Vy 
+        t[0] = self.berg.t
+        x[0] = self.berg.x
+        y[0] = self.berg.y
+        vx[0] = self.berg.vx
+        vy[0] = self.berg.vy 
         vcx[0], vcy[0], vax[0], vay[0] = self.interpolate(t[0], x[0], y[0])
         
         constants = [[vcx[0], vcy[0], vax[0], vay[0]],
