@@ -11,34 +11,34 @@ class Iceberg():
     """Creates an iceberg object to be later used in drift simulation.
 
     Attributes:
-        size_dim_dict (dict): iceberg dimension ranges according to IIP size classes
-        shape_info_dict (dict): iceberg shape factors and height to draft ratios according to IIP shape classes
+        DIMS_BY_SIZE_CLASS (dict): iceberg dimension ranges according to IIP size classes
+        RATIOS_BY_SHAPE_CLASS (dict): iceberg shape factors and height to draft ratios according to IIP shape classes
     """
     
     # dictionary values are of the form: [L_min, L_max, W_min, W_max, Hs_min, Hs_max]
-    size_dim_dict = {'GR': [0, 5, 0, 5, 0, 1],
-                     'BB': [5, 15, 5, 15, 1, 5],
-                     'SM': [15, 60, 15, 60, 5, 15],
-                     'MED': [60, 120, 60, 120, 15, 45],
-                     'LG': [120, 200, 120, 200, 45, 75],
-                     'VLG': [200, 400, 200, 400, 75, 150],
-                     'GEN': [120, 200, 120, 200, 45, 75]}
+    DIMS_BY_SIZE_CLASS = {'GR': [0, 5, 0, 5, 0, 1],
+                          'BB': [5, 15, 5, 15, 1, 5],
+                          'SM': [15, 60, 15, 60, 5, 15],
+                          'MED': [60, 120, 60, 120, 15, 45],
+                          'LG': [120, 200, 120, 200, 45, 75],
+                          'VLG': [200, 400, 200, 400, 75, 150],
+                          'GEN': [120, 200, 120, 200, 45, 75]}
 
     # dictionary values are of the form: [SF, H2D], where SF is shape factor and H2D is the height to draft ratio
-    shape_info_dict = {'BLK': [0.5, 1/5], 
-                       'TAB': [0.5, 1/5],
-                       'ISL': [0.5, 1/5],
-                       'RAD': [0.5, 1/5],
-                       'GEN': [0.5, 1/5],
-                       'NTB': [0.41, 1/5],
-                       'DOM': [0.41, 1/4],
-                       'WDG': [0.33, 1/5],
-                       'PIN': [0.25, 1/3],
-                       'DD': [0.15, 1/1]}
+    RATIOS_BY_SHAPE_CLASS = {'BLK': [0.5, 1/5], 
+                             'TAB': [0.5, 1/5],
+                             'ISL': [0.5, 1/5],
+                             'RAD': [0.5, 1/5],
+                             'GEN': [0.5, 1/5],
+                             'NTB': [0.41, 1/5],
+                             'DOM': [0.41, 1/4],
+                             'WDG': [0.33, 1/5],
+                             'PIN': [0.25, 1/3],
+                             'DD': [0.15, 1/1]}
             
 
     
-    def __init__(self, ID, T, X, Y, Vx, Vy, Ax, Ay, size, shape):
+    def __init__(self, ID, t, x, y, vx, vy, size, shape):
         """Instantiate iceberg object with necessary initial values.
         
         Attributes:
@@ -52,13 +52,11 @@ class Iceberg():
 
         Args:
             ID (int): iceberg ID number
-            T (datetime.datetime): datetime of the iceberg
-            X (float): iceberg longitude
-            Y (float): iceberg latitude
-            Vx (float): x-component of iceberg velocity (m/s)
-            Vy (float): y-component of iceberg velocity (m/s)
-            Ax (float): x-component of iceberg acceleration (m/s^2)
-            Ay (float): y-component of iceberg acceleration (m/s^2)
+            t (datetime.datetime): datetime of the iceberg
+            x (float): iceberg longitude
+            y (float): iceberg latitude
+            vx (float): x-component of iceberg velocity (m/s)
+            vy (float): y-component of iceberg velocity (m/s)
             size (str): size of the iceberg (can be GR, BB, MED, LG, VLG, or GEN)
             shape (str): shape of the iceberg. Can be BLK, TAB, ISL, GEN, RAD, NTB, DOM, WDG, PIN, or DD
         """
@@ -72,30 +70,31 @@ class Iceberg():
         self.Csdw = 5.0e-4      
         
         self.ID = ID
-        self.T = T
-        self.X = X
-        self.Y = Y
-        self.Vx = Vx
-        self.Vy = Vy
-        self.Ax = Ax
-        self.Ay = Ay
+        self.t = t
+        self.x = x
+        self.y = y
+        self.vx = vx
+        self.vy = vy
+        self.vx = vx
+        self.ax = 0
+        self.ay = 0
         self.size = size  # static -- do not change from init value, it has dep vars
         self.shape = shape  # static --do not change from init value, it has dep vars
         
         self.L, self.W, self.Hs = self.get_berg_dims()
         
-        self.history = {'T': [], 'X': [], 'Y': [], 'Vx': [], 'Vy': [], 'Ax': [], 'Ay': []}
+        self.history = {'t': [], 'x': [], 'y': [], 'vx': [], 'vy': [], 'ax': [], 'ay': []}
         
         self.out_of_bounds = False
  
     
     @property
     def SF(self):
-        return self.shape_info_dict[self.shape][0]
+        return self.RATIOS_BY_SHAPE_CLASS[self.shape][0]
     
     @property
     def H2D(self):
-        return self.shape_info_dict[self.shape][1]
+        return self.RATIOS_BY_SHAPE_CLASS[self.shape][1]
     
     @property
     def Hk(self):
@@ -177,7 +176,7 @@ class Iceberg():
             
         elif type(self.size) == str:
             
-            L_min, L_max, W_min, W_max, Hs_min, Hs_max = self.size_dim_dict[self.size]
+            L_min, L_max, W_min, W_max, Hs_min, Hs_max = self.DIMS_BY_SIZE_CLASS[self.size]
                  
             L = (L_min + L_max)/2
             W = (W_min + W_max)/2
@@ -191,15 +190,15 @@ class Iceberg():
 
             
     def vary_L(self):
-        L_min, L_max = self.size_dim_dict[self.size][0:2]
+        L_min, L_max = self.DIMS_BY_SIZE_CLASS[self.size][0:2]
         self.L = np.random.uniform(L_min, L_max)
         
     def vary_W(self):
-        W_min, W_max = self.size_dim_dict[self.size][2:4]
+        W_min, W_max = self.DIMS_BY_SIZE_CLASS[self.size][2:4]
         self.W = np.random.uniform(W_min, W_max)
 
     def vary_Hs(self):
-        Hs_min, Hs_max = self.size_dim_dict[self.size][4:6]
+        Hs_min, Hs_max = self.DIMS_BY_SIZE_CLASS[self.size][4:6]
         self.Hs = np.random.uniform(Hs_min, Hs_max)
     
     def vary_all_dims(self):
@@ -218,13 +217,13 @@ class Iceberg():
         self.vary_Cdw()
         
     def update_history(self):
-        self.history['T'].append(self.T)
-        self.history['X'].append(self.X)
-        self.history['Y'].append(self.Y)
-        self.history['Vx'].append(self.Vx)
-        self.history['Vy'].append(self.Vy)
-        self.history['Ax'].append(self.Ax)
-        self.history['Ay'].append(self.Ay)
+        self.history['t'].append(self.t)
+        self.history['x'].append(self.x)
+        self.history['y'].append(self.y)
+        self.history['vx'].append(self.vx)
+        self.history['vy'].append(self.vy)
+        self.history['ax'].append(self.ax)
+        self.history['ay'].append(self.ay)
 
     def in_bounds(self, x_bounds, y_bounds):
         
@@ -233,11 +232,11 @@ class Iceberg():
         ymin = y_bounds[0]
         ymax = y_bounds[1]
 
-        if not xmin < self.X < xmax:
+        if not xmin < self.x < xmax:
             print('Iceberg out-of-bounds')
             return False
 
-        elif not ymin < self.Y < ymax:
+        elif not ymin < self.y < ymax:
             print('Iceberg out-of-bounds')
             return False
 
@@ -254,7 +253,7 @@ def clone_iceberg_state(berg):
         clone (icedef.iceberg.Iceberg): clone of the current state of the iceberg provided.
     """
     
-    clone = Iceberg(berg.ID, berg.T, berg.X, berg.Y, berg.Vx, berg.Vy, berg.Ax, berg.Ay, berg.size, berg.shape)
+    clone = Iceberg(berg.ID, berg.t, berg.x, berg.y, berg.vx, berg.vy, berg.size, berg.shape)
     return clone
     
 
