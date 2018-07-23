@@ -9,48 +9,32 @@ For information on the equations of motion used, please see:
 
 import numpy as np
 import cmath
-import netCDF4 as nc
 
 
-def drift(iceberg, vau, vav, vwu, vwv, dt):
-    """This function simulates the drift of an iceberg over one timestep.
+def drift(t, x, y, vx, vy, C):
+    """This function simulates the drift of an iceberg over one timestep."""
     
-    Args: 
-        iceberg (icedef.iceberg.Iceberg): iceberg object
-        vau (float): u-component of wind speed (m/s)
-        vav (float): v-component of wind speed (m/s)
-        vwu (float): u-component of current speed (m/s)
-        vwv (float): v-component of current speed (m/s)
-        dt (float): timestep (s)
-        
-    Returns:
-        viu (float): u-component of iceberg speed after one timestep (m/s)
-        viv (float): v-component of iceberg speed after one timestep (m/s)
-    """
-    
-    
-    # Constants
-    om = 7.2921e-5  # rotation rate of Earth (rad/s)
-    rhoa = 1.225 # density of air (kg/m^3)
-    rhow = 1027.5  # density of water (kg/m^3)
-    rhoi = iceberg.rho  # density of iceberg (kg/m^3)
+    om = C['OM']
+    rhoa = C['RHOA']
+    rhow = C['RHOW']
+    rhoi = C['RHOI']
+    Cw = C['Cdw']
+    Ca = C['Cda']
+    l = C['l']
+    w = C['w']
+    vax = C['vax']
+    vay = C['vay']
+    vwx = C['vwx']
+    vwx = C['vwy']
+
     drho = rhow - rhoi
-    Cw = iceberg.Cdw  # water drag coefficient
-    Ca = iceberg.Cda  # air drag coefficent
-    gam = np.sqrt(rhoa*drho/rhow/rhoi*(Ca/Cw))  # dimensionless parameter
-   
-    # Iceberg attributes
-    t = iceberg.T  # time of the iceberg (datetime)
-    x = iceberg.X  # x-component of iceberg position (degrees longitude)
-    y = iceberg.Y  # y-component of iceberg position (degrees latitiude)
-    l = iceberg.L  # length of the iceberg (m)
-    w = iceberg.W  # width of the iceberg (m)
-    
-    
+    gam = np.sqrt((rhoa*drho)/(rhow*rhoi)*(Ca/Cw))  # dimensionless parameter
+
+        
     # Drift
     S = np.pi*((l*w)/(l+w))
     ff = 2*om*np.sin((np.abs(y)*np.pi)/180)
-    lam = np.sqrt(2)*Cw*(gam*np.sqrt(vau**2 + vav**2))/(ff*S)
+    lam = np.sqrt(2)*Cw*(gam*np.sqrt(vax**2 + vay**2))/(ff*S)
 
     
     if lam < 0.1:
@@ -72,63 +56,56 @@ def drift(iceberg, vau, vav, vwu, vwv, dt):
             cmath.sqrt(1.+np.power(lam,4.)))-3.*np.power(lam,4.)-4.)))
 
     # Iceberg velocity   
-    viu = vwu + gam*(-alpha*vav + beta*vau)
-    viv = vwv + gam*(alpha*vau + beta*vav)
+    vx = vwx + gam*(-alpha*vay + beta*vax)
+    vy = vwy + gam*(alpha*vax + beta*vay)
     
-    return viu, viv
+    return vx, vy
 
     
-def melt(iceberg, vau, vav, vwu, vwv, sst, dt):
-    """This function simulates the melting of an iceberg after one timestep.
+def melt(dt, l, w, h, vx, vy, C):
+    """This function simulates the melting of an iceberg after one timestep."""
     
-    Args: 
-        iceberg (icedef.iceberg.Iceberg): iceberg object
-        vau (float): u-component of wind speed (m/s)
-        vav (float): v-component of wind speed (m/s)
-        vwu (float): u-component of current speed (m/s)
-        vwv (float): v-component of current speed (m/s)
-        sst (float): sea-surface temperature (C)
-        dt (float): timestep (s)
-    
-    Returns:
-        l_new (float): length of the iceberg after one timestep (m)
-        w_new (float): width of the iceberg after one timestep (m)
-        h_new (float): height of the iceberg after one timestep (m)
-    """
-    
-    # Constants
-    sst0 = -4
-    Cs1 = 1.5; Cs2 = 0.5; Cs3 = 0.1
-    CMv1 = 7.62e-3; CMv2 = 1.29e-3; CMe1 = 0.5
-    CMb1 = 0.58; CMb2 = 0.8; CMb3 = 0.2
-    
-    # Iceberg attributes
-    t = iceberg.T  # time of the iceberg (datetime)
-    x = iceberg.X  # x-component of iceberg position (degrees longitude)
-    y = iceberg.Y  # y-component of iceberg position (degrees latitiude)
-    l = iceberg.L  # length of the iceberg (m)
-    w = iceberg.W  # width of the iceberg (m)
-    h = iceberg.H  # height of the iceberg (m)
-    
+    sst0 = C['sst0']
+    Cs1 = C['Cs1']
+    Cs2 = C['Cs2']
+    Cs3 = C['Cs3']
+    CMv1 = C['CMv1']
+    CMv2 = C['CMv2']
+    CMe1 = C['CMe1']
+    CMb1 = C['CMb1']
+    CMb2 = C['CMb2']
+    CMb3 = C['CMb3']
+    vax = C['vax']
+    vay = C['vay']
+    vwx = C['vwx']
+    vwx = C['vwy']
+    sst = C['sst']
 
+    # Example C
+    #sst0 = -4
+    #Cs1 = 1.5; Cs2 = 0.5; Cs3 = 0.1
+    #CMv1 = 7.62e-3; CMv2 = 1.29e-3; CMe1 = 0.5
+    #CMb1 = 0.58; CMb2 = 0.8; CMb3 = 0.2
+
+    
     # Melt Rates
-    Me = CMe1*(Cs1*np.sqrt(vau**2 + vav**2)**Cs2 + Cs3*np.sqrt(vau**2 + vav**2))
+    Me = CMe1*(Cs1*np.sqrt(vax**2 + vay**2)**Cs2 + Cs3*np.sqrt(vax**2 + vay**2))
     Mv = CMv1*sst + CMv2*sst**2
-    Mb = CMb1*np.power(np.sqrt(np.square(viu-vwu)+np.square(viv-vwv)),CMb2)*(sst - sst0)/l**CMb3
+    Mb = CMb1*np.power(np.sqrt(np.square(vx-vwx)+np.square(vy-vwy)),CMb2)*(sst - sst0)/l**CMb3
 
     # Iceberg dimensions after melting
-    l_new = l - (Mv + Me)*(dt/(24*3600))  # convert dt from secs to days
-    w_new = w - (Mv + Me)*(dt/(24*3600))
-    h_new = h - Mb*(dt/(24*3600))
+    l -= (Mv + Me)*(dt/(24*3600))  # convert dt from secs to days
+    w -= (Mv + Me)*(dt/(24*3600))
+    h -= Mb*(dt/(24*3600))
 
-    if w_new < 0.85*h_new:
+    if w < 0.85*h:
         # Rollover
         print('rollover')
-        w_new, h_new = h_new, w_new
+        w, h = h, w
 
-    if w_new > l_new:
+    if w > l:
         # Ensure l is greater than w
         print('swap l and w')
-        w_new, l_new = l_new, w_new
+        w, l = l, w
         
-    return l_new, w_new, h_new
+    return l, w, h

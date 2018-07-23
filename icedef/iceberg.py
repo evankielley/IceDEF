@@ -84,9 +84,7 @@ class Iceberg():
         self.L, self.W, self.Hs = self.get_berg_dims()
         
         self.history = {'t': [], 'x': [], 'y': [], 'vx': [], 'vy': [], 'ax': [], 'ay': []}
-        
-        self.out_of_bounds = False
- 
+         
     
     @property
     def SF(self):

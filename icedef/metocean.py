@@ -1,4 +1,4 @@
-"""This module can instantiate objects which contain ECMWF ocean and atmospheric data for a particular time and space range.
+"""Creates objects containing metocean data from known datasets.
 """
 
 from scipy.interpolate import RegularGridInterpolator as RGI
@@ -18,7 +18,7 @@ def get_data_subset(data, XY_RES, lats, lons, min_lat, max_lat, min_lon, max_lon
         Data must have a regular and uniform grid
     
     Args:
-        data (numpy.ndarray): regular and uniform metocean data of the form [time, lat, lon] to extract subset from
+        data (numpy.ndarray): regular,uniform data of the form [time, lat, lon]
         XY_RES (float): spatial resolution of the data
         lats (list of float): latitude grid vector
         lons (list of float): longitude grid vector
@@ -45,7 +45,7 @@ def get_data_stats(data):
     """This function gets the mean and standard deviation of a metocean dataset
     
     Args:
-        data (numpy.ndarray): regular and uniform metocean data of the form [time, lat, lon]
+        data (numpy.ndarray): regular,uniform data of the form [time, lat, lon]
         
     Returns:
         data_mean (float): mean value of the data provided
@@ -58,7 +58,7 @@ def get_data_stats(data):
     return data_mean, data_std
 
 def get_current_offset(data):
-    """This function gets an offset value for an ocean current velocity dataset by drawing from a truncated normal distribution
+    """Gets offset value for current velocity dataset from a truncated normal distribution
     
     Note:
         Distribution is truncated at -1 and 1
@@ -67,7 +67,7 @@ def get_current_offset(data):
         data (numpy.ndarray): regular and uniform metocean data of the form [time, lat, lon]
         
     Returns:
-        data_offset (float): difference between mean data value and value drawn from the data distribution
+        data_offset (float): difference between mean data value and value drawn
     """
 
     data_mean, data_std = get_data_stats(data)
@@ -77,7 +77,7 @@ def get_current_offset(data):
     return data_offset
 
 def get_wind_offset(data):
-    """This function gets an offset value for an wind velocity dataset by drawing from a truncated normal distribution
+    """Gets offset value for wind velocity dataset from a truncated normal distribution
     
     Note:
         Distribution is truncated at -20 and 20
@@ -86,7 +86,7 @@ def get_wind_offset(data):
         data (numpy.ndarray): regular and uniform metocean data of the form [time, lat, lon]
         
     Returns:
-        data_offset (float): difference between mean data value and value drawn from the data distribution
+        data_offset (float): difference between mean data value and value drawn
     """ 
 
     data_mean, data_std = get_data_stats(data)
@@ -98,7 +98,7 @@ def get_wind_offset(data):
 
 
 class Metocean(object):
-    """This class acts as a superclass that defines the spatial and temporal bounds for the data of its subclasses.
+    """Superclass for ocean and atmosphere classes
     """
 
     def __init__(self, t_min, t_max, x_min, x_max, y_min, y_max):
@@ -149,7 +149,7 @@ class Metocean(object):
     
     
     def get_filenames(self):
-        """This function returns the NetCDF files needed to access the desired metocean data (and their filenames)
+        """Returns NetCDF files needed to access the desired metocean data (and their filenames)
             
         Returns:
             filenames (list of str): list of the filenames of the files returned
@@ -184,7 +184,8 @@ class Metocean(object):
                 files.append(cache_file)
             else:
                 if self.cache and os.path.exists(cache_path):
-                    files.append(urllib.request.urlretrieve(self.PATH + filename, cache_path + filename)[0])
+                    files.append(urllib.request.urlretrieve(self.PATH + 
+                                 filename, cache_path + filename)[0])
                 else:
                     files.append(urllib.request.urlretrieve(self.PATH + filename)[0])
         
@@ -205,7 +206,7 @@ class Metocean(object):
     
     
 class ECMWFOcean(Metocean):
-    """This class creates an object which contains ocean data for surface current velocity and SST amongst other attributes.
+    """Creates object with ocean data for current velocity and SST.
     
     Note: 
         Product identifier: GLOBAL_ANALYSIS_FORECAST_PHY_001_024
@@ -236,7 +237,7 @@ class ECMWFOcean(Metocean):
         #: bool: will attempt to cache data files if True
         self.cache = cache
         
-        #: list of str: filenames is a list of data filenames, files is a list of their associated file handles
+        #: list of str: filenames is a list of data filenames, files is a list of their file handles
         self.filenames, self.files = self.get_filenames()
         
         #: netCDF4._netCDF4.MFDataset: dataset of NetCDF4 files
@@ -277,7 +278,7 @@ class ECMWFOcean(Metocean):
 
 
 class ECMWFAtm(Metocean):
-    """This class creates an object which contains atmospheric data for 10 meter wind velocity amongst other attributes.
+    """Creates object with atmospheric data for 10 meter wind velocity.
     
     Note: 
         Product identifier: WIND_GLO_WIND_L4_NRT_OBSERVTIONS_012_004
@@ -308,7 +309,7 @@ class ECMWFAtm(Metocean):
         #: bool: will attempt to cache data files if True
         self.cache = cache
         
-        #: list of str: filenames is a list of data filenames, files is a list of their associated file handles
+        #: list of str: filenames is a list of data filenames, files is a list of their file handles
         self.filenames, self.files = self.get_filenames()
         
         #: netCDF4._netCDF4.MFDataset: dataset of NetCDF4 files
@@ -357,7 +358,7 @@ class NARRAtm(Metocean):
         #: bool: will attempt to cache data files if True
         self.cache = cache
         
-        #: list of str: filenames is a list of data filenames, files is a list of their associated file handles
+        #: list of str: filenames is a list of data filenames, files is a list of their file handles
         self.filenames, self.files = self.get_filenames()
         
         #: netCDF4._netCDF4.MFDataset: dataset of NetCDF4 files
