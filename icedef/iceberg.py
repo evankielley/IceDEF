@@ -6,32 +6,67 @@ import numpy as np
 WATERLINE_LENGTH_RANGE_BY_SIZE = {'LG': (120, 200)}
 SAIL_HEIGHT_RANGE_BY_SIZE = {'LG': (45, 75)}
 HEIGHT_TO_DRAFT_RATIO_BY_SHAPE = {'TAB': 0.2}
-SHAPE_FACTOR_BY_SHAPE = {'TAB': 0.2}
+SHAPE_FACTOR_BY_SHAPE = {'TAB': 0.5}
+
+EARTH_RADIUS = 6371e3  # meters
 
 
 class Position:
 
-    def __init__(self, latlon):
-        self._latlon = latlon
-        self._xy = (latlon[1]*2, latlon[0]*2)
+    def __init__(self, latitude, longitude):
+        self._latitude = latitude
+        self._longitude = longitude
+        self._x = 0
+        self._y = 0
 
     @property
-    def latlon(self):
-        return self._latlon
+    def latitude(self):
+        return self._latitude
 
-    @latlon.setter
-    def latlon(self, value):
-        self._xy = (value[1]*2, value[0]*2)
-        self._latlon = value
+    @latitude.setter
+    def latitude(self, value):
+        dlat = value - self._latitude
+        self._y += dlat_to_dy(dlat)
+        self._latitude = value
 
     @property
-    def xy(self):
-        return self._xy
+    def longitude(self):
+        return self._longitude
 
-    @xy.setter
-    def xy(self, value):
-        self._latlon = (value[1]/2, value[0]/2)
-        self._xy = value
+    @longitude.setter
+    def longitude(self, value):
+        dlon = value - self._longitude
+        lat = self._latitude
+        self._x += dlon_to_dx(dlon, lat)
+        self._longitude = value
+
+    @property
+    def x(self):
+        return self._x
+
+    @x.setter
+    def x(self, value):
+        dx = value - self._x
+        lat = self._latitude
+        self._longitude += dx_to_dlon(dx, lat)
+        self._x = value
+
+    @property
+    def y(self):
+        return self._y
+
+    @y.setter
+    def y(self, value):
+        dy = value - self._y
+        self._latitude += dy_to_dlat(dy)
+        self._y = value
+
+
+class Velocity:
+
+    def __init__(self, vx, vy):
+        self.x = vx
+        self.y = vy
 
 
 class IcebergGeometry:
@@ -109,17 +144,33 @@ class Iceberg:
         self._time = value
 
 
-def quickstart(time, latlon, **kwargs):
+def quickstart(time, latitude, longitude, **kwargs):
 
     velocity = kwargs.get('velocity', (0, 0))
     size = kwargs.get('size', 'LG')
     shape = kwargs.get('shape', 'TAB')
 
     geometry = IcebergGeometry(size, shape)
-    position = Position(latlon)
+    position = Position(latitude, longitude)
     iceberg = Iceberg(time, position, velocity, geometry)
 
     return iceberg
+
+
+def dy_to_dlat(dy):
+    return dy / EARTH_RADIUS * 180 / np.pi
+
+
+def dlat_to_dy(dlat):
+    return EARTH_RADIUS * dlat * 180 / np.pi
+
+
+def dx_to_dlon(dx, lat):
+    return dx / EARTH_RADIUS * 180 / np.pi / np.cos(lat * 180 / np.pi)
+
+
+def dlon_to_dx(dlon, lat):
+    return EARTH_RADIUS * dlon * np.pi / 180 * np.cos(lat * np.pi / 180)
 
 
 # class Velocity(NamedTuple):
