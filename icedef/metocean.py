@@ -16,25 +16,26 @@ class ECMWFOcean:
 
     def __init__(self, date_bounds):
 
-        self.data_set = nc.MFDataset(get_files(self.ID, self.PATH, date_bounds))
+        self.dataset = xr.open_mfdataset(get_files(self.ID, self.PATH,
+                                                   date_bounds))
         self.eastward_current_velocities = xr.DataArray(
-            data=self.data_set.variables['uo'][:, 0, :, :],
-            coords={'time': self.data_set.variables['time'][:],
-                    'latitude': self.data_set.variables['latitude'][:],
-                    'longitude': self.data_set.variables['longitude'][:]},
-            dims={'time', 'latitude', 'longitude'})
+            data=self.dataset.uo.values[:, 0, :, :],
+            coords=[('time', self.dataset.time.values),
+                    ('latitude', self.dataset.latitude.values),
+                    ('longitude', self.dataset.longitude.values)],
+            attrs=self.dataset.uo.attrs)
         self.northward_current_velocities = xr.DataArray(
-            data=self.data_set.variables['vo'][:, 0, :, :],
-            coords={'time': self.data_set.variables['time'][:],
-                    'latitude': self.data_set.variables['latitude'][:],
-                    'longitude': self.data_set.variables['longitude'][:]},
-            dims={'time', 'latitude', 'longitude'})
+            data=self.dataset.vo.values[:, 0, :, :],
+            coords=[('time', self.dataset.time.values),
+                    ('latitude', self.dataset.latitude.values),
+                    ('longitude', self.dataset.longitude.values)],
+            attrs=self.dataset.vo.attrs)
         self.sea_surface_temperatures = xr.DataArray(
-            data=self.data_set.variables['thetao'][:, 0, :, :],
-            coords={'time': self.data_set.variables['time'][:],
-                    'latitude': self.data_set.variables['latitude'][:],
-                    'longitude': self.data_set.variables['longitude'][:]},
-            dims={'time', 'latitude', 'longitude'})
+            data=self.dataset.thetao.values[:, 0, :, :],
+            coords=[('time', self.dataset.time.values),
+                    ('latitude', self.dataset.latitude.values),
+                    ('longitude', self.dataset.longitude.values)],
+            attrs=self.dataset.thetao.attrs)
 
 
 class ECMWFAtmosphere:
@@ -48,19 +49,22 @@ class ECMWFAtmosphere:
 
     def __init__(self, date_bounds):
 
-        self.data_set = nc.MFDataset(get_files(self.ID, self.PATH, date_bounds))
+        self.dataset = xr.open_mfdataset(get_files(self.ID, self.PATH,
+                                                   date_bounds))
+
         self.eastward_wind_velocities = xr.DataArray(
-            data=self.data_set.variables['eastward_wind'][:, 0, :, :],
-            coords={'time': self.data_set.variables['time'][:],
-                    'latitude': self.data_set.variables['latitude'][:],
-                    'longitude': self.data_set.variables['longitude'][:]},
-            dims={'time', 'latitude', 'longitude'})
+            data=self.dataset.eastward_wind.values,
+            coords=[('time', self.dataset.time.values),
+                    ('latitude', self.dataset.latitude.values),
+                    ('longitude', self.dataset.longitude.values)],
+            attrs=self.dataset.eastward_wind.attrs)
+
         self.northward_wind_velocities = xr.DataArray(
-            data=self.data_set.variables['northward_wind'][:, 0, :, :],
-            coords={'time': self.data_set.variables['time'][:],
-                    'latitude': self.data_set.variables['latitude'][:],
-                    'longitude': self.data_set.variables['longitude'][:]},
-            dims={'time', 'latitude', 'longitude'})
+            data=self.dataset.northward_wind.values[:, 0, :, :],
+            coords=[('time', self.dataset.time.values),
+                    ('latitude', self.dataset.latitude.values),
+                    ('longitude', self.dataset.longitude.values)],
+            attrs=self.dataset.northward_wind.attrs)
 
 
 class NARRAtmosphere:
@@ -74,19 +78,20 @@ class NARRAtmosphere:
 
     def __init__(self, date_bounds):
 
-        self.data_set = nc.MFDataset(get_files(self.ID, self.PATH, date_bounds))
+        self.dataset = xr.open_mfdataset(get_files(self.ID, self.PATH,
+                                                   date_bounds))
         self.eastward_wind_velocities = xr.DataArray(
-            data=self.data_set.variables['uwnd'][:, :, :],
-            coords={'time': self.data_set.variables['time'][:],
-                    'latitude': self.data_set.variables['lat'][:],
-                    'longitude': self.data_set.variables['lon'][:]},
-            dims={'time', 'latitude', 'longitude'})
+            data=self.dataset.uwnd.values,
+            coords=[('time', self.dataset.time.values),
+                    ('latitude', self.dataset.lat.values),
+                    ('longitude', self.dataset.lon.values)],
+            attrs=self.dataset.uwnd.attrs)
         self.northward_wind_velocities = xr.DataArray(
-            data=self.data_set.variables['vwnd'][:, :, :],
-            coords={'time': self.data_set.variables['time'][:],
-                    'latitude': self.data_set.variables['lat'][:],
-                    'longitude': self.data_set.variables['lon'][:]},
-            dims={'time', 'latitude', 'longitude'})
+            data=self.dataset.uwnd.values,
+            coords=[('time', self.dataset.time.values),
+                    ('latitude', self.dataset.lat.values),
+                    ('longitude', self.dataset.lon.values)],
+            attrs=self.dataset.uwnd.attrs)
 
 
 def get_files(id_, path, date_bounds, cache=True):
@@ -106,30 +111,30 @@ def get_files(id_, path, date_bounds, cache=True):
     else:
         cache_path = None
 
-    file_names = []
+    filenames = []
     files = []
 
     for i in range(time_delta.days + 1):
         file_date = start_date + timedelta(days=i)
-        file_name = str(file_date).replace('-', '') + '.nc'
-        file_names.append(file_name)
-        cache_file = cache_path + file_name
+        filename = str(file_date).replace('-', '') + '.nc'
+        filenames.append(filename)
+        cache_file = cache_path + filename
 
         if os.path.isfile(cache_file):
             files.append(cache_file)
         else:
             if cache and os.path.exists(cache_path):
                 files.append(urlretrieve(path +
-                                         file_name, cache_path + file_name)[
+                                         filename, cache_path + filename)[
                                  0])
             else:
-                files.append(urlretrieve(path + file_name)[0])
+                files.append(urlretrieve(path + filename)[0])
 
     return files
 
 
 def interpolate(data_array, point, method='linear'):
-    interpolated_value = data_array(coords={'time': point[0],
+    interpolated_value = data_array.interp(coords={'time': point[0],
                                             'latitude': point[1],
                                             'longitude': point[2]},
                                     assume_sorted=True,
