@@ -80,7 +80,7 @@ class DriftSimulation():
 
         return x1, y1
 
-    def setup_timestepper(self, nt):
+    def setup_timestepper(self, dt, nt):
 
         t = [None]*(nt+1)
         x = np.zeros(nt+1); y = np.zeros(nt+1)
@@ -94,12 +94,19 @@ class DriftSimulation():
 
         vcx, vcy = self.ocean.interpolate(t[0], x[0], y[0])
         vax, vay = self.atm.interpolate(t[0], x[0], y[0])
+        
+        vcx0, vcy0 = self.ocean.interpolate(t[0] - timedelta(seconds=dt/2), x[0], y[0])
+        vcx2, vcy2 = self.ocean.interpolate(t[0] + timedelta(seconds=dt/2), x[0], y[0])
+        
+        amwx = (vcx2 - vcx0)/dt
+        amwy = (vcy2 - vcy0)/dt
 
         C = [
             [vcx, vcy, vax, vay],
             [self.berg.M,  self.berg.Ak, self.berg.Ab, self.berg.As, self.berg.At],
             [self.berg.Cdw, self.berg.Cda, self.berg.Csdw, self.berg.Csda],
-            [self.OM, self.RHOW, self.RHOA, self.RHOI]
+            [self.OM, self.RHOW, self.RHOA, self.RHOI],
+            [amwx, amwy]
             ]
 
 
@@ -109,7 +116,7 @@ class DriftSimulation():
 
     def euler(self, dt, nt):
 
-        t, x, y, vx, vy, ax, ay, C = self.setup_timestepper(nt)
+        t, x, y, vx, vy, ax, ay, C = self.setup_timestepper(dt, nt)
 
         for i in range(nt):
 
@@ -121,13 +128,19 @@ class DriftSimulation():
             vcx, vcy = self.ocean.interpolate(t[i+1], x[i+1], y[i+1])
             vax, vay = self.atm.interpolate(t[i+1], x[i+1], y[i+1])
             C[0] = [vcx, vcy, vax, vay]
+            
+            vcx0, vcy0 = self.ocean.interpolate(t[0] - timedelta(seconds=dt/2), x[0], y[0])
+            vcx2, vcy2 = self.ocean.interpolate(t[0] + timedelta(seconds=dt/2), x[0], y[0])
+            amwx = (vcx2 - vcx0)/dt
+            amwy = (vcy2 - vcy0)/dt
+            C[4] = [amwx, amwy]
 
         self.update_history(t, x, y, vx, vy, ax, ay)
 
 
     def rk2(self, dt, nt):
 
-        t, x, y, vx, vy, ax, ay, C = self.setup_timestepper(nt)
+        t, x, y, vx, vy, ax, ay, C = self.setup_timestepper(dt, nt)
 
         for i in range(nt):
 
@@ -172,7 +185,7 @@ class DriftSimulation():
 
     def ab2(self, dt, nt):
 
-        t, x, y, vx, vy, ax, ay, C = self.setup_timestepper(nt)
+        t, x, y, vx, vy, ax, ay, C = self.setup_timestepper(dt, nt)
 
         # Euler
 
