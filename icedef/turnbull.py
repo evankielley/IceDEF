@@ -69,6 +69,7 @@ def drift(t, x, y, vx, vy, constants):
     m,  Ak, Ab, As, At  = constants[1]
     Cdw, Cda, Csdw, Csda = constants[2]
     om, rhow, rhoa, rhoi = constants[3]
+    amwx, amwy = constants[4]
 
     # Wind force
     Fax = (0.5*rhoa*Cda*As + rhoa*Csda*At)*abs(vax - vx)*(vax - vx)
@@ -80,14 +81,14 @@ def drift(t, x, y, vx, vy, constants):
 
     # Coriolis force
     f = 2*om*np.sin(np.deg2rad(y))  # Coriolis parameter
-    Fcx = +f*vy*m
+    Fcx = f*vy*m
     Fcy = -f*vx*m
 
     # Water pressure gradient force
     vwmx = vcx  # x-component of mean water current down to the iceberg keel (m/s)
     vwmy = vcy  # y-component of mean water current down to the iceberg keel (m/s)
-    amwx = 0  # x-component of acceleration (time-derivative) of Vmw (m/s^2)
-    amwy = 0  # y-component of acceleration (time-derivative) of Vmw (m/s^2)
+    amwx = amwx  # x-component of acceleration (time-derivative) of Vmw (m/s^2)
+    amwy = amwy  # y-component of acceleration (time-derivative) of Vmw (m/s^2)
     Fwpx = m*(amwx + f*vwmx)
     Fwpy = m*(amwy - f*vwmy)
 
