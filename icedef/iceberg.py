@@ -1,6 +1,5 @@
 """Creates iceberg object."""
 
-from typing import NamedTuple
 import numpy as np
 
 WATERLINE_LENGTH_RANGE_BY_SIZE = {'LG': (120, 200)}
@@ -72,7 +71,6 @@ class Velocity:
 class IcebergGeometry:
 
     def __init__(self, size, shape):
-
         self.size = size
         self.shape = shape
 
@@ -126,7 +124,6 @@ class Iceberg:
     """Creates iceberg object."""
 
     def __init__(self, time, position, velocity, geometry, **kwargs):
-
         self._time = time
         self.position = position
         self.velocity = velocity
@@ -145,7 +142,6 @@ class Iceberg:
 
 
 def quickstart(time, latitude, longitude, **kwargs):
-
     velocity = kwargs.get('velocity', (0, 0))
     size = kwargs.get('size', 'LG')
     shape = kwargs.get('shape', 'TAB')
@@ -171,29 +167,3 @@ def dx_to_dlon(dx, lat):
 
 def dlon_to_dx(dlon, lat):
     return EARTH_RADIUS * dlon * np.pi / 180 * np.cos(lat * np.pi / 180)
-
-
-# class Velocity(NamedTuple):
-#     """Creates NamedTuple object with iceberg velocity information."""
-#
-#     x: 'float'
-#     y: 'float'
-
-# class Position(NamedTuple):
-#     """Creates NamedTuple object with iceberg position information."""
-#
-#     # init_longitude: 'float'
-#     # _longitude: 'float' = init_longitude
-#     longitude: 'float'
-#
-#     @property
-#     def longitude(self):
-#         return self.x / 2
-#
-#     @longitude.setter
-#     def longitude(self, value):
-#         self.longitude = value
-#
-#     @property
-#     def x(self):
-#         return self.longitude * 2
