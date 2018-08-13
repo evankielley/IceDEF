@@ -1,10 +1,4 @@
-"""Iceberg drift functions"""
-
-from icedef.constants import *
-import numpy as np
-
-
-def newtonian_drift(velocity, **kwargs):
+def newtonian_drift(iceberg_velocity, current_velocity, wind_velocity, iceberg_constants):
     """Computes instantaneous iceberg acceleration."""
 
     # Constants
@@ -16,19 +10,22 @@ def newtonian_drift(velocity, **kwargs):
     Cda = ICEBERG_SKIN_DRAG_COEFFICIENT_IN_AIR
     Cdw = ICEBERG_SKIN_DRAG_COEFFICIENT_IN_WATER
 
-    # Kwargs
-    Vwx, Vwy = kwargs.get('wind_velocity')
-    Vcx, Vcy = kwargs.get('current_velocity')
-    As = kwargs.get('iceberg_sail_area')
-    Ak = kwargs.get('iceberg_keel_area')
-    At = kwargs.get('iceberg_top_area')
-    Ab = kwargs.get('iceberg_bottom_area')
-    M = kwargs.get('iceberg_mass')
-    phi = kwargs.get('iceberg_latitude')
+    Vwx, Vwy = wind_velocity
+    Vcx, Vcy = current_velocity
+    #Amwx, Amwy = current_acceleration
+    Amwx, Amwy = 0, 0
+    
+    As = iceberg_constants['sail_area']
+    Ak = iceberg_constants['keel_area']
+    At = iceberg_constants['top_area']
+    Ab = iceberg_constants['bottom_area']
+    M = iceberg_constants['mass']
+
+    phi = iceberg_constants['latitude']
 
     # Args
-    Vx = velocity[0]
-    Vy = velocity[1]
+    Vx, Vy = iceberg_velocity
+
 
     # Wind force
     Fax = 0.5 * rhoa * Ca * As + rhoa * Cda * At * abs(Vwx - Vx) * (Vwx - Vx)
@@ -46,8 +43,8 @@ def newtonian_drift(velocity, **kwargs):
     # Water pressure force
     Vmwx = Vcx
     Vmwy = Vcy
-    Amwx = 0
-    Amwy = 0
+    Amwx = Amwx
+    Amwy = Amwy
     Fwpx = M * (Amwx + f * Vmwx)
     Fwpy = M * (Amwy + f * Vmwy)
 
