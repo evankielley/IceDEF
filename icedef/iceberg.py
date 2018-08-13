@@ -24,8 +24,8 @@ class Position:
 
     @latitude.setter
     def latitude(self, value):
-        dlat = value - self._latitude
-        self._y += dlat_to_dy(dlat)
+        # dlat = value - self._latitude
+        # self._y += dlat_to_dy(dlat)
         self._latitude = value
 
     @property
@@ -34,9 +34,9 @@ class Position:
 
     @longitude.setter
     def longitude(self, value):
-        dlon = value - self._longitude
-        lat = self._latitude
-        self._x += dlon_to_dx(dlon, lat)
+        # dlon = value - self._longitude
+        # lat = self._latitude
+        # self._x += dlon_to_dx(dlon, lat)
         self._longitude = value
 
     @property
@@ -45,9 +45,9 @@ class Position:
 
     @x.setter
     def x(self, value):
-        dx = value - self._x
-        lat = self._latitude
-        self._longitude += dx_to_dlon(dx, lat)
+        # dx = value - self._x
+        # lat = self._latitude
+        # self._longitude += dx_to_dlon(dx, lat)
         self._x = value
 
     @property
@@ -56,8 +56,8 @@ class Position:
 
     @y.setter
     def y(self, value):
-        dy = value - self._y
-        self._latitude += dy_to_dlat(dy)
+        # dy = value - self._y
+        # self._latitude += dy_to_dlat(dy)
         self._y = value
 
 
@@ -124,25 +124,32 @@ class Iceberg:
     """Creates iceberg object."""
 
     def __init__(self, time, position, velocity, geometry, **kwargs):
-        self._time = time
-        self.position = position
-        self.velocity = velocity
+        self.time = time
+        self.latitude, self.longitude = position
+        self.eastward_velocity, self.northward_velocity = velocity
         self.geometry = geometry
         self.name = kwargs.get('name', None)
-        self.history = {'time': []}
+        self.history = {'time': [], 'latitude': [], 'longitude': []}
 
-    @property
-    def time(self):
-        return self._time
-
-    @time.setter
-    def time(self, value):
-        self.history['time'].append(self._time)
-        self._time = value
+    def update_history(self):
+        self.history['time'].append(self.time)
+        self.history['latitude'].append(self.latitude)
+        self.history['longitude'].append(self.longitude)
 
 
-def quickstart(time, latitude, longitude, **kwargs):
+def quickstart(time, position, **kwargs):
+    # position must be tuple of (latitude, longitude)
     velocity = kwargs.get('velocity', (0, 0))
+    size = kwargs.get('size', 'LG')
+    shape = kwargs.get('shape', 'TAB')
+    geometry = IcebergGeometry(size, shape)
+    iceberg = Iceberg(time, position, velocity, geometry)
+    return iceberg
+
+
+def old_quickstart(time, latitude, longitude, **kwargs):
+    velocity = kwargs.get('velocity', (0, 0))
+    velocity = Velocity(velocity[0], velocity[1])
     size = kwargs.get('size', 'LG')
     shape = kwargs.get('shape', 'TAB')
 
