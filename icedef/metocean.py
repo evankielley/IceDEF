@@ -80,6 +80,7 @@ class NARRAtmosphere:
 
         self.dataset = xr.open_mfdataset(get_files(self.ID, self.PATH,
                                                    date_bounds))
+        self.dataset['lon'] = np.mod(self.dataset.lon - 180, 360) - 180
         self.eastward_wind_velocities = xr.DataArray(
             data=self.dataset.uwnd.values,
             coords=[('time', self.dataset.time.values),
@@ -87,11 +88,11 @@ class NARRAtmosphere:
                     ('longitude', self.dataset.lon.values)],
             attrs=self.dataset.uwnd.attrs)
         self.northward_wind_velocities = xr.DataArray(
-            data=self.dataset.uwnd.values,
+            data=self.dataset.vwnd.values,
             coords=[('time', self.dataset.time.values),
                     ('latitude', self.dataset.lat.values),
                     ('longitude', self.dataset.lon.values)],
-            attrs=self.dataset.uwnd.attrs)
+            attrs=self.dataset.vwnd.attrs)
 
 
 def get_files(id_, path, date_bounds, cache=True):
@@ -131,12 +132,3 @@ def get_files(id_, path, date_bounds, cache=True):
                 files.append(urlretrieve(path + filename)[0])
 
     return files
-
-
-def interpolate(data_array, point, method='linear'):
-    interpolated_value = data_array.interp(coords={'time': point[0],
-                                            'latitude': point[1],
-                                            'longitude': point[2]},
-                                    assume_sorted=True,
-                                    method=method)
-    return interpolated_value
