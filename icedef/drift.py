@@ -1,8 +1,9 @@
-def newtonian_drift(iceberg_velocity, current_velocity, wind_velocity, iceberg_constants):
+def newtonian_drift(iceberg_velocity, current_velocity, wind_velocity,
+                    iceberg_constants):
     """Computes instantaneous iceberg acceleration."""
 
     # Constants
-    om = EARTH_ROTATION_RATE
+    Omega = EARTH_ROTATION_RATE
     rhoa = AIR_DENSITY
     rhow = SEAWATER_DENSITY
     Ca = ICEBERG_FORM_DRAG_COEFFICIENT_IN_AIR
@@ -12,9 +13,9 @@ def newtonian_drift(iceberg_velocity, current_velocity, wind_velocity, iceberg_c
 
     Vwx, Vwy = wind_velocity
     Vcx, Vcy = current_velocity
-    #Amwx, Amwy = current_acceleration
+    # Amwx, Amwy = current_acceleration
     Amwx, Amwy = 0, 0
-    
+
     As = iceberg_constants['sail_area']
     Ak = iceberg_constants['keel_area']
     At = iceberg_constants['top_area']
@@ -26,17 +27,16 @@ def newtonian_drift(iceberg_velocity, current_velocity, wind_velocity, iceberg_c
     # Args
     Vx, Vy = iceberg_velocity
 
-
     # Wind force
-    Fax = 0.5 * rhoa * Ca * As + rhoa * Cda * At * abs(Vwx - Vx) * (Vwx - Vx)
-    Fay = 0.5 * rhoa * Ca * As + rhoa * Cda * At * abs(Vwy - Vy) * (Vwy - Vy)
+    Fax = (0.5 * rhoa * Ca * As + rhoa * Cda * At) * abs(Vwx - Vx) * (Vwx - Vx)
+    Fay = (0.5 * rhoa * Ca * As + rhoa * Cda * At) * abs(Vwy - Vy) * (Vwy - Vy)
 
     # Current force
-    Fwx = 0.5 * rhow * Cw * Ak + rhow * Cdw * Ab * abs(Vcx - Vx) * (Vcx - Vx)
-    Fwy = 0.5 * rhow * Cw * Ak + rhow * Cdw * Ab * abs(Vcy - Vy) * (Vcy - Vy)
+    Fwx = (0.5 * rhow * Cw * Ak + rhow * Cdw * Ab) * abs(Vcx - Vx) * (Vcx - Vx)
+    Fwy = (0.5 * rhow * Cw * Ak + rhow * Cdw * Ab) * abs(Vcy - Vy) * (Vcy - Vy)
 
     # Coriolis force
-    f = 2 * om * np.sin(np.deg2rad(phi))
+    f = 2 * Omega * np.sin(np.deg2rad(phi))
     Fcx = f * M * Vy
     Fcy = -f * M * Vx
 
