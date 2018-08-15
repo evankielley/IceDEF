@@ -1,5 +1,5 @@
 import os
-import netCDF4 as nc
+import numpy as np
 import xarray as xr
 from urllib.request import urlretrieve
 from datetime import date, timedelta
@@ -93,6 +93,54 @@ class NARRAtmosphere:
                     ('latitude', self.dataset.lat.values),
                     ('longitude', self.dataset.lon.values)],
             attrs=self.dataset.vwnd.attrs)
+
+
+def interpolate1(point, data):
+
+    def compute_interpolation(x0, xi, dx, data):
+
+        indx = (xi - x0) / dx
+        indx_floor = int(np.floor(indx))
+        dindx = indx - indx_floor
+        submatrix = data[indx_floor: indx_floor + 2, ...]
+        data = (1 - dindx) * submatrix[0, ...] + dindx * submatrix[1, ...]
+        
+        return data
+
+    assert data.dims == ('time', 'latitude', 'longitude')
+
+    # time
+    nptimes = data.time.values
+    times = (nptimes - nptimes[0]) / np.timedelta64(1, 's')
+    t0 = times[0]
+    tn = times[-1]
+    dt = np.mean(np.diff((times)))
+    ti = (point[0] - nptimes[0]) / np.timedelta64(1, 's')
+    assert t0 <= ti <= tn
+
+    # latitude
+    lats = data.latitude.values
+    lat0 = lats[0]
+    latn = lats[-1]
+    dlat = np.mean(np.diff(lats))
+    lati = point[1]
+    assert lat0 <= lati <= latn
+
+    # longitude
+    lons = data.longitude.values
+    lon0 = lons[0]
+    lonn = lons[-1]
+    dlon = np.mean(np.diff(lons))
+    loni = point[2]
+    assert lon0 <= loni <= lonn
+
+    # crunch value
+    data = data.values
+    data = compute_interpolation(t0, ti, dt, data)
+    data = compute_interpolation(lat0, lati, dlat, data)
+    data = compute_interpolation(lon0, loni, dlon, data)
+
+    return data
 
 
 def get_files(id_, path, date_bounds, cache=True):
