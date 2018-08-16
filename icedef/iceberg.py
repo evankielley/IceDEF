@@ -160,17 +160,9 @@ def old_quickstart(time, latitude, longitude, **kwargs):
     return iceberg
 
 
-def dy_to_dlat(dy):
-    return dy / EARTH_RADIUS * 180 / np.pi
-
-
-def dlat_to_dy(dlat):
-    return EARTH_RADIUS * dlat * 180 / np.pi
-
-
 def dx_to_dlon(dx, lat):
-    return dx / EARTH_RADIUS * 180 / np.pi / np.cos(lat * 180 / np.pi)
+    return dx / (np.cos((lat * np.pi) / 180)) * (180 / (np.pi * EARTH_RADIUS))
 
 
-def dlon_to_dx(dlon, lat):
-    return EARTH_RADIUS * dlon * np.pi / 180 * np.cos(lat * np.pi / 180)
+def dy_to_dlat(dy):
+    return dy * (180 / (np.pi * EARTH_RADIUS))
