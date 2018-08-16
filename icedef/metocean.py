@@ -1,5 +1,5 @@
 import os
-import numpy as np
+import netCDF4 as nc
 import xarray as xr
 from urllib.request import urlretrieve
 from datetime import date, timedelta
@@ -95,16 +95,13 @@ class NARRAtmosphere:
             attrs=self.dataset.vwnd.attrs)
 
 
-def interpolate1(point, data):
-
+def interpolate(point, data):
     def compute_interpolation(x0, xi, dx, data):
-
         indx = (xi - x0) / dx
         indx_floor = int(np.floor(indx))
         dindx = indx - indx_floor
         submatrix = data[indx_floor: indx_floor + 2, ...]
         data = (1 - dindx) * submatrix[0, ...] + dindx * submatrix[1, ...]
-        
         return data
 
     assert data.dims == ('time', 'latitude', 'longitude')
