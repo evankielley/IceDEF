@@ -1,3 +1,7 @@
+import numpy as np
+from icedef.constants import *
+
+
 def newtonian_drift(iceberg_velocity, current_velocity, wind_velocity,
                     iceberg_constants):
     """Computes instantaneous iceberg acceleration."""
