@@ -1,5 +1,5 @@
 import os
-import netCDF4 as nc
+import numpy as np
 import xarray as xr
 from urllib.request import urlretrieve
 from datetime import date, timedelta
@@ -96,6 +96,7 @@ class NARRAtmosphere:
 
 
 def interpolate(point, data):
+
     def compute_interpolation(x0, xi, dx, data):
         indx = (xi - x0) / dx
         indx_floor = int(np.floor(indx))
@@ -143,6 +144,13 @@ def interpolate(point, data):
 def get_files(id_, path, date_bounds, cache=True):
 
     start_date, end_date = date_bounds
+
+    if isinstance(start_date, np.datetime64):
+        start_date = start_date.astype(object)
+
+    if isinstance(end_date, np.datetime64):
+        end_date = end_date.astype(object)
+
     start_date = date(start_date.year, start_date.month, start_date.day)
     end_date = date(end_date.year, end_date.month, end_date.day)
     time_delta = end_date - start_date
@@ -165,15 +173,16 @@ def get_files(id_, path, date_bounds, cache=True):
         filename = str(file_date).replace('-', '') + '.nc'
         filenames.append(filename)
         cache_file = cache_path + filename
+        ftp_file = path + filename
 
         if os.path.isfile(cache_file):
             files.append(cache_file)
         else:
+            print(f'Attempting to download {ftp_file}... ', end='')
             if cache and os.path.exists(cache_path):
-                files.append(urlretrieve(path +
-                                         filename, cache_path + filename)[
-                                 0])
+                files.append(urlretrieve(ftp_file, cache_file)[0])
             else:
                 files.append(urlretrieve(path + filename)[0])
+            print('done.')
 
     return files
