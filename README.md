@@ -12,7 +12,7 @@ Iceberg Drift Ensemble Forecasting
 4. Create the icedef conda environment
     - `conda env create -f environment.yml`
 5. Activate the icedef environment
-	- `conda activate icedef`
+	- `source activate icedef`
 6. Install the icedef package using pip
 	- `pip install -e .`
 7. Run jupyter 
