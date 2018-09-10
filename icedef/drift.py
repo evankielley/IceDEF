@@ -10,16 +10,17 @@ def newtonian_drift(iceberg_velocity, current_velocity, wind_velocity,
     Omega = EARTH_ROTATION_RATE
     rhoa = AIR_DENSITY
     rhow = SEAWATER_DENSITY
-    Ca = ICEBERG_FORM_DRAG_COEFFICIENT_IN_AIR
-    Cw = ICEBERG_FORM_DRAG_COEFFICIENT_IN_WATER
-    Cda = ICEBERG_SKIN_DRAG_COEFFICIENT_IN_AIR
-    Cdw = ICEBERG_SKIN_DRAG_COEFFICIENT_IN_WATER
+
 
     Vwx, Vwy = wind_velocity
     Vcx, Vcy = current_velocity
     # Amwx, Amwy = current_acceleration
     Amwx, Amwy = 0, 0
 
+    Ca = iceberg_constants['form_drag_coefficient_in_air']
+    Cw = iceberg_constants['form_drag_coefficient_in_water']
+    Cda = iceberg_constants['skin_drag_coefficient_in_air']
+    Cdw = iceberg_constants['skin_drag_coefficient_in_water']
     As = iceberg_constants['sail_area']
     Ak = iceberg_constants['keel_area']
     At = iceberg_constants['top_area']
