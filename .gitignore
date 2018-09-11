@@ -3,6 +3,8 @@ bin/
 csvs/
 papers/
 
+# PyCharm directory
+.idea/
 
 # Plots directory
 plots/
