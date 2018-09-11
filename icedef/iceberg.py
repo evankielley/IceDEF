@@ -123,6 +123,13 @@ class IcebergGeometry:
 class Iceberg:
     """Creates iceberg object."""
 
+    DENSITY = 900
+
+    FORM_DRAG_COEFFICIENT_IN_AIR = 1.5
+    FORM_DRAG_COEFFICIENT_IN_WATER = 1.5
+    SKIN_DRAG_COEFFICIENT_IN_AIR = 2.5e-4
+    SKIN_DRAG_COEFFICIENT_IN_WATER = 5e-4
+
     def __init__(self, time, position, velocity, geometry, **kwargs):
         self.time = time
         self.latitude, self.longitude = position
@@ -166,3 +173,12 @@ def dx_to_dlon(dx, lat):
 
 def dy_to_dlat(dy):
     return dy * (180 / (np.pi * EARTH_RADIUS))
+
+
+def dlon_to_dx(dlon, lat):
+    return dlon * np.cos((lat * np.pi) / 180) * (np.pi * EARTH_RADIUS) / 180
+
+
+def dlat_to_dy(dlat):
+    return dlat * (np.pi * EARTH_RADIUS) / 180
+
