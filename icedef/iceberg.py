@@ -7,8 +7,6 @@ SAIL_HEIGHT_RANGE_BY_SIZE = {'LG': (45, 75)}
 HEIGHT_TO_DRAFT_RATIO_BY_SHAPE = {'TAB': 0.2}
 SHAPE_FACTOR_BY_SHAPE = {'TAB': 0.5}
 
-EARTH_RADIUS = 6371e3  # meters
-
 
 class Position:
 
@@ -165,20 +163,3 @@ def old_quickstart(time, latitude, longitude, **kwargs):
     iceberg = Iceberg(time, position, velocity, geometry)
 
     return iceberg
-
-
-def dx_to_dlon(dx, lat):
-    return dx / (np.cos((lat * np.pi) / 180)) * (180 / (np.pi * EARTH_RADIUS))
-
-
-def dy_to_dlat(dy):
-    return dy * (180 / (np.pi * EARTH_RADIUS))
-
-
-def dlon_to_dx(dlon, lat):
-    return dlon * np.cos((lat * np.pi) / 180) * (np.pi * EARTH_RADIUS) / 180
-
-
-def dlat_to_dy(dlat):
-    return dlat * (np.pi * EARTH_RADIUS) / 180
-
