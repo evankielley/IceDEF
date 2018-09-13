@@ -141,6 +141,14 @@ class Iceberg:
         self.history['latitude'].append(self.latitude)
         self.history['longitude'].append(self.longitude)
 
+    def reset(self):
+        self.time = self.history['time'][0]
+        self.history['time'] = []
+        self.latitude = self.history['latitude'][0]
+        self.history['latitude'] = []
+        self.longitude = self.history['longitude'][0]
+        self.history['longitude'] = []
+
 
 def quickstart(time, position, **kwargs):
     # position must be tuple of (latitude, longitude)
