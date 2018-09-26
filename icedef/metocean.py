@@ -33,7 +33,7 @@ class Metocean:
         tn = times[-1]
         dt = np.mean(np.diff((times)))
         ti = (point[0] - nptimes[0]) / np.timedelta64(1, 's')
-        assert t0 <= ti <= tn
+        assert t0 <= ti <= tn, f"t0: {t0}, ti:{ti}, tn: {tn}"
 
         # latitude
         lats = data.latitude.values
@@ -41,7 +41,7 @@ class Metocean:
         latn = lats[-1]
         dlat = np.mean(np.diff(lats))
         lati = point[1]
-        assert lat0 <= lati <= latn
+        assert lat0 <= lati <= latn, f"lat0: {lat0}, lati:{lati}, latn: {latn}"
 
         # longitude
         lons = data.longitude.values
@@ -49,7 +49,7 @@ class Metocean:
         lonn = lons[-1]
         dlon = np.mean(np.diff(lons))
         loni = point[2]
-        assert lon0 <= loni <= lonn
+        assert lon0 <= loni <= lonn, f"lon0: {lon0}, loni:{loni}, lonn: {lonn}"
 
         # crunch value
         data = data.values
