@@ -107,7 +107,6 @@ dependencies:
   - pcre=8.42=h439df22_0
   - pickleshare=0.7.4=py36h63277f8_0
   - pillow=5.1.0=py36h3deb7b8_0
-  - proj4=4.9.3=hc8507d1_7
   - prompt_toolkit=1.0.15=py36h17d85b1_0
   - psutil=5.4.6=py36h14c3975_0
   - ptyprocess=0.5.2=py36h69acd42_0
@@ -150,7 +149,6 @@ dependencies:
   - zict=0.1.3=py36_0
   - zlib=1.2.11=ha838bed_2
   - pip:
-    - icedef==0.1
     - msgpack==0.5.6
 prefix: /home/evankielley/.conda/envs/icedef
 
