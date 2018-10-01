@@ -2,8 +2,7 @@ import numpy as np
 from icedef.constants import *
 
 
-def newtonian_drift(iceberg_velocity, current_velocity, wind_velocity,
-                    iceberg_constants):
+def newtonian_drift(iceberg_velocity, current_velocity, wind_velocity, iceberg_constants):
     """Computes instantaneous iceberg acceleration."""
 
     # Constants
@@ -11,6 +10,8 @@ def newtonian_drift(iceberg_velocity, current_velocity, wind_velocity,
     rhoa = AIR_DENSITY
     rhow = SEAWATER_DENSITY
 
+    # Args
+    Vx, Vy = iceberg_velocity
 
     Vwx, Vwy = wind_velocity
     Vcx, Vcy = current_velocity
@@ -26,19 +27,16 @@ def newtonian_drift(iceberg_velocity, current_velocity, wind_velocity,
     At = iceberg_constants['top_area']
     Ab = iceberg_constants['bottom_area']
     M = iceberg_constants['mass']
-
     phi = iceberg_constants['latitude']
 
-    # Args
-    Vx, Vy = iceberg_velocity
-
     # Wind force
-    Fax = (0.5 * rhoa * Ca * As + rhoa * Cda * At) * abs(Vwx - Vx) * (Vwx - Vx)
-    Fay = (0.5 * rhoa * Ca * As + rhoa * Cda * At) * abs(Vwy - Vy) * (Vwy - Vy)
+    Fax = (0.5 * rhoa * Ca * As + rhoa * Cda * At) * np.sqrt((Vwx - Vx)**2 + (Vwy - Vy)**2) * (Vwx - Vx)
+    Fay = (0.5 * rhoa * Ca * As + rhoa * Cda * At) * np.sqrt((Vwx - Vx)**2 + (Vwy - Vy)**2) * (Vwy - Vy)
+    
 
     # Current force
-    Fwx = (0.5 * rhow * Cw * Ak + rhow * Cdw * Ab) * abs(Vcx - Vx) * (Vcx - Vx)
-    Fwy = (0.5 * rhow * Cw * Ak + rhow * Cdw * Ab) * abs(Vcy - Vy) * (Vcy - Vy)
+    Fwx = (0.5 * rhow * Cw * Ak + rhow * Cdw * Ab) * np.sqrt((Vcx - Vx)**2 + (Vcy - Vy)**2) * (Vcx - Vx)
+    Fwy = (0.5 * rhow * Cw * Ak + rhow * Cdw * Ab) * np.sqrt((Vcx - Vx)**2 + (Vcy - Vy)**2) * (Vcy - Vy)
 
     # Coriolis force
     f = 2 * Omega * np.sin(np.deg2rad(phi))
@@ -56,5 +54,7 @@ def newtonian_drift(iceberg_velocity, current_velocity, wind_velocity,
     # Iceberg acceleration
     Ax = (Fax + Fwx + Fcx + Fwpx) / M
     Ay = (Fay + Fwy + Fcy + Fwpy) / M
+    
+    forces = [Fax, Fay, Fwx, Fwy, Fcx, Fcy, Fwpx, Fwpy] 
 
-    return Ax, Ay
+    return Ax, Ay, forces
