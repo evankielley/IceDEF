@@ -1,14 +1,14 @@
 import numpy as np
+from scipy.interpolate import interp1d
+from scipy.optimize import minimize
 from icedef import iceberg, metocean, drift, tools
 
 class Simulator:
 
     def __init__(self, **kwargs):
         
-        self.iceberg = kwargs.pop('iceberg', None)
-        self.metocean = kwargs.pop('metocean', None)
         self.results = None
-    
+            
     
     def run_simulation(self, start_location, time_frame, **kwargs):
         
@@ -30,21 +30,21 @@ class Simulator:
         dt = time_step.item().total_seconds()
         nt = int((end_time - start_time).item().total_seconds() / dt)
         
-        results = {'time': [None] * nt,
-                   'iceberg_position': [None] * nt, 
-                   'iceberg_velocity': [None] * nt,
-                   'current_velocity': [None] * nt,
-                   'wind_velocity': [None] * nt,
-                   'current_force': [None] * nt,
-                   'wind_force': [None] * nt,
-                   'coriolis_force': [None] * nt,
-                   'pressure_gradient_force': [None] * nt}
+        results = {'time': np.zeros(nt, dtype='datetime64[ns]'),
+                   'iceberg_position': np.zeros((nt, 2)), 
+                   'iceberg_velocity': np.zeros((nt, 2)),
+                   'current_velocity': np.zeros((nt, 2)),
+                   'wind_velocity': np.zeros((nt, 2)),
+                   'current_force': np.zeros((nt, 2)),
+                   'wind_force': np.zeros((nt, 2)),
+                   'coriolis_force': np.zeros((nt, 2)),
+                   'pressure_gradient_force': np.zeros((nt, 2))}
         
         if drift_model == 'Newtonian':
             
             iceberg_constants = {
-                'form_drag_coefficient_in_air': iceberg_.FORM_DRAG_COEFFICIENT_IN_AIR,
-                'form_drag_coefficient_in_water': iceberg_.FORM_DRAG_COEFFICIENT_IN_WATER,
+                'form_drag_coefficient_in_air': kwargs.pop('Ca', iceberg_.FORM_DRAG_COEFFICIENT_IN_AIR),
+                'form_drag_coefficient_in_water': kwargs.pop('Cw', iceberg_.FORM_DRAG_COEFFICIENT_IN_WATER),
                 'skin_drag_coefficient_in_air': iceberg_.SKIN_DRAG_COEFFICIENT_IN_AIR,
                 'skin_drag_coefficient_in_water': iceberg_.SKIN_DRAG_COEFFICIENT_IN_WATER,
                 'sail_area': iceberg_.geometry.sail_area,
@@ -100,7 +100,61 @@ class Simulator:
                                      metocean_.interpolate(point, metocean_.atmosphere.northward_wind_velocities))
 
                                                                     
-        self.results = results
-                      
+        return results
         
+        
+    def run_optimization(self, reference_points, start_location, time_frame):
+        
+        optimization_result = minimize(self.optimization_wrapper, x0=(1, 1), bounds=((0, 15), (0, 15)),
+                                       args=(reference_points, start_location, time_frame))
+        
+        return optimization_result
+            
+        
+    def optimization_wrapper(self, drag_coeffs, reference_points, start_location, time_frame):
+        
+        Ca, Cw = drag_coeffs
+        results = self.run_simulation(start_location, time_frame, Ca=Ca, Cw=Cw)
+        mse = self.compute_mse((results['iceberg_position'][:, 1], results['iceberg_position'][:, 0], results['time']),
+                               reference_points)
+        return mse
+            
+    def compute_mse(self, simulation_vectors, reference_points):
+        
+        t0 = np.datetime64('1900-01-01T00:00:00')
+        
+        sim_x_vec, sim_y_vec, sim_t_vec = simulation_vectors
+        #print(type((np.datetime64(sim_t_vec[0]) - t0)))
+        #print(type((np.datetime64(sim_t_vec[0]) - t0).item()))
+        #print(type((np.datetime64(sim_t_vec[0]) - t0).total_seconds()))
+        sim_t_vec = [(np.datetime64(sim_t) - t0).item() for sim_t in sim_t_vec]
+
+        ref_x_vec, ref_y_vec, ref_t_vec = reference_points
+        
+        mse_list = []
+        
+        for i in range(len(ref_t_vec)):
+            
+            ref_t = ref_t_vec[i]
+            ref_x = ref_x_vec[i]
+            ref_y = ref_y_vec[i]
+            
+            ref_t = (ref_t - t0).item()
+
+            sim_x_interpolant = interp1d(sim_t_vec, sim_x_vec)
+            sim_y_interpolant = interp1d(sim_t_vec, sim_y_vec)
+
+            sim_x = sim_x_interpolant(ref_t)
+            sim_y = sim_y_interpolant(ref_t)
+            
+            mse = np.sqrt((ref_x - sim_x)**2 + (ref_y - sim_y)**2)
+            mse_list.append(mse)
+            
+        mean_mse = np.mean(np.array(mse_list))
+        
+        return mean_mse
+        
+        
+                      
+    
         
