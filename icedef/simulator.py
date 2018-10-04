@@ -1,4 +1,5 @@
 import numpy as np
+import xarray as xr
 from scipy.interpolate import interp1d
 from scipy.optimize import minimize
 from icedef import iceberg, metocean, drift, tools
@@ -30,15 +31,24 @@ class Simulator:
         dt = time_step.item().total_seconds()
         nt = int((end_time - start_time).item().total_seconds() / dt)
         
-        results = {'time': np.zeros(nt, dtype='datetime64[ns]'),
-                   'iceberg_position': np.zeros((nt, 2)), 
-                   'iceberg_velocity': np.zeros((nt, 2)),
-                   'current_velocity': np.zeros((nt, 2)),
-                   'wind_velocity': np.zeros((nt, 2)),
-                   'current_force': np.zeros((nt, 2)),
-                   'wind_force': np.zeros((nt, 2)),
-                   'coriolis_force': np.zeros((nt, 2)),
-                   'pressure_gradient_force': np.zeros((nt, 2))}
+        times = np.zeros(nt, dtype='datetime64[ns]')
+        
+        results = {'latitude': np.zeros(nt),
+                   'longitude': np.zeros(nt),
+                   'iceberg_eastward_velocity': np.zeros(nt),
+                   'iceberg_northward_velocity': np.zeros(nt),
+                   'current_eastward_velocity': np.zeros(nt),
+                   'current_northward_velocity': np.zeros(nt),
+                   'wind_eastward_velocity': np.zeros(nt),
+                   'wind_northward_velocity': np.zeros(nt),
+                   'current_eastward_force': np.zeros(nt),
+                   'current_northward_force': np.zeros(nt),
+                   'wind_eastward_force': np.zeros(nt),
+                   'wind_northward_force': np.zeros(nt),
+                   'coriolis_eastward_force': np.zeros(nt),
+                   'coriolis_northward_force': np.zeros(nt),
+                   'pressure_eastward_force': np.zeros(nt),
+                   'pressure_northward_force': np.zeros(nt)}
         
         if drift_model == 'Newtonian':
             
@@ -75,15 +85,23 @@ class Simulator:
 
                     # Store results from this timestep
                     
-                    results['time'][i] = iceberg_.time
-                    results['iceberg_position'][i] = iceberg_.latitude, iceberg_.longitude
-                    results['iceberg_velocity'][i] = iceberg_.eastward_velocity, iceberg_.northward_velocity
-                    results['current_velocity'][i] = current_velocity
-                    results['wind_velocity'][i] = wind_velocity
-                    results['current_force'][i] = forces[2], forces[3]
-                    results['wind_force'][i] = forces[0], forces[1]
-                    results['coriolis_force'][i] = forces[4], forces[5]
-                    results['pressure_gradient_force'][i] = forces[6], forces[7]
+                    times[i] = iceberg_.time
+                    results['latitude'][i] = iceberg_.latitude
+                    results['longitude'][i] = iceberg_.longitude
+                    results['iceberg_eastward_velocity'][i] = iceberg_.eastward_velocity
+                    results['iceberg_northward_velocity'][i] = iceberg_.northward_velocity
+                    results['current_eastward_velocity'][i] = current_velocity[0]
+                    results['current_northward_velocity'][i] = current_velocity[1]
+                    results['wind_eastward_velocity'][i] = wind_velocity[0]
+                    results['wind_northward_velocity'][i] = wind_velocity[1]
+                    results['wind_eastward_force'][i] = forces[0]
+                    results['wind_northward_force'][i] = forces[1]
+                    results['current_eastward_force'][i] = forces[2]
+                    results['current_northward_force'][i] = forces[3]
+                    results['coriolis_eastward_force'][i] = forces[4]
+                    results['coriolis_northward_force'][i] = forces[5]
+                    results['pressure_eastward_force'][i] = forces[6]
+                    results['pressure_northward_force'][i] = forces[7]                    
                     
                     # Update parameters for next timestep
                     
@@ -99,8 +117,14 @@ class Simulator:
                     wind_velocity = (metocean_.interpolate(point, metocean_.atmosphere.eastward_wind_velocities),
                                      metocean_.interpolate(point, metocean_.atmosphere.northward_wind_velocities))
 
-                                                                    
-        return results
+        xds = xr.Dataset()
+        
+        for key, value in results.items():
+            
+            xarr = xr.DataArray(data=value, coords=[times], dims=['time'])
+            xds[key] = xarr     
+        
+        return xds
         
         
     def run_optimization(self, reference_points, start_location, time_frame):
@@ -115,22 +139,20 @@ class Simulator:
         
         Ca, Cw = drag_coeffs
         results = self.run_simulation(start_location, time_frame, Ca=Ca, Cw=Cw)
-        mse = self.compute_mse((results['iceberg_position'][:, 1], results['iceberg_position'][:, 0], results['time']),
-                               reference_points)
+        simulation_vectors = (results['iceberg_position'][:, 1], results['iceberg_position'][:, 0], results['time'])
+        mse = self.compute_mse(simulation_vectors, reference_points)
+        
         return mse
             
     def compute_mse(self, simulation_vectors, reference_points):
         
-        t0 = np.datetime64('1900-01-01T00:00:00')
+        t0 = np.datetime64('2015-01-01T00:00:00')
         
         sim_x_vec, sim_y_vec, sim_t_vec = simulation_vectors
-        #print(type((np.datetime64(sim_t_vec[0]) - t0)))
-        #print(type((np.datetime64(sim_t_vec[0]) - t0).item()))
-        #print(type((np.datetime64(sim_t_vec[0]) - t0).total_seconds()))
-        sim_t_vec = [(np.datetime64(sim_t) - t0).item() for sim_t in sim_t_vec]
-
-        ref_x_vec, ref_y_vec, ref_t_vec = reference_points
+        sim_t_vec = [np.timedelta64((np.datetime64(sim_t) - t0), 's').item().total_seconds() for sim_t in sim_t_vec]
         
+        ref_x_vec, ref_y_vec, ref_t_vec = reference_points
+
         mse_list = []
         
         for i in range(len(ref_t_vec)):
@@ -139,7 +161,8 @@ class Simulator:
             ref_x = ref_x_vec[i]
             ref_y = ref_y_vec[i]
             
-            ref_t = (ref_t - t0).item()
+            ref_t = np.timedelta64((np.datetime64(ref_t) - t0), 's').item().total_seconds()
+            print(ref_t)
 
             sim_x_interpolant = interp1d(sim_t_vec, sim_x_vec)
             sim_y_interpolant = interp1d(sim_t_vec, sim_y_vec)
