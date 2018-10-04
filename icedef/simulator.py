@@ -127,57 +127,36 @@ class Simulator:
         return xds
         
         
-    def run_optimization(self, reference_points, start_location, time_frame):
+    def run_optimization(self, reference_vectors, start_location, time_frame):
         
         optimization_result = minimize(self.optimization_wrapper, x0=(1, 1), bounds=((0, 15), (0, 15)),
-                                       args=(reference_points, start_location, time_frame))
+                                       args=(reference_vectors, start_location, time_frame))
         
         return optimization_result
             
         
-    def optimization_wrapper(self, drag_coeffs, reference_points, start_location, time_frame):
+    def optimization_wrapper(self, drag_coeffs, reference_vectors, start_location, time_frame):
         
         Ca, Cw = drag_coeffs
-        results = self.run_simulation(start_location, time_frame, Ca=Ca, Cw=Cw)
-        simulation_vectors = (results['iceberg_position'][:, 1], results['iceberg_position'][:, 0], results['time'])
-        mse = self.compute_mse(simulation_vectors, reference_points)
+        xds = self.run_simulation(start_location, time_frame, Ca=Ca, Cw=Cw)
+        simulation_vectors = (xds['latitude'], xds['longitude'])
+        mse = self.compute_mse(simulation_vectors, reference_vectors)
         
         return mse
             
-    def compute_mse(self, simulation_vectors, reference_points):
+    def compute_mse(self, simulation_vectors, reference_vectors):
         
-        t0 = np.datetime64('2015-01-01T00:00:00')
+        sim_lats, sim_lons = simulation_vectors
+        ref_lats, ref_lons = reference_vectors
         
-        sim_x_vec, sim_y_vec, sim_t_vec = simulation_vectors
-        sim_t_vec = [np.timedelta64((np.datetime64(sim_t) - t0), 's').item().total_seconds() for sim_t in sim_t_vec]
+        mean_square_error_list = []
         
-        ref_x_vec, ref_y_vec, ref_t_vec = reference_points
-
-        mse_list = []
-        
-        for i in range(len(ref_t_vec)):
+        for i in range(len(ref_lats)):
             
-            ref_t = ref_t_vec[i]
-            ref_x = ref_x_vec[i]
-            ref_y = ref_y_vec[i]
-            
-            ref_t = np.timedelta64((np.datetime64(ref_t) - t0), 's').item().total_seconds()
-            print(ref_t)
-
-            sim_x_interpolant = interp1d(sim_t_vec, sim_x_vec)
-            sim_y_interpolant = interp1d(sim_t_vec, sim_y_vec)
-
-            sim_x = sim_x_interpolant(ref_t)
-            sim_y = sim_y_interpolant(ref_t)
-            
-            mse = np.sqrt((ref_x - sim_x)**2 + (ref_y - sim_y)**2)
-            mse_list.append(mse)
-            
-        mean_mse = np.mean(np.array(mse_list))
+            time = ref_lats['time'][i]
+            sim_lat = sim_lats.interp(time=time)
+            sim_lon = sim_lons.interp(time=time)
+            mean_square_error_list.append(np.sqrt((sim_lat - ref_lats[i])**2 + (sim_lon - ref_lons[i])**2))
         
-        return mean_mse
-        
-        
-                      
-    
-        
+        return np.mean(mean_square_error_list)
+           
