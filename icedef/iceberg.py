@@ -78,6 +78,16 @@ class IcebergGeometry:
         return np.mean(WATERLINE_LENGTH_RANGE_BY_SIZE[self.size])
 
     @property
+    def top_area(self):
+        """Return the area of the top face."""
+        return self.waterline_length**2
+
+    @property
+    def bottom_area(self):
+        """Return the area of the bottom face."""
+        return self.waterline_length**2
+
+    @property
     def sail_height(self):
         """Return the mean sail height for the size declared."""
         return np.mean(SAIL_HEIGHT_RANGE_BY_SIZE[self.size])
