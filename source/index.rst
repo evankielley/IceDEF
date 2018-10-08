@@ -9,12 +9,13 @@ Welcome to IceDEF's documentation!
 .. autosummary::
      :toctree: stubs
         icedef.iceberg
-
+        icedef.drift
 
 .. toctree::
    :maxdepth: 2
 
    stubs/icedef.iceberg
+   stubs/icedef.drift
 
 Indices and tables
 ==================
