@@ -4,13 +4,6 @@ from scipy.optimize import minimize
 from icedef import iceberg, metocean, drift, tools
 
 
-class Simulator:
-
-    def __init__(self, **kwargs):
-        
-        self.results = None
-
-
 def run_optimization(reference_vectors, start_location, time_frame):
 
     optimization_result = minimize(optimization_wrapper, x0=(1, 1), bounds=((0, 15), (0, 15)),
