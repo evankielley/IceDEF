@@ -23,20 +23,21 @@ SHAPE_FACTOR_BY_SHAPE = {'TAB': 0.5}
 
 
 class IcebergGeometry:
+    """Instantiates object with iceberg geometry according to size and shape class specified.
+
+    Args:
+        size (str): iceberg size class as outlined by the IIP.
+        shape (str): iceberg shape class as outlined by the IIP.
+
+    Examples:
+        >>> iceberg_geometry = IcebergGeometry('LG', 'TAB')
+        >>> iceberg_geometry.waterline_length
+        160.0
+
+    """
 
     def __init__(self, size, shape):
-        """Instantiates object with iceberg geometry according to size and shape class specified.
 
-        Args:
-            size (str): iceberg size class as outlined by the IIP.
-            shape (str): iceberg shape class as outlined by the IIP.
-
-        Examples:
-            >>> iceberg_geometry = IcebergGeometry('LG', 'TAB')
-            >>> iceberg_geometry.waterline_length
-            160.0
-            
-        """
         self.size = size
         self.shape = shape
 
@@ -136,10 +137,21 @@ class Iceberg:
 
 
 def quickstart(time, position, **kwargs):
-    # position must be tuple of (latitude, longitude)
+    """Creates iceberg object from minimal args.
+
+    Args:
+        time (numpy.datetime64): time of the iceberg at specified position.
+        position (tuple of float): latitude, longitude position of iceberg at specified time.
+
+    Returns:
+        An object of the Iceberg class.
+
+    """
+
     velocity = kwargs.get('velocity', (0, 0))
     size = kwargs.get('size', 'LG')
     shape = kwargs.get('shape', 'TAB')
     geometry = IcebergGeometry(size, shape)
     iceberg = Iceberg(time, position, velocity, geometry)
+
     return iceberg
