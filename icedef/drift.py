@@ -2,7 +2,7 @@ import numpy as np
 from icedef.constants import *
 
 
-def newtonian_drift(iceberg_velocity, current_velocity, wind_velocity, iceberg_constants):
+def newtonian_drift(iceberg_velocity, current_velocity, wind_velocity, **kwargs):
     """Computes instantaneous iceberg acceleration."""
 
     # Constants
@@ -12,27 +12,25 @@ def newtonian_drift(iceberg_velocity, current_velocity, wind_velocity, iceberg_c
 
     # Args
     Vx, Vy = iceberg_velocity
-
     Vwx, Vwy = wind_velocity
     Vcx, Vcy = current_velocity
-    # Amwx, Amwy = current_acceleration
-    Amwx, Amwy = 0, 0
 
-    Ca = iceberg_constants['form_drag_coefficient_in_air']
-    Cw = iceberg_constants['form_drag_coefficient_in_water']
-    Cda = iceberg_constants['skin_drag_coefficient_in_air']
-    Cdw = iceberg_constants['skin_drag_coefficient_in_water']
-    As = iceberg_constants['sail_area']
-    Ak = iceberg_constants['keel_area']
-    At = iceberg_constants['top_area']
-    Ab = iceberg_constants['bottom_area']
-    M = iceberg_constants['mass']
-    phi = iceberg_constants['latitude']
+    # Kwargs
+    Amwx, Amwy = kwargs.pop('current_acceleration', (0, 0))
+    Ca = kwargs.pop('form_drag_coefficient_in_air', 1.5)
+    Cw = kwargs.pop('form_drag_coefficient_in_water', 1.5)
+    Cda = kwargs.pop('skin_drag_coefficient_in_air', 2.5e-4)
+    Cdw = kwargs.pop('skin_drag_coefficient_in_water', 5e-4)
+    As = kwargs.pop('sail_area', 9600.0)
+    Ak = kwargs.pop('keel_area', 48000.0)
+    At = kwargs.pop('top_area', 25600.0)
+    Ab = kwargs.pop('bottom_area', 25600.0)
+    M = kwargs.pop('mass', 5468160000.0)
+    phi = kwargs.pop('latitude', 50)
 
     # Wind force
     Fax = (0.5 * rhoa * Ca * As + rhoa * Cda * At) * np.sqrt((Vwx - Vx)**2 + (Vwy - Vy)**2) * (Vwx - Vx)
     Fay = (0.5 * rhoa * Ca * As + rhoa * Cda * At) * np.sqrt((Vwx - Vx)**2 + (Vwy - Vy)**2) * (Vwy - Vy)
-    
 
     # Current force
     Fwx = (0.5 * rhow * Cw * Ak + rhow * Cdw * Ab) * np.sqrt((Vcx - Vx)**2 + (Vcy - Vy)**2) * (Vcx - Vx)
