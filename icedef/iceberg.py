@@ -1,4 +1,18 @@
-"""Creates iceberg object."""
+"""Iceberg module documentation.
+
+This module creates iceberg objects according to the time, space, velocity, and
+geometry specified by the user.
+
+Attributes:
+    WATERLINE_LENGTH_RANGE_BY_SIZE (dict): dictionary of iceberg waterline length ranges (min, max)
+        in meters for each iceberg size class.
+    SAIL_HEIGHT_RANGE_BY_SIZE (dict): dictionary of iceberg sail height ranges (min, max) in meters
+        for each iceberg size class.
+    HEIGHT_TO_DRAFT_RATIO_BY_SHAPE (dict): dictionary of iceberg sail height to keel depth ratios
+        for each iceberg shape class.
+    SHAPE_FACTOR_BY_SHAPE (dict): dictionary of iceberg shape factors for each iceberg shape class.
+
+"""
 
 import numpy as np
 
@@ -8,67 +22,21 @@ HEIGHT_TO_DRAFT_RATIO_BY_SHAPE = {'TAB': 0.2}
 SHAPE_FACTOR_BY_SHAPE = {'TAB': 0.5}
 
 
-class Position:
-
-    def __init__(self, latitude, longitude):
-        self._latitude = latitude
-        self._longitude = longitude
-        self._x = 0
-        self._y = 0
-
-    @property
-    def latitude(self):
-        return self._latitude
-
-    @latitude.setter
-    def latitude(self, value):
-        # dlat = value - self._latitude
-        # self._y += dlat_to_dy(dlat)
-        self._latitude = value
-
-    @property
-    def longitude(self):
-        return self._longitude
-
-    @longitude.setter
-    def longitude(self, value):
-        # dlon = value - self._longitude
-        # lat = self._latitude
-        # self._x += dlon_to_dx(dlon, lat)
-        self._longitude = value
-
-    @property
-    def x(self):
-        return self._x
-
-    @x.setter
-    def x(self, value):
-        # dx = value - self._x
-        # lat = self._latitude
-        # self._longitude += dx_to_dlon(dx, lat)
-        self._x = value
-
-    @property
-    def y(self):
-        return self._y
-
-    @y.setter
-    def y(self, value):
-        # dy = value - self._y
-        # self._latitude += dy_to_dlat(dy)
-        self._y = value
-
-
-class Velocity:
-
-    def __init__(self, vx, vy):
-        self.x = vx
-        self.y = vy
-
-
 class IcebergGeometry:
 
     def __init__(self, size, shape):
+        """Instantiates object with iceberg geometry according to size and shape class specified.
+
+        Args:
+            size (str): iceberg size class as outlined by the IIP.
+            shape (str): iceberg shape class as outlined by the IIP.
+
+        Examples:
+            >>> iceberg_geometry = IcebergGeometry('LG', 'TAB')
+            >>> iceberg_geometry.waterline_length
+            160.0
+            
+        """
         self.size = size
         self.shape = shape
 
@@ -144,12 +112,15 @@ class Iceberg:
         self.eastward_velocity, self.northward_velocity = velocity
         self.geometry = geometry
         self.name = kwargs.get('name', None)
-        self.history = {'time': [], 'latitude': [], 'longitude': []}
+        self.history = {'time': [], 'latitude': [], 'longitude': [],
+                        'eastward_velocity': [], 'northward_velocity': []}
 
     def update_history(self):
         self.history['time'].append(self.time)
         self.history['latitude'].append(self.latitude)
         self.history['longitude'].append(self.longitude)
+        self.history['eastward_velocity'].append(self.eastward_velocity)
+        self.history['northward_velocity'].append(self.northward_velocity)
 
     def reset(self):
         self.time = self.history['time'][0]
@@ -158,6 +129,10 @@ class Iceberg:
         self.history['latitude'] = []
         self.longitude = self.history['longitude'][0]
         self.history['longitude'] = []
+        self.eastward_velocity = self.history['eastward_velocity'][0]
+        self.history['eastward_velocity'] = []
+        self.northward_velocity = self.history['northward_velocity'][0]
+        self.history['northward_velocity'] = []
 
 
 def quickstart(time, position, **kwargs):
@@ -167,17 +142,4 @@ def quickstart(time, position, **kwargs):
     shape = kwargs.get('shape', 'TAB')
     geometry = IcebergGeometry(size, shape)
     iceberg = Iceberg(time, position, velocity, geometry)
-    return iceberg
-
-
-def old_quickstart(time, latitude, longitude, **kwargs):
-    velocity = kwargs.get('velocity', (0, 0))
-    velocity = Velocity(velocity[0], velocity[1])
-    size = kwargs.get('size', 'LG')
-    shape = kwargs.get('shape', 'TAB')
-
-    geometry = IcebergGeometry(size, shape)
-    position = Position(latitude, longitude)
-    iceberg = Iceberg(time, position, velocity, geometry)
-
     return iceberg
