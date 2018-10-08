@@ -44,7 +44,12 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
     'sphinx.ext.napoleon',
+    'sphinx.ext.autosummary',
 ]
+
+
+autodoc_default_flags = ['members']
+autosummary_generate = True
 
 # Napoleon settings
 napoleon_google_docstring = True
@@ -92,16 +97,17 @@ pygments_style = 'sphinx'
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'agogo'
+#html_theme = 'agogo'
+html_theme = 'classic'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-html_theme_options = {
-                      "bodyfont": 'Courier New',
-                      "headerfont": 'Courier New',
-                     }
+# html_theme_options = {
+#                       "bodyfont": 'Courier New',
+#                       "headerfont": 'Courier New',
+#                      }
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
