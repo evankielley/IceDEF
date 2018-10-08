@@ -6,16 +6,15 @@
 Welcome to IceDEF's documentation!
 ==================================
 
+.. autosummary::
+     :toctree: stubs
+        icedef.iceberg
+
+
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
-
-.. automodule:: icedef
-   :members:
-
-.. automodule:: icedef.drift
-   :members: newtonian_drift
+   stubs/icedef.iceberg
 
 Indices and tables
 ==================
