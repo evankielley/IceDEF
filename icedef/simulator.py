@@ -89,7 +89,9 @@ def run_simulation(start_location, time_frame, **kwargs):
             'top_area': iceberg_.geometry.waterline_length**2,
             'bottom_area': 0,
             'mass': iceberg_.geometry.mass,
-            'latitude': iceberg_.latitude
+            'latitude': iceberg_.latitude,
+            'ekman': kwargs.pop('ekman', False),
+            'depth_vec': kwargs.pop('depth_vec', np.arange(0, -110, -10))
             }
 
         point = (iceberg_.time, iceberg_.latitude, iceberg_.longitude)
