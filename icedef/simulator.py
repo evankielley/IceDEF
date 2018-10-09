@@ -1,12 +1,14 @@
 import numpy as np
 import xarray as xr
+import copy
 from scipy.optimize import minimize
 from icedef import iceberg, metocean, drift, tools
 
 
-def run_optimization(reference_vectors, start_location, time_frame):
+def run_optimization(reference_vectors, start_location, time_frame, **kwargs):
 
-    optimization_result = minimize(optimization_wrapper, x0=(1, 1), bounds=((0, 15), (0, 15)),
+    bounds = kwargs.pop('bounds', ((0, 15), (0, 15)))
+    optimization_result = minimize(optimization_wrapper, x0=(1, 1), bounds=bounds,
                                    args=(reference_vectors, start_location, time_frame))
 
     return optimization_result
@@ -91,7 +93,8 @@ def run_simulation(start_location, time_frame, **kwargs):
             'mass': iceberg_.geometry.mass,
             'latitude': iceberg_.latitude,
             'ekman': kwargs.pop('ekman', False),
-            'depth_vec': kwargs.pop('depth_vec', np.arange(0, -110, -10))
+            'depth_vec': kwargs.pop('depth_vec', np.arange(0, -110, -10)),
+            'current_acceleration': (0,0)
             }
 
         point = (iceberg_.time, iceberg_.latitude, iceberg_.longitude)
@@ -101,7 +104,7 @@ def run_simulation(start_location, time_frame, **kwargs):
 
         wind_velocity = (metocean_.interpolate(point, metocean_.atmosphere.eastward_wind_velocities),
                          metocean_.interpolate(point, metocean_.atmosphere.northward_wind_velocities))
-
+        
         if numerical_method == 'Euler':
 
             for i in range(nt):
@@ -140,11 +143,15 @@ def run_simulation(start_location, time_frame, **kwargs):
                 iceberg_constants['latitude'] = iceberg_.latitude
                 iceberg_.longitude += tools.dx_to_dlon(iceberg_.eastward_velocity * dt, iceberg_.latitude)
                 point = (iceberg_.time, iceberg_.latitude, iceberg_.longitude)
+                old_current_velocity = copy.deepcopy(current_velocity)
                 current_velocity = (metocean_.interpolate(point, metocean_.ocean.eastward_current_velocities),
                                     metocean_.interpolate(point, metocean_.ocean.northward_current_velocities))
                 wind_velocity = (metocean_.interpolate(point, metocean_.atmosphere.eastward_wind_velocities),
                                  metocean_.interpolate(point, metocean_.atmosphere.northward_wind_velocities))
-
+                current_acceleration = ((current_velocity[0] - old_current_velocity[0]) / dt,
+                                        (current_velocity[1] - old_current_velocity[1]) / dt)
+                iceberg_constants['current_acceleration'] = current_acceleration
+                
     xds = xr.Dataset()
 
     for key, value in results.items():
