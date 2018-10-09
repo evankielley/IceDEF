@@ -1,9 +1,20 @@
-import numpy as np
-from icedef.constants import *
+#import numpy as np
+#from icedef.constants import *
 
 
 def newtonian_drift(iceberg_velocity, current_velocity, wind_velocity, **kwargs):
-    """Computes instantaneous iceberg acceleration."""
+
+    """Computes iceberg acceleration.
+
+    Args:
+        iceberg_velocity (tuple): u, v components of iceberg velocity.
+        current_velocity (tuple): u, v components of current velocity.
+        wind_velocity (tuple): u, v components of wind velocity.
+
+    Returns:
+        The u, v components of iceberg acceleration.
+
+    """
 
     # Constants
     Omega = EARTH_ROTATION_RATE
@@ -33,7 +44,6 @@ def newtonian_drift(iceberg_velocity, current_velocity, wind_velocity, **kwargs)
     Fay = (0.5 * rhoa * Ca * As + rhoa * Cda * At) * np.sqrt((Vwx - Vx)**2 + (Vwy - Vy)**2) * (Vwy - Vy)
 
     # Current force
-
     ekman = kwargs.pop('ekman', False)
 
     if ekman:
@@ -84,6 +94,18 @@ def newtonian_drift(iceberg_velocity, current_velocity, wind_velocity, **kwargs)
 
 def compute_ekman_velocity(wind, depth, latitude=50):
 
+    """Computes Ekman velocity at specified depth and latitude from wind velocity.
+
+    Args:
+        wind (tuple): u, v components of wind velocity near the surface.
+        depth (float): depth below sea surface.
+        latitude (float): latitude.
+
+    Returns:
+        A tuple containing the u, v components of Ekman velocity.
+
+    """
+
     u_wind, v_wind = wind
     z = depth
     phi = latitude
@@ -114,6 +136,18 @@ def compute_ekman_velocity(wind, depth, latitude=50):
 
 
 def compute_ekman_spiral(wind, surface_current, depth_vec):
+
+    """Computes the velocity vectors of the Ekman spiral from surface to depth.
+
+    Args:
+        wind (tuple): u, v components of wind velocity (typically 10 meter winds).
+        surface_current (tuple): u, v components of surface current velocity.
+        depth_vec (vector): vector of depths below sea surface at which to compute Ekman velocity.
+
+    Returns:
+        A tuple of vectors containing the u, v components of the Ekman spiral velocity.
+
+    """
 
     u_ekman_vec = np.zeros(len(depth_vec))
     v_ekman_vec = np.zeros(len(depth_vec))

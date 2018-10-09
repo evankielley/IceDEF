@@ -14,7 +14,7 @@ Attributes:
 
 """
 
-import numpy as np
+#import numpy as np
 
 WATERLINE_LENGTH_RANGE_BY_SIZE = {'LG': (120, 200)}
 SAIL_HEIGHT_RANGE_BY_SIZE = {'LG': (45, 75)}
@@ -23,7 +23,8 @@ SHAPE_FACTOR_BY_SHAPE = {'TAB': 0.5}
 
 
 class IcebergGeometry:
-    """Instantiates object with iceberg geometry according to size and shape class specified.
+
+    """Initializes object with iceberg geometry according to size and shape class specified.
 
     Args:
         size (str): iceberg size class as outlined by the IIP.
@@ -98,7 +99,16 @@ class IcebergGeometry:
 
 
 class Iceberg:
-    """Creates iceberg object."""
+
+    """Creates an iceberg object.
+
+    Args:
+        time (numpy.datetime64): time of the iceberg at specified position.
+        position (tuple): latitude, longitude position of iceberg at specified time.
+        velocity (tuple): u, v components of iceberg velocity.
+        geometry (icedef.iceberg.IcebergGeometry): object containing iceberg geometry.
+
+    """
 
     DENSITY = 900
 
@@ -108,6 +118,7 @@ class Iceberg:
     SKIN_DRAG_COEFFICIENT_IN_WATER = 5e-4
 
     def __init__(self, time, position, velocity, geometry, **kwargs):
+
         self.time = time
         self.latitude, self.longitude = position
         self.eastward_velocity, self.northward_velocity = velocity
@@ -117,6 +128,11 @@ class Iceberg:
                         'eastward_velocity': [], 'northward_velocity': []}
 
     def update_history(self):
+
+        """Appends the values of iceberg attributes to dictionary containing historic attribute values.
+
+        """
+
         self.history['time'].append(self.time)
         self.history['latitude'].append(self.latitude)
         self.history['longitude'].append(self.longitude)
@@ -124,6 +140,10 @@ class Iceberg:
         self.history['northward_velocity'].append(self.northward_velocity)
 
     def reset(self):
+
+        """Resets initial attribute values to first entry in history dict and then clears the history dict.
+        """
+
         self.time = self.history['time'][0]
         self.history['time'] = []
         self.latitude = self.history['latitude'][0]
@@ -137,7 +157,8 @@ class Iceberg:
 
 
 def quickstart(time, position, **kwargs):
-    """Creates iceberg object from minimal args.
+
+    """Creates iceberg object from minimal arguments.
 
     Args:
         time (numpy.datetime64): time of the iceberg at specified position.
@@ -145,7 +166,6 @@ def quickstart(time, position, **kwargs):
 
     Returns:
         An object of the Iceberg class.
-
     """
 
     velocity = kwargs.get('velocity', (0, 0))

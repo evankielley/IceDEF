@@ -1,6 +1,6 @@
-import numpy as np
-from icedef.constants import *
-from scipy.interpolate import interp1d
+#import numpy as np
+#from icedef.constants import *
+#from scipy.interpolate import interp1d
 
 
 def dx_to_dlon(dx, lat):

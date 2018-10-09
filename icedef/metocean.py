@@ -1,11 +1,18 @@
-import os
-import numpy as np
-import xarray as xr
-from urllib.request import urlretrieve
-from datetime import date, timedelta
+#import os
+#import numpy as np
+#import xarray as xr
+#from urllib.request import urlretrieve
+#from datetime import date, timedelta
 
 
 class Metocean:
+
+    """Creates metocean object containing ocean and atmosphere objects.
+
+    Args:
+        date_bounds (tuple of numpy.datetime64): start, end times for metocean data.
+
+    """
 
     def __init__(self, date_bounds, **kwargs):
 
@@ -16,12 +23,35 @@ class Metocean:
 
     def interpolate(self, point, data):
 
+        """Interpolates 3D data field at a point in time and space.
+
+        Args:
+            point (tuple): time, latitude, and longitude at which to compute interpolated value.
+            data (3D array): 3D matrix of data values.
+
+        Returns:
+            Interpolated value of data at point.
+
+        """
+
         def compute_interpolation(x0, xi, dx, data):
+
+            """Performs linear interpolation on the zeroth dimension of data.
+
+            Args:
+                 x0 (float): first value of coordinate vector.
+                 xi (float): coordinate value at which to compute interpolation.
+                 dx (float): coordinate vector step.
+                 data (3D matrix): data field to interpolate.
+
+            """
+
             indx = (xi - x0) / dx
             indx_floor = int(np.floor(indx))
             dindx = indx - indx_floor
             submatrix = data[indx_floor: indx_floor + 2, ...]
             data = (1 - dindx) * submatrix[0, ...] + dindx * submatrix[1, ...]
+
             return data
 
         assert data.dims == ('time', 'latitude', 'longitude')

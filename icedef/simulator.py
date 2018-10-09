@@ -1,7 +1,11 @@
-import numpy as np
-import xarray as xr
-from scipy.optimize import minimize
-from icedef import iceberg, metocean, drift, tools
+"""This module does stuff.
+
+"""
+
+#import numpy as np
+#import xarray as xr
+#from scipy.optimize import minimize
+#from icedef import iceberg, metocean, drift, tools
 
 
 def run_optimization(reference_vectors, start_location, time_frame):
