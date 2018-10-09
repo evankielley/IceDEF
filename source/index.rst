@@ -7,15 +7,23 @@ Welcome to IceDEF's documentation!
 ==================================
 
 .. autosummary::
-     :toctree: stubs
-        icedef.iceberg
-        icedef.drift
+   :toctree: stubs
+
+      icedef.drift
+      icedef.iceberg
+      icedef.tools
+      icedef.simulator
+      icedef.metocean
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 5
 
-   stubs/icedef.iceberg
    stubs/icedef.drift
+   stubs/icedef.iceberg
+   stubs/icedef.tools
+   stubs/icedef.simulator
+   stubs/icedef.metocean
+
 
 Indices and tables
 ==================
