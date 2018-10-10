@@ -11,31 +11,68 @@ import cartopy.crs as ccrs
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 
-def find_matching_value_indices(small_list, big_list):
-    """This function finds the indices from one list of the values that match the values from the other list.
+def plot_iceberg_track(lats, lons, **kwargs):
+    plot_width = kwargs.pop('plot_width', 10)
+    plot_height = kwargs.pop('plot_height', 8)
 
-    Args:
-        small_list (list of float or int): 1D list of numbers, smaller in length than big_list
-        big_list (list of float or int): 1D list of evenly spaced numbers, larger in length than small_list
+    fig = plt.figure(figsize=(plot_width, plot_height))
 
-    Returns:
-        matching_indices (list of int): list of all the indices of the bigger list which match the smaller list values
+    plt.xlabel('Longitude')
+    plt.ylabel('Latitude')
 
-    """
+    vectors = kwargs.pop('vectors', None)
+    gap = kwargs.pop('gap', 10)
+    track_marker_size = kwargs.pop('track_marker_size', 5)
+    ref_marker_size = kwargs.pop('ref_marker_size', 5)
+    arrow_scale = kwargs.pop('arrow_scale', None)
+    arrow_shaftwidth = kwargs.pop('arrow_shaftwidth', 0.0005 * plot_width)
+    arrow_headlength = kwargs.pop('arrow_headlength', 5)
+    arrow_headwidth = kwargs.pop('arrow_headwidth', 3)
+    arrow_colors = kwargs.pop('arrow_colors', ['black'] * 10)
+    arrow_labels = kwargs.pop('arrow_labels', [''] * 10)
+    ref_track = kwargs.pop('ref_track', None)
+    quiver_ref_track = kwargs.pop('quiver_ref_track', False)
 
-    big_delta = big_list[1] - big_list[0]
+    plt.scatter(lons, lats, s=track_marker_size, label='')
 
-    matching_indices = []
+    if vectors is not None:
 
-    for small_item in small_list:
-        for big_index, big_item in enumerate(big_list):
-            delta = abs(small_item - big_item)
-            if delta < big_delta:
-                matching_index = big_index
-                matching_indices.append(matching_index)
-                break
+        i = 0
 
-    return matching_indices
+        for vector_u, vector_v in vectors:
+            plt.quiver(lons[::gap], lats[::gap], vector_u[::gap], vector_v[::gap],
+                       scale=arrow_scale, width=arrow_shaftwidth, headlength=arrow_headlength,
+                       headwidth=arrow_headwidth, color=arrow_colors[i], label=arrow_labels[i])
+            i += 1
+
+        if ref_track is not None:
+
+            ref_lats, ref_lons = ref_track
+            plt.scatter(ref_lons, ref_lats, s=ref_marker_size, label='')
+            plt.plot(ref_lons, ref_lats)
+
+            if quiver_ref_track:
+
+                ref_lat_list = [];
+                ref_lon_list = []
+
+                for i in np.arange(0, len(vector_u), gap):
+                    ref_lat_list.append(ref_lats.interp(time=xds.time[i]))
+                    ref_lon_list.append(ref_lons.interp(time=xds.time[i]))
+
+                i = 0
+
+                for vector_u, vector_v in vectors:
+                    plt.quiver(ref_lon_list, ref_lat_list, vector_u[::gap], vector_v[::gap],
+                               scale=arrow_scale, width=arrow_shaftwidth, headlength=arrow_headlength,
+                               headwidth=arrow_headwidth, color=arrow_colors[i], label='')
+                    i += 1
+
+        if arrow_labels[0] is not '':
+            plt.legend()
+
+    plt.show()
+
 
 def get_mercator_basemap(min_lon, max_lon, min_lat, max_lat):
 
@@ -50,7 +87,6 @@ def get_mercator_basemap(min_lon, max_lon, min_lat, max_lat):
                 llcrnrlat = min_lat - lat_pad,
                 urcrnrlon = max_lon + lon_pad,
                 urcrnrlat = max_lat + lat_pad)
-
 
     # parallels are lines of latitude, meridians are lines of longitude
     parallels = np.round(np.arange(min_lat, max_lat + lat_pad, lat_pad), 2)
@@ -68,162 +104,14 @@ def get_mercator_basemap(min_lon, max_lon, min_lat, max_lat):
     # make the land pretty
     m.drawcoastlines()
     m.drawcountries()
-    m.fillcontinents(color = 'coral')
+    m.fillcontinents(color='coral')
     m.drawmapboundary()
 
     return m
 
-def plot_drift_track_test_case(iip_berg, mod_berg, time_labels=True):
-    """This function plots the drift track of a simulated iceberg against its observed coordinates"
 
-    Args:
-        iip_berg (Iceberg): all attributes correspond to data from a particular IIP iceberg.
-        mod_berg (Iceberg): initial attributes and final time correspond to data from a particular
-                            IIP iceberg but the rest comes from drift simulation.
-    """
-
-    fig, ax = plt.subplots(dpi=150)
-    ax.set_xlabel('Longitude')
-    ax.set_ylabel('Latitude')
-    ax.set_title('Comparison of Drift Model Track to IIP Observations')
-    ax.xaxis.labelpad = 60
-    ax.yaxis.labelpad = 60
-
-    iip_lons = iip_berg.history['X']
-    iip_lats = iip_berg.history['Y']
-    mod_lons = mod_berg.history['X']
-    mod_lats = mod_berg.history['Y']
-
-    # Get min and max iceberg lons and lats for defining the plot axes ranges
-    berg_xmin = min(min(mod_lons), min(iip_lons))
-    berg_xmax = max(max(mod_lons), max(iip_lons))
-    berg_ymin = min(min(mod_lats), min(iip_lats))
-    berg_ymax = max(max(mod_lats), max(iip_lats))
-
-    # spatial buffer for expanding the plot axes ranges for better readability
-    buff = 0.1
-
-    m = get_mercator_basemap(berg_xmin, berg_xmax, berg_ymin, berg_ymax)
-
-    # map lons and lats to x and y in meters
-    iip_x, iip_y = m(iip_lons, iip_lats)
-    mod_x, mod_y = m(mod_lons, mod_lats)
-
-    # scatter both sets of data points so timesteps can be seen
-    ax.scatter(iip_x, iip_y, marker='o', s=10, c='black')
-    ax.scatter(mod_x, mod_y, marker='o', s=1, c='blue')
-
-    # if True, annotate matching points in time between datasets
-    if time_labels:
-
-        iip_times = iip_berg.history['T']
-        mod_times = mod_berg.history['T']
-
-        matching_indices = find_matching_value_indices(iip_times, mod_times)
-
-        iip_hours = [(t-iip_times[0]).days*24 + (t-iip_times[0]).seconds/3600 for t in iip_times]
-        hour_labels = [str(round(x, 1)) for x in iip_hours]
-
-        for i, hour_label in enumerate(hour_labels):
-            ax.text(iip_x[i], iip_y[i], hour_label)
-
-        for i, hour_label in enumerate(hour_labels):
-
-            try:
-                j = matching_indices[i]
-            except IndexError:
-                break
-
-            if not round(iip_lons[i], 2) == round(mod_lons[j], 2):
-                ax.scatter(mod_x[j], mod_y[j], marker='o', color='red')
-                ax.text(mod_x[j], mod_y[j], hour_label)
-
-    return fig
-
-
-
-def plot_spaghetti_test_case(iip_berg, mod_berg_list, time_labels=False):
-
-    fig, ax = plt.subplots(dpi=150)
-    ax.set_xlabel('Longitude')
-    ax.set_ylabel('Latitude')
-    ax.set_title('Comparison of Drift Model Tracks to IIP Observations')
-    ax.xaxis.labelpad = 60
-    ax.yaxis.labelpad = 60
-
-    iip_lons = iip_berg.history['X']
-    iip_lats = iip_berg.history['Y']
-
-    berg_xmin, berg_xmax = min(iip_lons), max(iip_lons)
-    berg_ymin, berg_ymax = min(iip_lats), max(iip_lats)
-
-    for mod_berg in mod_berg_list:
-
-        if not mod_berg.out_of_bounds:
-
-            mod_lons = mod_berg.history['X']
-            mod_lats = mod_berg.history['Y']
-
-            # Get min and max iceberg lons and lats for defining the plot axes ranges
-            tmp_xmin = min(min(mod_lons), min(iip_lons))
-            tmp_xmax = max(max(mod_lons), max(iip_lons))
-            tmp_ymin = min(min(mod_lats), min(iip_lats))
-            tmp_ymax = max(max(mod_lats), max(iip_lats))
-
-            berg_xmin = min(berg_xmin, tmp_xmin)
-            berg_xmax = max(berg_xmax, tmp_xmax)
-            berg_ymin = min(berg_ymin, tmp_ymin)
-            berg_ymax = max(berg_ymax, tmp_ymax)
-
-
-    m = get_mercator_basemap(berg_xmin, berg_xmax, berg_ymin, berg_ymax)
-
-
-    # map lons and lats to x and y in meters
-    iip_x, iip_y = m(iip_lons, iip_lats)
-
-    # get lists of iip times for comparing to mod times to later annotate plot with labels
-    iip_times = iip_berg.history['T']
-    iip_hours = [(t-iip_times[0]).days*24 + (t-iip_times[0]).seconds/3600 for t in iip_times]
-    hour_labels = [str(round(x, 1)) for x in iip_hours]
-
-
-    for i, hour_label in enumerate(hour_labels):
-        ax.scatter(iip_x[i], iip_y[i], marker='o', color='black')
-        ax.text(iip_x[i], iip_y[i], hour_label)
-
-
-    for mod_berg in mod_berg_list:
-
-        mod_lons = mod_berg.history['X']
-        mod_lats = mod_berg.history['Y']
-        mod_x, mod_y = m(mod_lons, mod_lats)
-        ax.scatter(mod_x, mod_y, marker='o', s=1)#, c='red')
-
-        mod_times = mod_berg.history['T']
-
-        matching_indices = find_matching_value_indices(iip_times, mod_times)
-
-        for i, hour_label in enumerate(hour_labels):
-
-            try:
-                j = matching_indices[i]
-            except IndexError:
-                break
-
-            if not round(iip_lons[i], 2) == round(mod_lons[j], 2):
-                ax.scatter(mod_x[j], mod_y[j], marker='o', color='black',s=10)
-                if time_labels:
-                    ax.text(mod_x[j], mod_y[j], hour_label)
-
-
-    plt.savefig('test_plot.png')
-
-    return fig
-
-
-def berg_metocean_animation(xyt_berg, xyt_grid, grid_scales, uv_data,
-                             fname='field_anim', v_auto = True, vmin=0, vmax=1,
+def iceberg_metocean_animation(xyt_berg, xyt_grid, grid_scales, uv_data,
+                             fname='field_anim', v_auto=True, vmin=0, vmax=1,
                              scale=1, headwidth=5, width=5e-3, speed=100):
 
     x_berg, y_berg, t_berg = xyt_berg
