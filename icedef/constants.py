@@ -1,7 +1,7 @@
 # units of density are: kilograms per meter cubed
 AIR_DENSITY = 1.027
 SEAWATER_DENSITY = 1025
-#ICEBERG_DENSITY = 917
+ICEBERG_DENSITY = 917
 
 # units of drag form coefficients are: unit-less
 #ICEBERG_FORM_DRAG_COEFFICIENT_IN_AIR = 1.5
