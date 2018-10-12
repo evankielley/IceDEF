@@ -57,8 +57,8 @@ def plot_iceberg_track(lats, lons, **kwargs):
                 ref_lon_list = []
 
                 for i in np.arange(0, len(vector_u), gap):
-                    ref_lat_list.append(ref_lats.interp(time=xds.time[i]))
-                    ref_lon_list.append(ref_lons.interp(time=xds.time[i]))
+                    ref_lat_list.append(ref_lats.interp(time=vector_u.time[i]))
+                    ref_lon_list.append(ref_lons.interp(time=vector_u.time[i]))
 
                 i = 0
 
