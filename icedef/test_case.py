@@ -16,3 +16,5 @@ class TestCase:
         self.end_time = np.datetime64(self.df.DataDate_UTC[self.end_index])
         self.start_latitude = self.df.Latitude[self.start_index]
         self.start_longitude = self.df.Longitude[self.start_index]
+        self.start_velocity = statoil_data.get_iceberg_velocity_from_dataframe(
+            self.df, self.start_index, self.start_index + 10)
