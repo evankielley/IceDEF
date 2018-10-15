@@ -102,7 +102,7 @@ def run_simulation(start_location, time_frame, **kwargs):
             'keel_area': iceberg_.geometry.keel_area,
             'top_area': iceberg_.geometry.waterline_length**2,
             'bottom_area': 0,
-            'mass': iceberg_.geometry.mass,
+            'mass': kwargs.pop('mass', iceberg_.geometry.mass),
             'latitude': iceberg_.latitude,
             'ekman': kwargs.pop('ekman', False),
             'depth_vec': kwargs.pop('depth_vec', np.arange(0, -110, -10)),

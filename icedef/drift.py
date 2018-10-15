@@ -72,12 +72,12 @@ def newtonian_drift(iceberg_velocity, current_velocity, wind_velocity, **kwargs)
     Vmwy = Vcy
     Amwx = Amwx
     Amwy = Amwy
-    Fwpx = M * (Amwx + f * Vmwy)
-    Fwpy = M * (Amwy - f * Vmwx)
+    Fwpx = M * (Amwx - f * Vmwy)
+    Fwpy = M * (Amwy + f * Vmwx)
 
     # Iceberg acceleration
-    Ax = (Fax + Fwx + Fcx + Fwpx) / M
-    Ay = (Fay + Fwy + Fcy + Fwpy) / M
+    Ax = (Fax + Fwx + Fcx + Fwpx) / (M + 0.5 * M)
+    Ay = (Fay + Fwy + Fcy + Fwpy) / (M + 0.5 * M)
 
     forces = [Fax, Fay, Fwx, Fwy, Fcx, Fcy, Fwpx, Fwpy]
 
