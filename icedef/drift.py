@@ -6,6 +6,12 @@ from icedef.constants import *
 def newtonian_drift(iceberg_velocity, current_velocity, wind_velocity, **kwargs):
     """Computes instantaneous iceberg acceleration."""
 
+    # Override forces with kwargs
+    zero_wind_force = kwargs.pop('zero_wind_force', False)
+    zero_current_force = kwargs.pop('zero_current_force', False)
+    zero_coriolis_force = kwargs.pop('zero_coriolis_force', False)
+    zero_pressure_force = kwargs.pop('zero_pressure_force', False)
+
     # Constants
     Omega = EARTH_ROTATION_RATE
     rhoa = AIR_DENSITY
@@ -30,50 +36,73 @@ def newtonian_drift(iceberg_velocity, current_velocity, wind_velocity, **kwargs)
     phi = kwargs.pop('latitude', 50)
 
     # Wind force
-    Fax = (0.5 * rhoa * Ca * As + rhoa * Cda * At) * np.sqrt((Vwx - Vx)**2 + (Vwy - Vy)**2) * (Vwx - Vx)
-    Fay = (0.5 * rhoa * Ca * As + rhoa * Cda * At) * np.sqrt((Vwx - Vx)**2 + (Vwy - Vy)**2) * (Vwy - Vy)
+    if zero_wind_force:
+        Fax, Fay = 0, 0
+    else:
+        Fax = (0.5 * rhoa * Ca * As + rhoa * Cda * At) * np.sqrt((Vwx - Vx)**2 + (Vwy - Vy)**2) * (Vwx - Vx)
+        Fay = (0.5 * rhoa * Ca * As + rhoa * Cda * At) * np.sqrt((Vwx - Vx)**2 + (Vwy - Vy)**2) * (Vwy - Vy)
 
     # Current force
 
     ekman = kwargs.pop('ekman', False)
 
-    if ekman:
+    if zero_current_force:
+        Fwx, Fwy = 0, 0
+
+    elif ekman:
 
         Fwx_list = []
         Fwy_list = []
+        Vcx_list = []
+        Vcy_list = []
 
         depth_vec = kwargs.pop('depth_vec', np.arange(0, -110, -10))
 
         u_vec, v_vec = compute_ekman_spiral(wind_velocity, current_velocity, depth_vec)
 
         for i in range(len(u_vec)):
+
             Vcx, Vcy = u_vec[i], v_vec[i]
 
-            Fwx_list.append(
-                (0.5 * rhow * Cw * Ak + rhow * Cdw * Ab) * np.sqrt((Vcx - Vx)**2 + (Vcy - Vy)**2) * (Vcx - Vx))
-            Fwy_list.append(
-                (0.5 * rhow * Cw * Ak + rhow * Cdw * Ab) * np.sqrt((Vcx - Vx)**2 + (Vcy - Vy)**2) * (Vcy - Vy))
+            Vcx_list.append(Vcx)
+            Vcy_list.append(Vcy)
+
+            Fwx = (0.5 * rhow * Cw * Ak + rhow * Cdw * Ab) * np.sqrt((Vcx - Vx)**2 + (Vcy - Vy)**2) * (Vcx - Vx)
+            Fwy = (0.5 * rhow * Cw * Ak + rhow * Cdw * Ab) * np.sqrt((Vcx - Vx)**2 + (Vcy - Vy)**2) * (Vcy - Vy)
+
+            Fwx_list.append(Fwx)
+            Fwy_list.append(Fwy)
+
+        Vcx = np.mean(np.array(Vcx_list))
+        Vcy = np.mean(np.array(Vcy_list))
 
         Fwx = np.mean(np.array(Fwx_list))
         Fwy = np.mean(np.array(Fwy_list))
 
     else:
+        Fwx = (0.5 * rhow * Cw * Ak + rhow * Cdw * Ab) * np.sqrt((Vcx - Vx)**2 + (Vcy - Vy)**2) * (Vcx - Vx)
+        Fwy = (0.5 * rhow * Cw * Ak + rhow * Cdw * Ab) * np.sqrt((Vcx - Vx)**2 + (Vcy - Vy)**2) * (Vcy - Vy)
 
-        Fwx = (0.5 * rhow * Cw * Ak + rhow * Cdw * Ab) * np.sqrt((Vcx - Vx) ** 2 + (Vcy - Vy) ** 2) * (Vcx - Vx)
-        Fwy = (0.5 * rhow * Cw * Ak + rhow * Cdw * Ab) * np.sqrt((Vcx - Vx) ** 2 + (Vcy - Vy) ** 2) * (Vcy - Vy)
+    # Coriolis Parameter
+    f = 2 * Omega * np.sin(np.deg2rad(phi))
 
     # Coriolis force
-    f = 2 * Omega * np.sin(np.deg2rad(phi))
-    Fcx = f * M * Vy
-    Fcy = -f * M * Vx
+    if zero_coriolis_force:
+        Fcx, Fcy = 0, 0
+    else:
+        Fcx = f * M * Vy
+        Fcy = -f * M * Vx
 
     # Water pressure force
-    Vmwx = Vcx
-    Vmwy = Vcy
-    Amwx = Amwx
-    Amwy = Amwy
-    Fwpx = M * (Amwx - f * Vmwy)
-    Fwpy = M * (Amwy + f * Vmwx)
+    if zero_pressure_force:
+        Fwpx, Fwpy = 0, 0
+    else:
+        Vmwx = Vcx
+        Vmwy = Vcy
+        Amwx = Amwx
+        Amwy = Amwy
+        Fwpx = M * (Amwx - f * Vmwy)
+        Fwpy = M * (Amwy + f * Vmwx)
 
     # Iceberg acceleration
     Ax = (Fax + Fwx + Fcx + Fwpx) / (M + 0.5 * M)
