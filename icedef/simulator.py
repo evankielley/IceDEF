@@ -24,8 +24,8 @@ def compute_mse(simulation_vectors, reference_vectors):
     for i in range(len(ref_lats)):
 
         time = ref_lats['time'][i]
-        sim_lat = sim_lats.interp(time=time)
-        sim_lon = sim_lons.interp(time=time)
+        sim_lat = sim_lats.interp(time=time, assume_sorted=True)
+        sim_lon = sim_lons.interp(time=time, assume_sorted=True)
         mean_square_error_list.append(np.sqrt((sim_lat - ref_lats[i])**2 + (sim_lon - ref_lons[i])**2))
 
     return np.mean(mean_square_error_list)
@@ -56,6 +56,18 @@ def run_simulation(start_location, time_frame, **kwargs):
     # Object creation
     iceberg_ = iceberg.quickstart(start_time, start_location, velocity=start_velocity)
     metocean_ = metocean.Metocean(time_frame)
+    ocean = metocean_.ocean
+    atmosphere = metocean_.atmosphere
+    current_velocity_interpolator = metocean.Interpolate((ocean.dataset.time.values,
+                                                          ocean.dataset.latitude.values,
+                                                          ocean.dataset.longitude.values),
+                                                         ocean.eastward_current_velocities.values,
+                                                         ocean.northward_current_velocities.values)
+    wind_velocity_interpolator = metocean.Interpolate((atmosphere.dataset.time.values,
+                                                       atmosphere.dataset.latitude.values,
+                                                       atmosphere.dataset.longitude.values),
+                                                      atmosphere.eastward_wind_velocities.values,
+                                                      atmosphere.northward_wind_velocities.values)
 
     dt = time_step.item().total_seconds()
     nt = int((end_time - start_time).item().total_seconds() / dt)
@@ -94,16 +106,12 @@ def run_simulation(start_location, time_frame, **kwargs):
             'latitude': iceberg_.latitude,
             'ekman': kwargs.pop('ekman', False),
             'depth_vec': kwargs.pop('depth_vec', np.arange(0, -110, -10)),
-            'current_acceleration': (0,0)
+            'current_acceleration': (0, 0)
             }
 
         point = (iceberg_.time, iceberg_.latitude, iceberg_.longitude)
-
-        current_velocity = (metocean_.interpolate(point, metocean_.ocean.eastward_current_velocities),
-                            metocean_.interpolate(point, metocean_.ocean.northward_current_velocities))
-
-        wind_velocity = (metocean_.interpolate(point, metocean_.atmosphere.eastward_wind_velocities),
-                         metocean_.interpolate(point, metocean_.atmosphere.northward_wind_velocities))
+        current_velocity = current_velocity_interpolator.interpolate(point)
+        wind_velocity = wind_velocity_interpolator.interpolate(point)
         
         if numerical_method == 'Euler':
 
@@ -114,7 +122,7 @@ def run_simulation(start_location, time_frame, **kwargs):
                                                        current_velocity, wind_velocity,
                                                        **iceberg_constants)
 
-                # Store results from this timestep
+                # Store results from this time step
 
                 times[i] = iceberg_.time
                 results['latitude'][i] = iceberg_.latitude
@@ -134,7 +142,7 @@ def run_simulation(start_location, time_frame, **kwargs):
                 results['pressure_eastward_force'][i] = forces[6]
                 results['pressure_northward_force'][i] = forces[7]
 
-                # Update parameters for next timestep
+                # Update parameters for next time step
 
                 iceberg_.time += time_step
                 iceberg_.eastward_velocity += ax * dt
@@ -144,10 +152,8 @@ def run_simulation(start_location, time_frame, **kwargs):
                 iceberg_.longitude += tools.dx_to_dlon(iceberg_.eastward_velocity * dt, iceberg_.latitude)
                 point = (iceberg_.time, iceberg_.latitude, iceberg_.longitude)
                 old_current_velocity = copy.deepcopy(current_velocity)
-                current_velocity = (metocean_.interpolate(point, metocean_.ocean.eastward_current_velocities),
-                                    metocean_.interpolate(point, metocean_.ocean.northward_current_velocities))
-                wind_velocity = (metocean_.interpolate(point, metocean_.atmosphere.eastward_wind_velocities),
-                                 metocean_.interpolate(point, metocean_.atmosphere.northward_wind_velocities))
+                current_velocity = current_velocity_interpolator.interpolate(point)
+                wind_velocity = wind_velocity_interpolator.interpolate(point)
                 current_acceleration = ((current_velocity[0] - old_current_velocity[0]) / dt,
                                         (current_velocity[1] - old_current_velocity[1]) / dt)
                 iceberg_constants['current_acceleration'] = current_acceleration
