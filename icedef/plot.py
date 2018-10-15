@@ -12,13 +12,22 @@ from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 
 def plot_iceberg_track(lats, lons, **kwargs):
+
+    show = kwargs.pop('show', True)
+    save = kwargs.pop('save', False)
+    filename = kwargs.pop('filename', 'plot')
+
     plot_width = kwargs.pop('plot_width', 10)
     plot_height = kwargs.pop('plot_height', 8)
 
-    fig = plt.figure(figsize=(plot_width, plot_height))
+    plt.figure(figsize=(plot_width, plot_height))
 
-    plt.xlabel('Longitude')
-    plt.ylabel('Latitude')
+    xlabel = kwargs.pop('xlabel', 'Longitude')
+    ylabel = kwargs.pop('ylabel', 'Latitude')
+    title = kwargs.pop('title', '')
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title(title)
 
     vectors = kwargs.pop('vectors', None)
     gap = kwargs.pop('gap', 10)
@@ -71,7 +80,11 @@ def plot_iceberg_track(lats, lons, **kwargs):
         if arrow_labels[0] is not '':
             plt.legend()
 
-    plt.show()
+    if save:
+        plt.savefig(f'{filename}.png')
+
+    if show:
+        plt.show()
 
 
 def get_mercator_basemap(min_lon, max_lon, min_lat, max_lat):
