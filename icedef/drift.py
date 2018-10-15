@@ -1,3 +1,4 @@
+import cmath
 import numpy as np
 from icedef.constants import *
 
@@ -46,11 +47,12 @@ def newtonian_drift(iceberg_velocity, current_velocity, wind_velocity, **kwargs)
         u_vec, v_vec = compute_ekman_spiral(wind_velocity, current_velocity, depth_vec)
 
         for i in range(len(u_vec)):
-
             Vcx, Vcy = u_vec[i], v_vec[i]
 
-            Fwx_list.append((0.5 * rhow * Cw * Ak + rhow * Cdw * Ab) * np.sqrt((Vcx - Vx)**2 + (Vcy - Vy)**2) * (Vcx - Vx))
-            Fwy_list.append((0.5 * rhow * Cw * Ak + rhow * Cdw * Ab) * np.sqrt((Vcx - Vx)**2 + (Vcy - Vy)**2) * (Vcy - Vy))
+            Fwx_list.append(
+                (0.5 * rhow * Cw * Ak + rhow * Cdw * Ab) * np.sqrt((Vcx - Vx)**2 + (Vcy - Vy)**2) * (Vcx - Vx))
+            Fwy_list.append(
+                (0.5 * rhow * Cw * Ak + rhow * Cdw * Ab) * np.sqrt((Vcx - Vx)**2 + (Vcy - Vy)**2) * (Vcy - Vy))
 
         Fwx = np.mean(np.array(Fwx_list))
         Fwy = np.mean(np.array(Fwy_list))
@@ -76,35 +78,34 @@ def newtonian_drift(iceberg_velocity, current_velocity, wind_velocity, **kwargs)
     # Iceberg acceleration
     Ax = (Fax + Fwx + Fcx + Fwpx) / M
     Ay = (Fay + Fwy + Fcy + Fwpy) / M
-    
-    forces = [Fax, Fay, Fwx, Fwy, Fcx, Fcy, Fwpx, Fwpy] 
+
+    forces = [Fax, Fay, Fwx, Fwy, Fcx, Fcy, Fwpx, Fwpy]
 
     return Ax, Ay, forces
 
 
 def compute_ekman_velocity(wind, depth, latitude=50):
-
     u_wind, v_wind = wind
     z = depth
     phi = latitude
 
     rho_air = 1.225  # density of air (kg/m^3)
     rho_water = 1028  # density of seawater (kg/m^3)
-    Cd =  1.3e-3 # ranges from (1.1 - 1.5) x 10^-3
+    Cd = 1.3e-3  # ranges from (1.1 - 1.5) x 10^-3
     Omega = 7.2910e-5  # rotation rate of Earth (s^-1)
-    Az = 5e-2   # m^2 s^−1;
+    Az = 5e-2  # m^2 s^−1;
 
-    f = lambda phi : 2 * Omega * np.sin(phi)  # Coriolis parameter
+    f = lambda phi: 2 * Omega * np.sin(phi)  # Coriolis parameter
 
-    tau_x = lambda U, V : rho_air * Cd * U * np.sqrt(U**2 + V**2)  # wind stress x-component
-    tau_y = lambda U, V : rho_air * Cd * V * np.sqrt(U**2 + V**2)  # wind stress y-component
+    tau_x = lambda U, V: rho_air * Cd * U * np.sqrt(U ** 2 + V ** 2)  # wind stress x-component
+    tau_y = lambda U, V: rho_air * Cd * V * np.sqrt(U ** 2 + V ** 2)  # wind stress y-component
 
-    V0x = tau_x(u_wind, v_wind) / np.sqrt(rho_water**2 * np.abs(f(phi)) * Az)
-    V0y = tau_y(u_wind, v_wind) / np.sqrt(rho_water**2 * np.abs(f(phi)) * Az)
-    V0 = np.sqrt(V0x**2 + V0y**2)
-    theta = np.pi/2 - np.arctan2(V0y, V0x)
+    V0x = tau_x(u_wind, v_wind) / np.sqrt(rho_water ** 2 * np.abs(f(phi)) * Az)
+    V0y = tau_y(u_wind, v_wind) / np.sqrt(rho_water ** 2 * np.abs(f(phi)) * Az)
+    V0 = np.sqrt(V0x ** 2 + V0y ** 2)
+    theta = np.pi / 2 - np.arctan2(V0y, V0x)
 
-    a = np.sqrt(abs(f(phi))/(2 * Az))
+    a = np.sqrt(abs(f(phi)) / (2 * Az))
 
     # note: clockwise rotation
     u_ekman = V0 * np.exp(a * z) * np.cos(np.pi / 4 + a * z) * (np.cos(theta) + np.sin(theta))
@@ -114,12 +115,10 @@ def compute_ekman_velocity(wind, depth, latitude=50):
 
 
 def compute_ekman_spiral(wind, surface_current, depth_vec):
-
     u_ekman_vec = np.zeros(len(depth_vec))
     v_ekman_vec = np.zeros(len(depth_vec))
 
     for i, depth in enumerate(depth_vec):
-
         u_ekman_vec[i], v_ekman_vec[i] = compute_ekman_velocity(wind, depth)
 
     u_surface_current, v_surface_current = surface_current
@@ -131,3 +130,46 @@ def compute_ekman_spiral(wind, surface_current, depth_vec):
     v_current_vec = v_barotropic + v_ekman_vec
 
     return u_current_vec, v_current_vec
+
+
+def analytical_drift(iceberg_position, current_velocity, wind_velocity, **kwargs):
+    y, x = iceberg_position
+    vau, vav = wind_velocity
+    vwu, vwv = current_velocity
+    l = kwargs.pop('iceberg_length', 160)
+    w = kwargs.pop('iceberg_width', 160)
+    Cw = kwargs.pop('form_drag_coefficient_in_water', 0.9)
+    Ca = kwargs.pop('form_drag_coefficient_in_air', 1.3)
+
+    Omega = EARTH_ROTATION_RATE
+    rhow = SEAWATER_DENSITY
+    rhoa = AIR_DENSITY
+    rhoi = ICEBERG_DENSITY
+
+    gamma = np.sqrt(rhoa * (rhow - rhoi) / rhow / rhoi * (Ca / Cw))
+    S = np.pi * ((l * w) / (l + w))
+    f = 2 * Omega * np.sin((np.abs(y) * np.pi) / 180)
+    Lambda = np.sqrt(2) * Cw * (gamma * np.sqrt(vau ** 2 + vav ** 2)) / (f * S)
+
+    if Lambda < 0.1:
+        alpha = Lambda * (Lambda**4 * (Lambda**4 * (Lambda**4 * (-0.0386699020961393 * Lambda**4 +
+                0.055242717280199) - 0.0883883476483184) + 0.176776695296637) - 0.707106781186548)
+
+    else:
+        alpha = np.multiply(np.divide(np.sqrt(2), np.power(Lambda, 3)), (1 - np.sqrt(1 + np.power(Lambda, 4))))
+
+    if Lambda < 0.6:
+        beta = Lambda**3 * (Lambda**4 * (Lambda**4 * (Lambda**4 * (Lambda**4 *
+                (Lambda**4 * (Lambda**4 * (Lambda**4 * (Lambda**4 * (0.0153268598203613 *
+                Lambda**4 - 0.0151656272365985) + 0.0180267866272764) + 0.0219176256311202) -
+                0.0274446790511418) + 0.0357675015202851) - 0.0493731785691779) + 0.0745776683282687) -
+                0.132582521472478) + 0.353553390593274)
+
+    else:
+        beta = np.real(np.multiply(np.divide(1, np.power(Lambda, 3)), cmath.sqrt(np.multiply((4 +
+                np.power(Lambda, 4)), cmath.sqrt(1 + np.power(Lambda, 4))) - 3 * np.power(Lambda, 4) - 4)))
+
+    viu = vwu + gamma * (-alpha * vav + beta * vau)
+    viv = vwv + gamma * (alpha * vau + beta * vav)
+
+    return viu, viv
