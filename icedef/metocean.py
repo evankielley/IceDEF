@@ -8,146 +8,91 @@ from datetime import date, timedelta
 class Metocean:
 
     def __init__(self, date_bounds, **kwargs):
-
+        self.date_bounds = date_bounds
         self.ocean_class = kwargs.pop('ocean_class', ECMWFOcean)
         self.atmosphere_class = kwargs.pop('atmosphere_class', NARRAtmosphere)
         self.ocean = self.ocean_class(date_bounds)
         self.atmosphere = self.atmosphere_class(date_bounds)
 
-    def interpolate(self, point, data):
+    def swap_ocean(self, ocean_class):
+        self.ocean_class = ocean_class
+        self.ocean = self.ocean_class(self.date_bounds)
 
-        def compute_interpolation(x0, xi, dx, data):
-            indx = (xi - x0) / dx
-            indx_floor = int(np.floor(indx))
-            dindx = indx - indx_floor
-            submatrix = data[indx_floor: indx_floor + 2, ...]
-            data = (1 - dindx) * submatrix[0, ...] + dindx * submatrix[1, ...]
-            return data
-
-        assert data.dims == ('time', 'latitude', 'longitude')
-
-        # time
-        nptimes = data.time.values
-        times = (nptimes - nptimes[0]) / np.timedelta64(1, 's')
-        t0 = times[0]
-        tn = times[-1]
-        dt = np.mean(np.diff((times)))
-        ti = (point[0] - nptimes[0]) / np.timedelta64(1, 's')
-        assert t0 <= ti <= tn, f"t0: {t0}, ti:{ti}, tn: {tn}"
-
-        # latitude
-        lats = data.latitude.values
-        lat0 = lats[0]
-        latn = lats[-1]
-        dlat = np.mean(np.diff(lats))
-        lati = point[1]
-        assert lat0 <= lati <= latn, f"lat0: {lat0}, lati:{lati}, latn: {latn}"
-
-        # longitude
-        lons = data.longitude.values
-        lon0 = lons[0]
-        lonn = lons[-1]
-        dlon = np.mean(np.diff(lons))
-        loni = point[2]
-        assert lon0 <= loni <= lonn, f"lon0: {lon0}, loni:{loni}, lonn: {lonn}"
-
-        # crunch value
-        data = data.values
-        data = compute_interpolation(t0, ti, dt, data)
-        data = compute_interpolation(lat0, lati, dlat, data)
-        data = compute_interpolation(lon0, loni, dlon, data)
-
-        return data
+    def swap_atmosphere(self, atmosphere_class):
+        self.atmosphere_class = atmosphere_class
+        self.atmosphere = self.atmosphere_class(self.date_bounds)
 
 
 class ECMWFOcean:
 
     ID = "GLOBAL_ANALYSIS_FORECAST_PHY_001_024"
     PATH = 'ftp://data.munroelab.ca/pub/ECMWF/ocean/daily/'
-    SPATIAL_RESOLUTION = 1/12  # spatial resolution in degrees lat/lon
-    TIME_RESOLUTION = 1  # temporal resolution in hours
-    TIME_UNITS = 'hours since 1950-01-01 00:00:00'
-    TIME_CALENDAR = 'standard'
 
     def __init__(self, date_bounds):
 
-        self.dataset = xr.open_mfdataset(get_files(self.ID, self.PATH,
-                                                   date_bounds))
-        self.eastward_current_velocities = xr.DataArray(
-            data=self.dataset.uo.values[:, 0, :, :],
-            coords=[('time', self.dataset.time.values),
-                    ('latitude', self.dataset.latitude.values),
-                    ('longitude', self.dataset.longitude.values)],
-            attrs=self.dataset.uo.attrs)
-        self.northward_current_velocities = xr.DataArray(
-            data=self.dataset.vo.values[:, 0, :, :],
-            coords=[('time', self.dataset.time.values),
-                    ('latitude', self.dataset.latitude.values),
-                    ('longitude', self.dataset.longitude.values)],
-            attrs=self.dataset.vo.attrs)
-        self.sea_surface_temperatures = xr.DataArray(
-            data=self.dataset.thetao.values[:, 0, :, :],
-            coords=[('time', self.dataset.time.values),
-                    ('latitude', self.dataset.latitude.values),
-                    ('longitude', self.dataset.longitude.values)],
-            attrs=self.dataset.thetao.attrs)
+        self.dataset = xr.open_mfdataset(get_files(self.ID, self.PATH, date_bounds)).squeeze('depth').rename(
+            {'uo': 'eastward_current_velocity', 'vo': 'northward_current_velocity'})
+
+        self.eastward_current_velocities = xr.DataArray(data=self.dataset.eastward_current_velocity.values,
+                                                        coords=[('time', self.dataset.time.values),
+                                                                ('latitude', self.dataset.latitude.values),
+                                                                ('longitude', self.dataset.longitude.values)],
+                                                        attrs=self.dataset.eastward_current_velocity.attrs)
+        self.northward_current_velocities = xr.DataArray(data=self.dataset.northward_current_velocity.values,
+                                                         coords=[('time', self.dataset.time.values),
+                                                                 ('latitude', self.dataset.latitude.values),
+                                                                 ('longitude', self.dataset.longitude.values)],
+                                                         attrs=self.dataset.eastward_current_velocity.attrs)
 
 
 class ECMWFAtmosphere:
 
-    ID = "WIND_GLO_WIND_L4_NRT_OBSERVTIONS_012_004"
+    ID = "WIND_GLO_WIND_L4_NRT_OBSERVATIONS_012_004"
     PATH = 'ftp://data.munroelab.ca/pub/ECMWF/atm/daily/'
-    SPATIAL_RESOLUTION = 1/4  # spatial resolution in degrees lat/lon
-    TIME_RESOLUTION = 6  # temporal resolution in hours
-    TIME_UNITS = 'hours since 1900-01-01 00:00:00.0 00:00'
-    TIME_CALENDAR = 'standard'
 
     def __init__(self, date_bounds):
 
-        self.dataset = xr.open_mfdataset(get_files(self.ID, self.PATH,
-                                                   date_bounds))
+        self.dataset = xr.open_mfdataset(get_files(self.ID, self.PATH, date_bounds)).rename(
+                                                        {'eastward_wind': 'eastward_wind_velocity',
+                                                         'northward_wind': 'northward_wind_velocity'})
 
-        self.eastward_wind_velocities = xr.DataArray(
-            data=self.dataset.eastward_wind.values,
-            coords=[('time', self.dataset.time.values),
-                    ('latitude', self.dataset.latitude.values),
-                    ('longitude', self.dataset.longitude.values)],
-            attrs=self.dataset.eastward_wind.attrs)
+        self.eastward_wind_velocities = xr.DataArray(data=self.dataset.eastward_wind_velocity.values,
+                                                     coords=[('time', self.dataset.time.values),
+                                                             ('latitude', self.dataset.latitude.values),
+                                                             ('longitude', self.dataset.longitude.values)],
+                                                     attrs=self.dataset.eastward_wind_velocity.attrs)
 
-        self.northward_wind_velocities = xr.DataArray(
-            data=self.dataset.northward_wind.values[:, 0, :, :],
-            coords=[('time', self.dataset.time.values),
-                    ('latitude', self.dataset.latitude.values),
-                    ('longitude', self.dataset.longitude.values)],
-            attrs=self.dataset.northward_wind.attrs)
+        self.northward_wind_velocities = xr.DataArray(data=self.dataset.northward_wind_velocity.values,
+                                                      coords=[('time', self.dataset.time.values),
+                                                              ('latitude', self.dataset.latitude.values),
+                                                              ('longitude', self.dataset.longitude.values)],
+                                                      attrs=self.dataset.northward_wind_velocity.attrs)
 
 
 class NARRAtmosphere:
 
     ID = "NCEP_North_American_Regional_Reanalysis_NARR"
     PATH = 'ftp://data.munroelab.ca/pub/NARR/atm/daily/'
-    SPATIAL_RESOLUTION = 1/4  # spatial resolution in degrees lat/lon
-    TIME_RESOLUTION = 3  # temporal resolution in hours
-    TIME_UNITS = 'hours since 1800-1-1 00:00:0.0'
-    TIME_CALENDAR = 'standard'
 
     def __init__(self, date_bounds):
 
-        self.dataset = xr.open_mfdataset(get_files(self.ID, self.PATH,
-                                                   date_bounds))
-        self.dataset['lon'] = np.mod(self.dataset.lon - 180, 360) - 180
-        self.eastward_wind_velocities = xr.DataArray(
-            data=self.dataset.uwnd.values,
-            coords=[('time', self.dataset.time.values),
-                    ('latitude', self.dataset.lat.values),
-                    ('longitude', self.dataset.lon.values)],
-            attrs=self.dataset.uwnd.attrs)
-        self.northward_wind_velocities = xr.DataArray(
-            data=self.dataset.vwnd.values,
-            coords=[('time', self.dataset.time.values),
-                    ('latitude', self.dataset.lat.values),
-                    ('longitude', self.dataset.lon.values)],
-            attrs=self.dataset.vwnd.attrs)
+        self.dataset = xr.open_mfdataset(get_files(self.ID, self.PATH, date_bounds)).rename(
+                                                        {'uwnd': 'eastward_wind_velocity',
+                                                         'vwnd': 'northward_wind_velocity',
+                                                         'lat': 'latitude',
+                                                         'lon': 'longitude'})
+        self.dataset['longitude'] = np.mod(self.dataset.longitude - 180, 360) - 180
+        self.eastward_wind_velocities = xr.DataArray(data=self.dataset.eastward_wind_velocity.values,
+                                                     coords=[('time', self.dataset.time.values),
+                                                             ('latitude', self.dataset.latitude.values),
+                                                             ('longitude', self.dataset.longitude.values)],
+                                                     attrs=self.dataset.eastward_wind_velocity.attrs)
+
+        self.northward_wind_velocities = xr.DataArray(data=self.dataset.northward_wind_velocity.values,
+                                                      coords=[('time', self.dataset.time.values),
+                                                              ('latitude', self.dataset.latitude.values),
+                                                              ('longitude', self.dataset.longitude.values)],
+                                                      attrs=self.dataset.northward_wind_velocity.attrs)
 
 
 def get_files(id_, path, date_bounds, cache=True):
@@ -174,15 +119,15 @@ def get_files(id_, path, date_bounds, cache=True):
     else:
         cache_path = None
 
-    filenames = []
+    file_names = []
     files = []
 
     for i in range(time_delta.days + 1):
         file_date = start_date + timedelta(days=i)
-        filename = str(file_date).replace('-', '') + '.nc'
-        filenames.append(filename)
-        cache_file = cache_path + filename
-        ftp_file = path + filename
+        file_name = str(file_date).replace('-', '') + '.nc'
+        file_names.append(file_name)
+        cache_file = cache_path + file_name
+        ftp_file = path + file_name
 
         if os.path.isfile(cache_file):
             files.append(cache_file)
@@ -191,7 +136,79 @@ def get_files(id_, path, date_bounds, cache=True):
             if cache and os.path.exists(cache_path):
                 files.append(urlretrieve(ftp_file, cache_file)[0])
             else:
-                files.append(urlretrieve(path + filename)[0])
+                files.append(urlretrieve(path + file_name)[0])
             print('done.')
 
     return files
+
+
+def linear_interpolation_on_uniform_regular_grid(grid_info, point, *data):
+
+    data_list = [None] * len(data)
+
+    for dim in range(len(point)):
+
+        x0, dx, xn = grid_info[dim]
+        xi = point[dim]
+
+        assert x0 <= xi <= xn, f'Point out of range in dim {dim} ({xi} is not in ({x0}, {xn}).'
+
+        index = (xi - x0) / dx
+        index_floor = int(np.floor(index))
+        index_diff = index - index_floor
+
+        for i, data_ in enumerate(data):
+            data_slice = data_[index_floor: index_floor + 2, ...]
+            data_list[i] = (1 - index_diff) * data_slice[0, ...] + index_diff * data_slice[1, ...]
+
+        data = tuple(data_list)
+
+    if len(data) == 1:
+        return data[0]
+
+    else:
+        return data
+
+
+class Interpolate:
+
+    def __init__(self, grid_vectors, *data, **kwargs):
+
+        self.data = data
+        self.grid_vectors = grid_vectors
+        self.reference_time = kwargs.pop('reference_time', np.datetime64('1950-01-01T00:00'))
+        self.time_units = kwargs.pop('time_units', 'h')
+        self.grid_info = get_grid_info(grid_vectors, **kwargs)
+
+    def interpolate(self, point):
+
+        point_list = []
+
+        for p in point:
+            if isinstance(p, np.datetime64):
+                p = (p - self.reference_time) / np.timedelta64(1, self.time_units)
+            point_list.append(p)
+
+        point = tuple(point_list)
+
+        return linear_interpolation_on_uniform_regular_grid(self.grid_info, point, *self.data)
+
+
+def get_grid_info(grid_vectors, **kwargs):
+
+    reference_time = kwargs.pop('reference_time', np.datetime64('1950-01-01T00:00'))
+    time_units = kwargs.pop('time_units', 'h')
+
+    grid_info = []
+
+    for grid_vector in grid_vectors:
+
+        if isinstance(grid_vector[0], np.datetime64):
+            grid_vector = (grid_vector - reference_time) / np.timedelta64(1, time_units)
+
+        grid_vector_min = grid_vector[0]
+        grid_vector_max = grid_vector[-1]
+        grid_vector_step = np.mean(np.diff(grid_vector))
+        grid_info.append([grid_vector_min, grid_vector_step, grid_vector_max])
+
+    return grid_info
