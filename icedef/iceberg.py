@@ -36,15 +36,27 @@ class IcebergGeometry:
 
     """
 
-    def __init__(self, size, shape):
+    def __init__(self, size='LG', shape='TAB'):
 
-        self.size = size
-        self.shape = shape
+        if isinstance(size, (tuple, list, np.ndarray)):
+            self.custom_waterline_length, self.custom_sail_height = size
+            self._size = 'CUSTOM'
+        else:
+            self._size = size
+
+        if isinstance(shape, (tuple, list, np.ndarray)):
+            self.custom_height_to_draft_ratio, self.custom_shape_factor = shape
+            self._shape = 'CUSTOM'
+        else:
+            self._shape = shape
 
     @property
     def waterline_length(self):
         """Return the mean waterline length for the size declared."""
-        return np.mean(WATERLINE_LENGTH_RANGE_BY_SIZE[self.size])
+        if self._size == 'CUSTOM':
+            return self.custom_waterline_length
+        else:
+            return np.mean(WATERLINE_LENGTH_RANGE_BY_SIZE[self._size])
 
     @property
     def top_area(self):
@@ -59,7 +71,10 @@ class IcebergGeometry:
     @property
     def sail_height(self):
         """Return the mean sail height for the size declared."""
-        return np.mean(SAIL_HEIGHT_RANGE_BY_SIZE[self.size])
+        if self._size == 'CUSTOM':
+            return self.custom_sail_height
+        else:
+            return np.mean(SAIL_HEIGHT_RANGE_BY_SIZE[self._size])
 
     @property
     def sail_area(self):
@@ -69,17 +84,23 @@ class IcebergGeometry:
     @property
     def height_to_draft_ratio(self):
         """Return the height to draft ratio for the shape declared."""
-        return HEIGHT_TO_DRAFT_RATIO_BY_SHAPE[self.shape]
+        if self._shape == 'CUSTOM':
+            return self.custom_height_to_draft_ratio
+        else:
+            return HEIGHT_TO_DRAFT_RATIO_BY_SHAPE[self._shape]
 
     @property
     def shape_factor(self):
         """Return the shape factor for the shape declared."""
-        return SHAPE_FACTOR_BY_SHAPE[self.shape]
+        if self._shape == 'CUSTOM':
+            return self.custom_shape_factor
+        else:
+            return SHAPE_FACTOR_BY_SHAPE[self._shape]
 
     @property
     def keel_depth(self):
         """Return the keel depth for the shape and sail height declared."""
-        h2d_ratio = HEIGHT_TO_DRAFT_RATIO_BY_SHAPE[self.shape]
+        h2d_ratio = self.height_to_draft_ratio
         sail_height = self.sail_height
         return sail_height / h2d_ratio
 
@@ -89,7 +110,7 @@ class IcebergGeometry:
         factor = self.shape_factor
         length = self.waterline_length
         height = self.sail_height
-        return 7.12e3 * factor * length ** 2 * height
+        return 7.12e3 * factor * length**2 * height
 
     @property
     def keel_area(self):
@@ -149,9 +170,9 @@ def quickstart(time, position, **kwargs):
     """
 
     velocity = kwargs.get('velocity', (0, 0))
-    size = kwargs.get('size', 'LG')
-    shape = kwargs.get('shape', 'TAB')
-    geometry = IcebergGeometry(size, shape)
+    size = kwargs.pop('size', 'LG')
+    shape = kwargs.pop('shape', 'TAB')
+    geometry = IcebergGeometry(size=size, shape=shape)
     iceberg = Iceberg(time, position, velocity, geometry)
 
     return iceberg
