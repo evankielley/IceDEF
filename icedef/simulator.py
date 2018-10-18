@@ -6,6 +6,7 @@ from icedef import iceberg, metocean, drift, tools
 
 
 def run_optimization(reference_vectors, start_location, time_frame, **kwargs):
+    # reference_vectors is a tuple containing an xr.DataArray for lats and lons
 
     bounds = kwargs.pop('bounds', ((0, 15), (0, 15)))
     optimization_result = minimize(optimization_wrapper, x0=(1, 1), bounds=bounds,
@@ -21,7 +22,9 @@ def compute_mse(simulation_vectors, reference_vectors):
 
     mean_square_error_list = []
 
-    for i in range(len(ref_lats)):
+    stop_index = np.where(ref_lats['time'].values <= sim_lats['time'].values[-1])[0][-1]
+
+    for i in range(stop_index + 1):
 
         time = ref_lats['time'][i]
         sim_lat = sim_lats.interp(time=time, assume_sorted=True)
