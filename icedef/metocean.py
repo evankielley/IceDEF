@@ -206,6 +206,9 @@ def get_grid_info(grid_vectors, **kwargs):
         if isinstance(grid_vector[0], np.datetime64):
             grid_vector = (grid_vector - reference_time) / np.timedelta64(1, time_units)
 
+        if isinstance(grid_vector, xr.core.dataarray.DataArray):
+            grid_vector = grid_vector.values
+
         grid_vector_min = grid_vector[0]
         grid_vector_max = grid_vector[-1]
         grid_vector_step = np.mean(np.diff(grid_vector))
