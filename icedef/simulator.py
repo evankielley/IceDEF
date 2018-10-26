@@ -86,12 +86,17 @@ def run_simulation(start_location, time_frame, **kwargs):
     metocean_ = metocean.Metocean(time_frame)
     ocean = metocean_.ocean
     atmosphere = metocean_.atmosphere
-    ocean_grid = (ocean.dataset.time, ocean.dataset.latitude, ocean.dataset.longitude)
-    ocean_data = (ocean.eastward_current_velocities.values, ocean.northward_current_velocities.values)
-    current_velocity_interpolator = metocean.Interpolate(ocean_grid, ocean_data)
-    atmosphere_grid = (atmosphere.dataset.time, atmosphere.dataset.latitude, atmosphere.dataset.longitude)
-    atmosphere_data = (atmosphere.eastward_wind_velocities, atmosphere.northward_wind_velocities)
-    wind_velocity_interpolator = metocean.Interpolate(atmosphere_grid,  atmosphere_data)
+    current_velocity_interpolator = metocean.Interpolate((ocean.dataset.time.values,
+                                                          ocean.dataset.latitude.values,
+                                                          ocean.dataset.longitude.values),
+                                                         ocean.eastward_current_velocities.values,
+                                                         ocean.northward_current_velocities.values)
+    wind_velocity_interpolator = metocean.Interpolate((atmosphere.dataset.time.values,
+                                                       atmosphere.dataset.latitude.values,
+                                                       atmosphere.dataset.longitude.values),
+                                                      atmosphere.eastward_wind_velocities.values,
+                                                      atmosphere.northward_wind_velocities.values)
+
 
     # Get time step in seconds and total number of steps
     dt = time_step.item().total_seconds()
@@ -247,9 +252,11 @@ def run_test_simulation(start_location, time_frame, **kwargs):
                                                             constant_northward_current_velocity)
 
     if not assume_constant_current_velocity:
-        ocean_grid = (ocean.dataset.time, ocean.dataset.latitude, ocean.dataset.longitude)
-        ocean_data = (ocean.eastward_current_velocities.values, ocean.northward_current_velocities.values)
-        current_velocity_interpolator = metocean.Interpolate(ocean_grid, ocean_data)
+        current_velocity_interpolator = metocean.Interpolate((ocean.dataset.time.values,
+                                                              ocean.dataset.latitude.values,
+                                                              ocean.dataset.longitude.values),
+                                                             ocean.eastward_current_velocities.values,
+                                                             ocean.northward_current_velocities.values)
 
     assume_constant_wind_velocity = False
 
@@ -271,9 +278,11 @@ def run_test_simulation(start_location, time_frame, **kwargs):
                                                               constant_northward_wind_velocity)
 
     if not assume_constant_wind_velocity:
-        atmosphere_grid = (atmosphere.dataset.time, atmosphere.dataset.latitude, atmosphere.dataset.longitude)
-        atmosphere_data = (atmosphere.eastward_wind_velocities, atmosphere.northward_wind_velocities)
-        wind_velocity_interpolator = metocean.Interpolate(atmosphere_grid, atmosphere_data)
+        wind_velocity_interpolator = metocean.Interpolate((atmosphere.dataset.time.values,
+                                                           atmosphere.dataset.latitude.values,
+                                                           atmosphere.dataset.longitude.values),
+                                                          atmosphere.eastward_wind_velocities.values,
+                                                          atmosphere.northward_wind_velocities.values)
 
     dt = time_step.item().total_seconds()
     nt = int((end_time - start_time).item().total_seconds() / dt)
