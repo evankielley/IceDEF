@@ -5,14 +5,43 @@ from scipy.optimize import minimize
 from icedef import iceberg, metocean, drift, tools
 
 
-def run_optimization(reference_vectors, start_location, time_frame, **kwargs):
+class Simulator:
+
+    def __init__(self, **kwargs):
+
+        self.time_step = kwargs.pop('time_step', np.timedelta64(300, 's'))
+        self.drift_model = kwargs.pop('drift_model', drift.newtonian_drift)
+        self.numerical_method = kwargs.pop('numerical_method', 'Euler')
+
+
+def compute_new_position(old_position, velocity, time_step):
+
+    latitude, longitude = old_position
+    eastward_velocity, northward_velocity = velocity
+
+    latitude += tools.dy_to_dlat(northward_velocity * time_step)
+    longitude += tools.dx_to_dlon(eastward_velocity * time_step, latitude)
+
+    return latitude, longitude
+
+
+def run_optimization(keys, x0, bounds, reference_vectors, start_location, time_frame):
     # reference_vectors is a tuple containing an xr.DataArray for lats and lons
 
-    bounds = kwargs.pop('bounds', ((0, 15), (0, 15)))
-    optimization_result = minimize(optimization_wrapper, x0=(1, 1), bounds=bounds,
-                                   args=(reference_vectors, start_location, time_frame))
+    optimization_result = minimize(optimization_wrapper, x0=x0, bounds=bounds,
+                                   args=(keys, reference_vectors, start_location, time_frame))
 
     return optimization_result
+
+
+def optimization_wrapper(values, keys, reference_vectors, start_location, time_frame):
+
+    kwargs = dict(zip(keys, values))
+    xds = run_simulation(start_location, time_frame, **kwargs)
+    simulation_vectors = (xds['latitude'], xds['longitude'])
+    mse = compute_mse(simulation_vectors, reference_vectors)
+
+    return mse
 
 
 def compute_mse(simulation_vectors, reference_vectors):
@@ -29,19 +58,10 @@ def compute_mse(simulation_vectors, reference_vectors):
         time = ref_lats['time'][i]
         sim_lat = sim_lats.interp(time=time, assume_sorted=True)
         sim_lon = sim_lons.interp(time=time, assume_sorted=True)
-        mean_square_error_list.append(np.sqrt((sim_lat - ref_lats[i])**2 + (sim_lon - ref_lons[i])**2))
+        mean_square_error = np.sqrt((sim_lat - ref_lats[i])**2 + (sim_lon - ref_lons[i])**2)
+        mean_square_error_list.append(mean_square_error)
 
     return np.mean(mean_square_error_list)
-
-
-def optimization_wrapper(drag_coeffs, reference_vectors, start_location, time_frame):
-
-    Ca, Cw = drag_coeffs
-    xds = run_simulation(start_location, time_frame, Ca=Ca, Cw=Cw)
-    simulation_vectors = (xds['latitude'], xds['longitude'])
-    mse = compute_mse(simulation_vectors, reference_vectors)
-
-    return mse
 
 
 def run_simulation(start_location, time_frame, **kwargs):
@@ -51,32 +71,32 @@ def run_simulation(start_location, time_frame, **kwargs):
     start_time, end_time = time_frame
 
     # Kwargs
+    waterline_length = kwargs.pop('waterline_length', 160)
+    sail_height = kwargs.pop('sail_height', 60)
+    size = (waterline_length, sail_height)
     start_velocity = kwargs.pop('start_velocity', (0, 0))
     time_step = kwargs.pop('time_step', np.timedelta64(300, 's'))
     drift_model = kwargs.pop('drift_model', 'Newtonian')
     numerical_method = kwargs.pop('numerical_method', 'Euler')
 
     # Object creation
-    iceberg_ = iceberg.quickstart(start_time, start_location, velocity=start_velocity)
+    iceberg_ = iceberg.quickstart(start_time, start_location, velocity=start_velocity, size=size, **kwargs)
     metocean_ = metocean.Metocean(time_frame)
     ocean = metocean_.ocean
     atmosphere = metocean_.atmosphere
-    current_velocity_interpolator = metocean.Interpolate((ocean.dataset.time.values,
-                                                          ocean.dataset.latitude.values,
-                                                          ocean.dataset.longitude.values),
-                                                         ocean.eastward_current_velocities.values,
-                                                         ocean.northward_current_velocities.values)
-    wind_velocity_interpolator = metocean.Interpolate((atmosphere.dataset.time.values,
-                                                       atmosphere.dataset.latitude.values,
-                                                       atmosphere.dataset.longitude.values),
-                                                      atmosphere.eastward_wind_velocities.values,
-                                                      atmosphere.northward_wind_velocities.values)
+    ocean_grid = (ocean.dataset.time, ocean.dataset.latitude, ocean.dataset.longitude)
+    ocean_data = (ocean.eastward_current_velocities.values, ocean.northward_current_velocities.values)
+    current_velocity_interpolator = metocean.Interpolate(ocean_grid, ocean_data)
+    atmosphere_grid = (atmosphere.dataset.time, atmosphere.dataset.latitude, atmosphere.dataset.longitude)
+    atmosphere_data = (atmosphere.eastward_wind_velocities, atmosphere.northward_wind_velocities)
+    wind_velocity_interpolator = metocean.Interpolate(atmosphere_grid,  atmosphere_data)
 
+    # Get time step in seconds and total number of steps
     dt = time_step.item().total_seconds()
     nt = int((end_time - start_time).item().total_seconds() / dt)
 
+    # Initialize arrays
     times = np.zeros(nt, dtype='datetime64[ns]')
-
     results = {'latitude': np.zeros(nt),
                'longitude': np.zeros(nt),
                'iceberg_eastward_velocity': np.zeros(nt),
