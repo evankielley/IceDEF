@@ -133,6 +133,8 @@ class Iceberg:
         self.latitude, self.longitude = position
         self.eastward_velocity, self.northward_velocity = velocity
         self.geometry = geometry
+        self.easting = kwargs.pop('easting', 0)
+        self.northing = kwargs.pop('northing', 0)
         self.name = kwargs.get('name', None)
         self.history = {'time': [], 'latitude': [], 'longitude': [],
                         'eastward_velocity': [], 'northward_velocity': []}
