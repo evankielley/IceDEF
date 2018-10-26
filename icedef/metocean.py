@@ -151,7 +151,10 @@ def linear_interpolation_on_uniform_regular_grid(grid_info, point, *data):
         x0, dx, xn = grid_info[dim]
         xi = point[dim]
 
-        assert x0 <= xi <= xn, f'Point out of range in dim {dim} ({xi} is not in ({x0}, {xn})).'
+        try:
+            assert x0 <= xi <= xn, f'Point out of range in dim {dim} ({xi} is not in ({x0}, {xn})).'
+        except TypeError as e:
+            print(e, f'(in dim {dim}: x0 = {x0}, xi = {xi}, and xn = {xn})')
 
         index = (xi - x0) / dx
         index_floor = int(np.floor(index))
