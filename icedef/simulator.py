@@ -2,7 +2,7 @@ import numpy as np
 import xarray as xr
 import copy
 from scipy.optimize import minimize
-from icedef import iceberg, metocean, drift, tools
+from icedef import iceberg, metocean, drift, tools, timesteppers
 
 
 class Simulator:
@@ -11,7 +11,9 @@ class Simulator:
 
         self.time_step = kwargs.pop('time_step', np.timedelta64(300, 's'))
         self.drift_model = kwargs.pop('drift_model', drift.newtonian_drift)
-        self.numerical_method = kwargs.pop('numerical_method', 'Euler')
+        self.time_stepper = kwargs.pop('time_stepper', timesteppers.euler)
+        self.ocean_model = kwargs.pop('ocean_model', metocean.ECMWFOcean)
+        self.atmospheric_model = kwargs.pop('atmospheric_model', metocean.NARRAtmosphere)
 
 
 def compute_new_position(old_position, velocity, time_step):
@@ -99,6 +101,8 @@ def run_simulation(start_location, time_frame, **kwargs):
     times = np.zeros(nt, dtype='datetime64[ns]')
     results = {'latitude': np.zeros(nt),
                'longitude': np.zeros(nt),
+               'easting': np.zeros(nt),
+               'northing': np.zeros(nt),
                'iceberg_eastward_velocity': np.zeros(nt),
                'iceberg_northward_velocity': np.zeros(nt),
                'current_eastward_velocity': np.zeros(nt),
@@ -150,6 +154,8 @@ def run_simulation(start_location, time_frame, **kwargs):
                 times[i] = iceberg_.time
                 results['latitude'][i] = iceberg_.latitude
                 results['longitude'][i] = iceberg_.longitude
+                results['easting'][i] = iceberg_.easting
+                results['northing'][i] = iceberg_.northing
                 results['iceberg_eastward_velocity'][i] = iceberg_.eastward_velocity
                 results['iceberg_northward_velocity'][i] = iceberg_.northward_velocity
                 results['current_eastward_velocity'][i] = current_velocity[0]
@@ -170,9 +176,13 @@ def run_simulation(start_location, time_frame, **kwargs):
                 iceberg_.time += time_step
                 iceberg_.eastward_velocity += ax * dt
                 iceberg_.northward_velocity += ay * dt
-                iceberg_.latitude += tools.dy_to_dlat(iceberg_.northward_velocity * dt)
+                dy = iceberg_.northward_velocity * dt
+                iceberg_.northing += dy
+                iceberg_.latitude += tools.dy_to_dlat(dy)
                 iceberg_constants['latitude'] = iceberg_.latitude
-                iceberg_.longitude += tools.dx_to_dlon(iceberg_.eastward_velocity * dt, iceberg_.latitude)
+                dx = iceberg_.eastward_velocity * dt
+                iceberg_.easting += dx
+                iceberg_.longitude += tools.dx_to_dlon(dx, iceberg_.latitude)
                 point = (iceberg_.time, iceberg_.latitude, iceberg_.longitude)
                 old_current_velocity = copy.deepcopy(current_velocity)
                 current_velocity = current_velocity_interpolator.interpolate(point)
@@ -237,11 +247,9 @@ def run_test_simulation(start_location, time_frame, **kwargs):
                                                             constant_northward_current_velocity)
 
     if not assume_constant_current_velocity:
-        current_velocity_interpolator = metocean.Interpolate((ocean.dataset.time.values,
-                                                              ocean.dataset.latitude.values,
-                                                              ocean.dataset.longitude.values),
-                                                             ocean.eastward_current_velocities.values,
-                                                             ocean.northward_current_velocities.values)
+        ocean_grid = (ocean.dataset.time, ocean.dataset.latitude, ocean.dataset.longitude)
+        ocean_data = (ocean.eastward_current_velocities.values, ocean.northward_current_velocities.values)
+        current_velocity_interpolator = metocean.Interpolate(ocean_grid, ocean_data)
 
     assume_constant_wind_velocity = False
 
@@ -263,11 +271,9 @@ def run_test_simulation(start_location, time_frame, **kwargs):
                                                               constant_northward_wind_velocity)
 
     if not assume_constant_wind_velocity:
-        wind_velocity_interpolator = metocean.Interpolate((atmosphere.dataset.time.values,
-                                                           atmosphere.dataset.latitude.values,
-                                                           atmosphere.dataset.longitude.values),
-                                                          atmosphere.eastward_wind_velocities.values,
-                                                          atmosphere.northward_wind_velocities.values)
+        atmosphere_grid = (atmosphere.dataset.time, atmosphere.dataset.latitude, atmosphere.dataset.longitude)
+        atmosphere_data = (atmosphere.eastward_wind_velocities, atmosphere.northward_wind_velocities)
+        wind_velocity_interpolator = metocean.Interpolate(atmosphere_grid, atmosphere_data)
 
     dt = time_step.item().total_seconds()
     nt = int((end_time - start_time).item().total_seconds() / dt)
@@ -276,6 +282,8 @@ def run_test_simulation(start_location, time_frame, **kwargs):
 
     results = {'latitude': np.zeros(nt),
                'longitude': np.zeros(nt),
+               'easting': np.zeros(nt),
+               'northing': np.zeros(nt),
                'iceberg_eastward_velocity': np.zeros(nt),
                'iceberg_northward_velocity': np.zeros(nt),
                'current_eastward_velocity': np.zeros(nt),
@@ -333,6 +341,8 @@ def run_test_simulation(start_location, time_frame, **kwargs):
                 times[i] = iceberg_.time
                 results['latitude'][i] = iceberg_.latitude
                 results['longitude'][i] = iceberg_.longitude
+                results['easting'][i] = iceberg_.easting
+                results['northing'][i] = iceberg_.northing
                 results['iceberg_eastward_velocity'][i] = iceberg_.eastward_velocity
                 results['iceberg_northward_velocity'][i] = iceberg_.northward_velocity
                 results['current_eastward_velocity'][i] = current_velocity[0]
@@ -352,8 +362,13 @@ def run_test_simulation(start_location, time_frame, **kwargs):
                 iceberg_.time += time_step
                 iceberg_.eastward_velocity += ax * dt
                 iceberg_.northward_velocity += ay * dt
-                iceberg_.latitude += tools.dy_to_dlat(iceberg_.northward_velocity * dt)
-                iceberg_.longitude += tools.dx_to_dlon(iceberg_.eastward_velocity * dt, iceberg_.latitude)
+                dy = iceberg_.northward_velocity * dt
+                iceberg_.northing += dy
+                iceberg_.latitude += tools.dy_to_dlat(dy)
+                constants['latitude'] = iceberg_.latitude
+                dx = iceberg_.eastward_velocity * dt
+                iceberg_.easting += dx
+                iceberg_.longitude += tools.dx_to_dlon(dx, iceberg_.latitude)
 
                 point = (iceberg_.time, iceberg_.latitude, iceberg_.longitude)
 
@@ -364,8 +379,6 @@ def run_test_simulation(start_location, time_frame, **kwargs):
 
                 if not assume_constant_wind_velocity:
                     wind_velocity = wind_velocity_interpolator.interpolate(point)
-
-                constants['latitude'] = iceberg_.latitude
 
                 if constant_current_acceleration is not False:
                     constants['current_acceleration'] = constant_current_acceleration
