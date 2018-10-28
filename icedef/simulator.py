@@ -1,6 +1,6 @@
 import numpy as np
 import xarray as xr
-import copy
+from copy import deepcopy
 from scipy.optimize import minimize
 from icedef import iceberg, metocean, drift, tools, timesteppers
 
@@ -309,7 +309,7 @@ def run_test_simulation(start_location, time_frame, **kwargs):
 
                 point = (iceberg_.time, iceberg_.latitude, iceberg_.longitude)
 
-                old_current_velocity = copy.deepcopy(current_velocity)
+                old_current_velocity = deepcopy(current_velocity)
 
                 if not assume_constant_current_velocity:
                     current_velocity = current_velocity_interpolator.interpolate(point)
