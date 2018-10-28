@@ -14,127 +14,54 @@ class Simulator:
         self.time_stepper = kwargs.pop('time_stepper', timesteppers.euler)
         self.ocean_model = kwargs.pop('ocean_model', metocean.ECMWFOcean)
         self.atmospheric_model = kwargs.pop('atmospheric_model', metocean.NARRAtmosphere)
+        self.results = {}
 
-    def run_simulation(self, start_location, time_frame, **kwargs):
+    def run_simulation(self, start_location, time_frame, store_results_as=None, **kwargs):
 
-        start_time, end_time = time_frame
-        dt = self.time_step.item().total_seconds()
-        nt = int((end_time - start_time).item().total_seconds() / dt)
+        kwargs['time_step'] = self.time_step
+        kwargs['time_stepper'] = self.time_stepper
+        kwargs['drift_model'] = self.drift_model
+        kwargs['ocean_model'] = self.ocean_model
+        kwargs['atmospheric_model'] = self.atmospheric_model
 
-        waterline_length = kwargs.pop('waterline_length', 160)
-        sail_height = kwargs.pop('sail_height', 60)
-        size = (waterline_length, sail_height)
-        start_velocity = kwargs.pop('start_velocity', (0, 0))
+        results = run_simulation(start_location, time_frame, **kwargs)
 
-        iceberg_ = iceberg.quickstart(start_time, start_location, velocity=start_velocity, size=size, **kwargs)
-        ocean = self.ocean_model(time_frame)
-        atmosphere = self.atmospheric_model(time_frame)
-        current_velocity_interpolator = metocean.Interpolate((ocean.dataset.time.values,
-                                                              ocean.dataset.latitude.values,
-                                                              ocean.dataset.longitude.values),
-                                                             ocean.eastward_current_velocities.values,
-                                                             ocean.northward_current_velocities.values)
-
-        wind_velocity_interpolator = metocean.Interpolate((atmosphere.dataset.time.values,
-                                                           atmosphere.dataset.latitude.values,
-                                                           atmosphere.dataset.longitude.values),
-                                                          atmosphere.eastward_wind_velocities.values,
-                                                          atmosphere.northward_wind_velocities.values)
-
-        # Initialize arrays
-        times = np.zeros(nt, dtype='datetime64[ns]')
-        results = {'latitude': np.zeros(nt),
-                   'longitude': np.zeros(nt),
-                   'easting': np.zeros(nt),
-                   'northing': np.zeros(nt),
-                   'iceberg_eastward_velocity': np.zeros(nt),
-                   'iceberg_northward_velocity': np.zeros(nt)}
-
-        kwargs = {
-            'form_drag_coefficient_in_air': kwargs.pop('Ca', iceberg_.FORM_DRAG_COEFFICIENT_IN_AIR),
-            'form_drag_coefficient_in_water': kwargs.pop('Cw', iceberg_.FORM_DRAG_COEFFICIENT_IN_WATER),
-            'skin_drag_coefficient_in_air': iceberg_.SKIN_DRAG_COEFFICIENT_IN_AIR,
-            'skin_drag_coefficient_in_water': iceberg_.SKIN_DRAG_COEFFICIENT_IN_WATER,
-            'sail_area': iceberg_.geometry.sail_area,
-            'keel_area': iceberg_.geometry.keel_area,
-            'top_area': iceberg_.geometry.waterline_length ** 2,
-            'bottom_area': 0,
-            'mass': kwargs.pop('mass', iceberg_.geometry.mass),
-            'latitude': iceberg_.latitude,
-            'ekman': kwargs.pop('ekman', False),
-            'depth_vec': kwargs.pop('depth_vec', np.arange(0, -110, -10)),
-            'current_acceleration': (0, 0),
-            'current_interpolator': current_velocity_interpolator.interpolate,
-            'wind_interpolator': wind_velocity_interpolator.interpolate
-        }
-
-        for i in range(nt):
-
-            times[i] = iceberg_.time
-            results['latitude'][i] = iceberg_.latitude
-            results['longitude'][i] = iceberg_.longitude
-            results['easting'][i] = iceberg_.easting
-            results['northing'][i] = iceberg_.northing
-            results['iceberg_eastward_velocity'][i] = iceberg_.eastward_velocity
-            results['iceberg_northward_velocity'][i] = iceberg_.northward_velocity
-
-            dx, dy, dvx, dvy = self.time_stepper(self.drift_model, dt,
-                                                 iceberg_.time, iceberg_.longitude, iceberg_.latitude,
-                                                 iceberg_.eastward_velocity, iceberg_.northward_velocity,
-                                                 **kwargs)
-
-            iceberg_.eastward_velocity += dvx
-            iceberg_.northward_velocity += dvy
-            iceberg_.easting += dx
-            iceberg_.northing += dy
-            iceberg_.time += self.time_step
-            iceberg_.latitude += tools.dy_to_dlat(dy)
-            iceberg_.longitude += tools.dx_to_dlon(dx, iceberg_.latitude)
-
-        xds = xr.Dataset()
-
-        for key, value in results.items():
-            xarr = xr.DataArray(data=value, coords=[times], dims=['time'])
-            xds[key] = xarr
-
-        return xds
+        if store_results_as is not None:
+            self.results[store_results_as] = results
+        else:
+            return results
 
 
 def run_simulation(start_location, time_frame, **kwargs):
 
-    # Args
-    start_latitude, start_longitude = start_location
-    start_time, end_time = time_frame
-
-    # Kwargs
-    waterline_length = kwargs.pop('waterline_length', 160)
-    sail_height = kwargs.pop('sail_height', 60)
-    size = (waterline_length, sail_height)
-    start_velocity = kwargs.pop('start_velocity', (0, 0))
     time_step = kwargs.pop('time_step', np.timedelta64(300, 's'))
-    drift_model = kwargs.pop('drift_model', 'Newtonian')
-    numerical_method = kwargs.pop('numerical_method', 'Euler')
+    time_stepper = kwargs.pop('time_stepper', timesteppers.euler)
+    drift_model = kwargs.pop('drift_model', drift.newtonian_drift_wrapper)
+    ocean_model = kwargs.pop('ocean_model', metocean.ECMWFOcean)
+    atmospheric_model = kwargs.pop('atmospheric_model', metocean.NARRAtmosphere)
 
-    # Object creation
-    iceberg_ = iceberg.quickstart(start_time, start_location, velocity=start_velocity, size=size, **kwargs)
-    metocean_ = metocean.Metocean(time_frame)
-    ocean = metocean_.ocean
-    atmosphere = metocean_.atmosphere
-    current_velocity_interpolator = metocean.Interpolate((ocean.dataset.time.values,
-                                                          ocean.dataset.latitude.values,
-                                                          ocean.dataset.longitude.values),
-                                                         ocean.eastward_current_velocities.values,
-                                                         ocean.northward_current_velocities.values)
-    wind_velocity_interpolator = metocean.Interpolate((atmosphere.dataset.time.values,
-                                                       atmosphere.dataset.latitude.values,
-                                                       atmosphere.dataset.longitude.values),
-                                                      atmosphere.eastward_wind_velocities.values,
-                                                      atmosphere.northward_wind_velocities.values)
-
-
-    # Get time step in seconds and total number of steps
+    start_time, end_time = time_frame
     dt = time_step.item().total_seconds()
     nt = int((end_time - start_time).item().total_seconds() / dt)
+
+    waterline_length = kwargs.pop('waterline_length', 160)
+    sail_height = kwargs.pop('sail_height', 60)
+    size = waterline_length, sail_height
+    start_velocity = kwargs.pop('start_velocity', (0, 0))
+
+    iceberg_ = iceberg.quickstart(start_time, start_location, velocity=start_velocity, size=size, **kwargs)
+
+    ocean = ocean_model(time_frame)
+    atmosphere = atmospheric_model(time_frame)
+
+    ocean_grid = ocean.dataset.time, ocean.dataset.latitude, ocean.dataset.longitude
+    atmosphere_grid = atmosphere.dataset.time, atmosphere.dataset.latitude, atmosphere.dataset.longitude
+
+    current_data = ocean.eastward_current_velocities.values, ocean.northward_current_velocities.values
+    wind_data = atmosphere.eastward_wind_velocities.values, atmosphere.northward_wind_velocities.values
+
+    current_velocity_interpolator = metocean.Interpolate(ocean_grid, *current_data)
+    wind_velocity_interpolator = metocean.Interpolate(atmosphere_grid, *wind_data)
 
     # Initialize arrays
     times = np.zeros(nt, dtype='datetime64[ns]')
@@ -143,97 +70,64 @@ def run_simulation(start_location, time_frame, **kwargs):
                'easting': np.zeros(nt),
                'northing': np.zeros(nt),
                'iceberg_eastward_velocity': np.zeros(nt),
-               'iceberg_northward_velocity': np.zeros(nt),
-               'current_eastward_velocity': np.zeros(nt),
-               'current_northward_velocity': np.zeros(nt),
-               'wind_eastward_velocity': np.zeros(nt),
-               'wind_northward_velocity': np.zeros(nt),
-               'current_eastward_force': np.zeros(nt),
-               'current_northward_force': np.zeros(nt),
-               'wind_eastward_force': np.zeros(nt),
-               'wind_northward_force': np.zeros(nt),
-               'coriolis_eastward_force': np.zeros(nt),
-               'coriolis_northward_force': np.zeros(nt),
-               'pressure_eastward_force': np.zeros(nt),
-               'pressure_northward_force': np.zeros(nt)}
+               'iceberg_northward_velocity': np.zeros(nt)}
 
-    if drift_model == 'Newtonian':
+    kwargs = {
+        'form_drag_coefficient_in_air': kwargs.pop('Ca', iceberg_.FORM_DRAG_COEFFICIENT_IN_AIR),
+        'form_drag_coefficient_in_water': kwargs.pop('Cw', iceberg_.FORM_DRAG_COEFFICIENT_IN_WATER),
+        'skin_drag_coefficient_in_air': iceberg_.SKIN_DRAG_COEFFICIENT_IN_AIR,
+        'skin_drag_coefficient_in_water': iceberg_.SKIN_DRAG_COEFFICIENT_IN_WATER,
+        'sail_area': iceberg_.geometry.sail_area,
+        'keel_area': iceberg_.geometry.keel_area,
+        'top_area': iceberg_.geometry.waterline_length ** 2,
+        'bottom_area': iceberg_.geometry.bottom_area,
+        'mass': kwargs.pop('mass', iceberg_.geometry.mass),
+        'latitude': iceberg_.latitude,
+        'ekman': kwargs.pop('ekman', False),
+        'depth_vec': kwargs.pop('depth_vec', np.arange(0, -110, -10)),
+        'current_acceleration': (0, 0),
+        'current_interpolator': current_velocity_interpolator.interpolate,
+        'wind_interpolator': wind_velocity_interpolator.interpolate
+    }
 
-        iceberg_constants = {
-            'form_drag_coefficient_in_air': kwargs.pop('Ca', iceberg_.FORM_DRAG_COEFFICIENT_IN_AIR),
-            'form_drag_coefficient_in_water': kwargs.pop('Cw', iceberg_.FORM_DRAG_COEFFICIENT_IN_WATER),
-            'skin_drag_coefficient_in_air': iceberg_.SKIN_DRAG_COEFFICIENT_IN_AIR,
-            'skin_drag_coefficient_in_water': iceberg_.SKIN_DRAG_COEFFICIENT_IN_WATER,
-            'sail_area': iceberg_.geometry.sail_area,
-            'keel_area': iceberg_.geometry.keel_area,
-            'top_area': iceberg_.geometry.waterline_length**2,
-            'bottom_area': 0,
-            'mass': kwargs.pop('mass', iceberg_.geometry.mass),
-            'latitude': iceberg_.latitude,
-            'ekman': kwargs.pop('ekman', False),
-            'depth_vec': kwargs.pop('depth_vec', np.arange(0, -110, -10)),
-            'current_acceleration': (0, 0)
-            }
+    for i in range(nt):
 
-        point = (iceberg_.time, iceberg_.latitude, iceberg_.longitude)
-        current_velocity = current_velocity_interpolator.interpolate(point)
-        wind_velocity = wind_velocity_interpolator.interpolate(point)
-        
-        if numerical_method == 'Euler':
+        times[i] = iceberg_.time
+        results['latitude'][i] = iceberg_.latitude
+        results['longitude'][i] = iceberg_.longitude
+        results['easting'][i] = iceberg_.easting
+        results['northing'][i] = iceberg_.northing
+        results['iceberg_eastward_velocity'][i] = iceberg_.eastward_velocity
+        results['iceberg_northward_velocity'][i] = iceberg_.northward_velocity
 
-            for i in range(nt):
+        if time_stepper == timesteppers.am2:
 
-                # Compute instantaneous acceleration from drift model
-                ax, ay, forces = drift.newtonian_drift((iceberg_.eastward_velocity, iceberg_.northward_velocity),
-                                                       current_velocity, wind_velocity,
-                                                       **iceberg_constants)
+            dx, dy, dvx, dvy = time_stepper(drift_model, dt,
+                                            times[:i+1],
+                                            results['longitude'][:i+1],
+                                            results['latitude'][:i+1],
+                                            results['iceberg_eastward_velocity'][:i+1],
+                                            results['iceberg_northward_velocity'][:i+1],
+                                            **kwargs)
 
-                # Store results from this time step
+        else:
 
-                times[i] = iceberg_.time
-                results['latitude'][i] = iceberg_.latitude
-                results['longitude'][i] = iceberg_.longitude
-                results['easting'][i] = iceberg_.easting
-                results['northing'][i] = iceberg_.northing
-                results['iceberg_eastward_velocity'][i] = iceberg_.eastward_velocity
-                results['iceberg_northward_velocity'][i] = iceberg_.northward_velocity
-                results['current_eastward_velocity'][i] = current_velocity[0]
-                results['current_northward_velocity'][i] = current_velocity[1]
-                results['wind_eastward_velocity'][i] = wind_velocity[0]
-                results['wind_northward_velocity'][i] = wind_velocity[1]
-                results['wind_eastward_force'][i] = forces[0]
-                results['wind_northward_force'][i] = forces[1]
-                results['current_eastward_force'][i] = forces[2]
-                results['current_northward_force'][i] = forces[3]
-                results['coriolis_eastward_force'][i] = forces[4]
-                results['coriolis_northward_force'][i] = forces[5]
-                results['pressure_eastward_force'][i] = forces[6]
-                results['pressure_northward_force'][i] = forces[7]
+            dx, dy, dvx, dvy = time_stepper(drift_model, dt,
+                                            iceberg_.time, iceberg_.longitude, iceberg_.latitude,
+                                            iceberg_.eastward_velocity, iceberg_.northward_velocity,
+                                            **kwargs)
 
-                # Update parameters for next time step
+        iceberg_.eastward_velocity += dvx
+        iceberg_.northward_velocity += dvy
+        iceberg_.easting += dx
+        iceberg_.northing += dy
+        iceberg_.time += time_step
+        iceberg_.latitude += tools.dy_to_dlat(dy)
+        iceberg_.longitude += tools.dx_to_dlon(dx, iceberg_.latitude)
 
-                iceberg_.time += time_step
-                iceberg_.eastward_velocity += ax * dt
-                iceberg_.northward_velocity += ay * dt
-                dy = iceberg_.northward_velocity * dt
-                iceberg_.northing += dy
-                iceberg_.latitude += tools.dy_to_dlat(dy)
-                iceberg_constants['latitude'] = iceberg_.latitude
-                dx = iceberg_.eastward_velocity * dt
-                iceberg_.easting += dx
-                iceberg_.longitude += tools.dx_to_dlon(dx, iceberg_.latitude)
-                point = (iceberg_.time, iceberg_.latitude, iceberg_.longitude)
-                old_current_velocity = copy.deepcopy(current_velocity)
-                current_velocity = current_velocity_interpolator.interpolate(point)
-                wind_velocity = wind_velocity_interpolator.interpolate(point)
-                current_acceleration = ((current_velocity[0] - old_current_velocity[0]) / dt,
-                                        (current_velocity[1] - old_current_velocity[1]) / dt)
-                iceberg_constants['current_acceleration'] = current_acceleration
-                
     xds = xr.Dataset()
 
     for key, value in results.items():
-
         xarr = xr.DataArray(data=value, coords=[times], dims=['time'])
         xds[key] = xarr
 
@@ -438,18 +332,6 @@ def run_test_simulation(start_location, time_frame, **kwargs):
         xds[key] = xarr
 
     return xds
-
-
-
-def compute_new_position(old_position, velocity, time_step):
-
-    latitude, longitude = old_position
-    eastward_velocity, northward_velocity = velocity
-
-    latitude += tools.dy_to_dlat(northward_velocity * time_step)
-    longitude += tools.dx_to_dlon(eastward_velocity * time_step, latitude)
-
-    return latitude, longitude
 
 
 def run_optimization(keys, x0, bounds, reference_vectors, start_location, time_frame):
