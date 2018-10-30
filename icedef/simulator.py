@@ -100,7 +100,7 @@ def run_simulation(start_location, time_frame, **kwargs):
         results['iceberg_eastward_velocity'][i] = iceberg_.eastward_velocity
         results['iceberg_northward_velocity'][i] = iceberg_.northward_velocity
 
-        if time_stepper == timesteppers.am2:
+        if time_stepper in (timesteppers.ab2, timesteppers.ab3):
 
             dx, dy, dvx, dvy = time_stepper(drift_model, dt,
                                             times[:i+1],
