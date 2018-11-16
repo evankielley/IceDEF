@@ -122,7 +122,7 @@ def get_files(id_, path, date_bounds, cache=True):
     file_names = []
     files = []
 
-    for i in range(time_delta.days + 1):
+    for i in range(time_delta.days + 2):
         file_date = start_date + timedelta(days=i)
         file_name = str(file_date).replace('-', '') + '.nc'
         file_names.append(file_name)
@@ -212,8 +212,8 @@ def get_grid_info(grid_vectors, **kwargs):
         if isinstance(grid_vector[0], np.datetime64):
             grid_vector = (grid_vector - reference_time) / np.timedelta64(1, time_units)
 
-        grid_vector_min = grid_vector[0]
-        grid_vector_max = grid_vector[-1]
+        grid_vector_min = np.min(grid_vector[0])
+        grid_vector_max = np.max(grid_vector[-1])
         grid_vector_step = np.mean(np.diff(grid_vector))
         grid_info.append([grid_vector_min, grid_vector_step, grid_vector_max])
 
