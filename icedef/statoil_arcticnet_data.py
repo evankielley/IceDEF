@@ -1,16 +1,11 @@
-import urllib
 import pandas as pd
 import numpy as np
 from icedef import iceberg, tools
 
-dir_path = 'ftp://data.munroelab.ca/pub/iceberg/beacon/'
-dir_contents = urllib.request.urlopen(dir_path).read().splitlines()
-filenames = [str(listing.split()[-1])[2:-1] for listing in dir_contents]
-csv_filenames = [filename for filename in filenames if filename.startswith('0')
-                and filename.endswith('csv')]
-kml_filenames = [filename for filename in filenames if filename.startswith('0')
-                and filename.endswith('kml')]
-metadata_filename = filenames[-1]
+dir_path = 'http://icedef.munroelab.ca/data/StatoilArcticNet/drift_tracks/'
+csv_filenames = ['0204980_2015.csv', '0505190_2015.csv', '0906790_2015.csv', '0907780_2015.csv']
+kml_filenames = ['0204980_2015_ln.kml', '0505190_2015_ln.kml', '0906790_2015_ln.kml', '0907780_2015_ln.kml']
+metadata_filename = 'MunroeMetadata.csv'
 beacon_metadata = pd.read_csv(dir_path + metadata_filename)
 
 
