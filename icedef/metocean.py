@@ -26,7 +26,7 @@ class Metocean:
 class ECMWFOcean:
 
     ID = "GLOBAL_ANALYSIS_FORECAST_PHY_001_024"
-    PATH = 'ftp://data.munroelab.ca/pub/ECMWF/ocean/daily/'
+    PATH = 'http://icedef.munroelab.ca/data/ECMWF/ocean/daily/'
 
     def __init__(self, date_bounds):
 
@@ -48,11 +48,11 @@ class ECMWFOcean:
 class ECMWFAtmosphere:
 
     ID = "WIND_GLO_WIND_L4_NRT_OBSERVATIONS_012_004"
-    PATH = 'ftp://data.munroelab.ca/pub/ECMWF/atm/daily/'
+    PATH = 'http://icedef.munroelab.ca/data/ECMWF/atm/daily/'
 
     def __init__(self, date_bounds):
 
-        self.dataset = xr.open_mfdataset(get_files(self.ID, self.PATH, date_bounds)).rename(
+        self.dataset = xr.open_mfdataset(get_files(self.ID, self.PATH, date_bounds)).squeeze('depth').rename(
                                                         {'eastward_wind': 'eastward_wind_velocity',
                                                          'northward_wind': 'northward_wind_velocity'})
 
@@ -72,7 +72,7 @@ class ECMWFAtmosphere:
 class NARRAtmosphere:
 
     ID = "NCEP_North_American_Regional_Reanalysis_NARR"
-    PATH = 'ftp://data.munroelab.ca/pub/NARR/atm/daily/'
+    PATH = 'http://icedef.munroelab.ca/data/NARR/atm/daily/'
 
     def __init__(self, date_bounds):
 
