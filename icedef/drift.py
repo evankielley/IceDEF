@@ -251,17 +251,20 @@ def compute_ekman_velocity(wind, depth, latitude=50):
     return u_ekman, v_ekman
 
 
-def compute_ekman_spiral(wind, surface_current, depth_vec):
+def compute_ekman_spiral(wind, surface_current, depth_vec, latitude=50):
+
     u_ekman_vec = np.zeros(len(depth_vec))
     v_ekman_vec = np.zeros(len(depth_vec))
 
-    for i, depth in enumerate(depth_vec):
-        u_ekman_vec[i], v_ekman_vec[i] = compute_ekman_velocity(wind, depth)
+    u_ekman_surface, v_ekman_surface = compute_ekman_velocity(wind, 0, latitude)
 
     u_surface_current, v_surface_current = surface_current
 
-    u_barotropic = u_surface_current - u_ekman_vec[0]
-    v_barotropic = v_surface_current - v_ekman_vec[0]
+    u_barotropic = u_surface_current - u_ekman_surface
+    v_barotropic = v_surface_current - v_ekman_surface
+
+    for i, depth in enumerate(depth_vec):
+        u_ekman_vec[i], v_ekman_vec[i] = compute_ekman_velocity(wind, depth, latitude)
 
     u_current_vec = u_barotropic + u_ekman_vec
     v_current_vec = v_barotropic + v_ekman_vec
