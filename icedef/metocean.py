@@ -3,6 +3,7 @@ import numpy as np
 import xarray as xr
 from urllib.request import urlretrieve
 from datetime import date, timedelta
+from pandas import Timestamp
 
 
 class Metocean:
@@ -100,10 +101,10 @@ def get_files(id_, path, date_bounds, cache=True):
     start_date, end_date = date_bounds
 
     if isinstance(start_date, np.datetime64):
-        start_date = start_date.astype(object)
+        start_date = Timestamp(start_date)
 
     if isinstance(end_date, np.datetime64):
-        end_date = end_date.astype(object)
+        end_date = Timestamp(end_date)
 
     start_date = date(start_date.year, start_date.month, start_date.day)
     end_date = date(end_date.year, end_date.month, end_date.day)
