@@ -46,6 +46,28 @@ class ECMWFOcean:
                                                          attrs=self.dataset.eastward_current_velocity.attrs)
 
 
+class HYCOMOcean:
+
+    ID = "HYCOM_Region_1_3D"
+    PATH = 'http://icedef.munroelab.ca/data/HYCOM/ocean/daily/'
+
+    def __init__(self, date_bounds):
+
+        self.dataset = xr.open_mfdataset(get_files(self.ID, self.PATH, date_bounds))
+
+        self.eastward_current_velocities = xr.DataArray(data=self.dataset.eastward_current_velocity.values,
+                                                        coords=[('time', self.dataset.time.values),
+                                                                ('latitude', self.dataset.latitude.values),
+                                                                ('longitude', self.dataset.longitude.values)],
+                                                        attrs=self.dataset.eastward_current_velocity.attrs)
+
+        self.northward_current_velocities = xr.DataArray(data=self.dataset.northward_current_velocity.values,
+                                                         coords=[('time', self.dataset.time.values),
+                                                                 ('latitude', self.dataset.latitude.values),
+                                                                 ('longitude', self.dataset.longitude.values)],
+                                                         attrs=self.dataset.eastward_current_velocity.attrs)
+
+
 class ECMWFAtmosphere:
 
     ID = "WIND_GLO_WIND_L4_NRT_OBSERVATIONS_012_004"
