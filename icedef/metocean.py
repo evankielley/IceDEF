@@ -205,6 +205,7 @@ class Interpolate:
         self.reference_time = kwargs.pop('reference_time', np.datetime64('1950-01-01T00:00'))
         self.time_units = kwargs.pop('time_units', 'h')
         self.grid_info = get_grid_info(grid_vectors, **kwargs)
+        self.xarray_interp = kwargs.pop('xarray_interp', False)
 
     def interpolate(self, point):
 
@@ -217,7 +218,14 @@ class Interpolate:
 
         point = tuple(point_list)
 
-        return linear_interpolation_on_uniform_regular_grid(self.grid_info, point, *self.data)
+        if self.xarray_interp:
+            values = []
+            for data in self.data:
+                values.append(data.interp(time=point[0], latitude=point[1], longitude=point[2], assume_sorted=True))
+            return tuple(values)
+
+        else:
+            return linear_interpolation_on_uniform_regular_grid(self.grid_info, point, *self.data)
 
 
 def get_grid_info(grid_vectors, **kwargs):
