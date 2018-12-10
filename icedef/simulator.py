@@ -32,6 +32,45 @@ class Simulator:
             return results
 
 
+def run_optimization(simulator, keys, x0, bounds, reference_vectors, start_location, time_frame):
+    # reference_vectors is a tuple containing an xr.DataArray for lats and lons
+
+    optimization_result = minimize(optimization_wrapper, x0=x0, bounds=bounds,
+                                   args=(simulator, keys, reference_vectors, start_location, time_frame))
+
+    return optimization_result
+
+
+def optimization_wrapper(values, simulator, keys, reference_vectors, start_location, time_frame):
+
+    kwargs = dict(zip(keys, values))
+    xds = simulator.run_simulation(start_location, time_frame, **kwargs)
+    simulation_vectors = (xds['latitude'], xds['longitude'])
+    mse = compute_mse(simulation_vectors, reference_vectors)
+
+    return mse
+
+
+def compute_mse(simulation_vectors, reference_vectors):
+
+    sim_lats, sim_lons = simulation_vectors
+    ref_lats, ref_lons = reference_vectors
+
+    mean_square_error_list = []
+
+    stop_index = np.where(ref_lats['time'].values <= sim_lats['time'].values[-1])[0][-1]
+
+    for i in range(stop_index + 1):
+
+        time = ref_lats['time'][i]
+        sim_lat = sim_lats.interp(time=time, assume_sorted=True)
+        sim_lon = sim_lons.interp(time=time, assume_sorted=True)
+        mean_square_error = np.sqrt((sim_lat - ref_lats[i])**2 + (sim_lon - ref_lons[i])**2)
+        mean_square_error_list.append(mean_square_error)
+
+    return np.mean(mean_square_error_list)
+
+
 def run_simulation(start_location, time_frame, **kwargs):
 
     time_step = kwargs.pop('time_step', np.timedelta64(300, 's'))
@@ -332,42 +371,3 @@ def run_test_simulation(start_location, time_frame, **kwargs):
         xds[key] = xarr
 
     return xds
-
-
-def run_optimization(keys, x0, bounds, reference_vectors, start_location, time_frame):
-    # reference_vectors is a tuple containing an xr.DataArray for lats and lons
-
-    optimization_result = minimize(optimization_wrapper, x0=x0, bounds=bounds,
-                                   args=(keys, reference_vectors, start_location, time_frame))
-
-    return optimization_result
-
-
-def optimization_wrapper(values, keys, reference_vectors, start_location, time_frame):
-
-    kwargs = dict(zip(keys, values))
-    xds = run_simulation(start_location, time_frame, **kwargs)
-    simulation_vectors = (xds['latitude'], xds['longitude'])
-    mse = compute_mse(simulation_vectors, reference_vectors)
-
-    return mse
-
-
-def compute_mse(simulation_vectors, reference_vectors):
-
-    sim_lats, sim_lons = simulation_vectors
-    ref_lats, ref_lons = reference_vectors
-
-    mean_square_error_list = []
-
-    stop_index = np.where(ref_lats['time'].values <= sim_lats['time'].values[-1])[0][-1]
-
-    for i in range(stop_index + 1):
-
-        time = ref_lats['time'][i]
-        sim_lat = sim_lats.interp(time=time, assume_sorted=True)
-        sim_lon = sim_lons.interp(time=time, assume_sorted=True)
-        mean_square_error = np.sqrt((sim_lat - ref_lats[i])**2 + (sim_lon - ref_lons[i])**2)
-        mean_square_error_list.append(mean_square_error)
-
-    return np.mean(mean_square_error_list)
