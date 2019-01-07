@@ -9,113 +9,127 @@ from pandas import Timestamp
 class Metocean:
 
     def __init__(self, date_bounds, **kwargs):
+
         self.date_bounds = date_bounds
-        self.ocean_class = kwargs.pop('ocean_class', ECMWFOcean)
-        self.atmosphere_class = kwargs.pop('atmosphere_class', NARRAtmosphere)
-        self.ocean = self.ocean_class(date_bounds)
-        self.atmosphere = self.atmosphere_class(date_bounds)
+        self.ocean_model = kwargs.pop('ocean_model', 'ECMWF')
+        self.atmosphere_model = kwargs.pop('atmosphere_model', 'NARR')
+        self.ocean = Ocean(date_bounds, model=self.ocean_model)
+        self.atmosphere = Atmosphere(date_bounds, model=self.atmosphere_model)
 
-    def swap_ocean(self, ocean_class):
-        self.ocean_class = ocean_class
-        self.ocean = self.ocean_class(self.date_bounds)
+    def swap_ocean(self, ocean_model):
 
-    def swap_atmosphere(self, atmosphere_class):
-        self.atmosphere_class = atmosphere_class
-        self.atmosphere = self.atmosphere_class(self.date_bounds)
+        self.ocean_model = ocean_model
+        self.ocean = self.Ocean(self.date_bounds, model=ocean_model)
 
+    def swap_atmosphere(self, atmosphere_model):
 
-class ECMWFOcean:
-
-    ID = "GLOBAL_ANALYSIS_FORECAST_PHY_001_024"
-    PATH = 'http://icedef.munroelab.ca/data/ECMWF/ocean/daily/'
-
-    def __init__(self, date_bounds):
-
-        self.dataset = xr.open_mfdataset(get_files(self.ID, self.PATH, date_bounds)).squeeze('depth').rename(
-            {'uo': 'eastward_current_velocity', 'vo': 'northward_current_velocity'})
-
-        self.eastward_current_velocities = xr.DataArray(data=self.dataset.eastward_current_velocity.values,
-                                                        coords=[('time', self.dataset.time.values),
-                                                                ('latitude', self.dataset.latitude.values),
-                                                                ('longitude', self.dataset.longitude.values)],
-                                                        attrs=self.dataset.eastward_current_velocity.attrs)
-        self.northward_current_velocities = xr.DataArray(data=self.dataset.northward_current_velocity.values,
-                                                         coords=[('time', self.dataset.time.values),
-                                                                 ('latitude', self.dataset.latitude.values),
-                                                                 ('longitude', self.dataset.longitude.values)],
-                                                         attrs=self.dataset.eastward_current_velocity.attrs)
+        self.atmosphere_model = atmosphere_model
+        self.atmosphere = self.Atmosphere(self.date_bounds, model=atmosphere_model)
 
 
-class HYCOMOcean:
+class Ocean:
 
-    ID = "HYCOM_Region_1_3D"
-    PATH = 'http://icedef.munroelab.ca/data/HYCOM/ocean/daily/'
+    ID = None
+    PATH = None
 
-    def __init__(self, date_bounds):
+    def __init__(self, date_bounds, model='ECMWF'):
 
-        self.dataset = xr.open_mfdataset(get_files(self.ID, self.PATH, date_bounds))
+        if model == 'ECMWF':
 
-        self.eastward_current_velocities = xr.DataArray(data=self.dataset.eastward_current_velocity.values,
-                                                        coords=[('time', self.dataset.time.values),
-                                                                ('latitude', self.dataset.latitude.values),
-                                                                ('longitude', self.dataset.longitude.values)],
-                                                        attrs=self.dataset.eastward_current_velocity.attrs)
+            self.ID = "GLOBAL_ANALYSIS_FORECAST_PHY_001_024"
+            self.PATH = 'http://icedef.munroelab.ca/data/ECMWF/ocean/daily/'
+            self.data = xr.open_mfdataset(get_files(self.ID, self.PATH, date_bounds)).squeeze('depth').rename(
+                                                    {'uo': 'eastward_velocity', 'vo': 'northward_velocity'})
 
-        self.northward_current_velocities = xr.DataArray(data=self.dataset.northward_current_velocity.values,
-                                                         coords=[('time', self.dataset.time.values),
-                                                                 ('latitude', self.dataset.latitude.values),
-                                                                 ('longitude', self.dataset.longitude.values)],
-                                                         attrs=self.dataset.eastward_current_velocity.attrs)
+        elif model == 'HYCOM':
+
+            self.ID = "HYCOM_Region_1_3D"
+            self.PATH = 'http://icedef.munroelab.ca/data/HYCOM/ocean/daily/'
+            self.data = xr.open_mfdataset(get_files(self.ID, self.PATH, date_bounds)).rename(
+                {'eastward_current_velocity': 'eastward_velocity', 'northward_current_velocity': 'northward_velocity'})
+
+        else:
+
+            print('Invalid model.')
+
+        self.eastward_velocities = xr.DataArray(data=self.data.eastward_velocity.values,
+                                                coords=[('time', self.data.time.values),
+                                                                ('latitude', self.data.latitude.values),
+                                                                ('longitude', self.data.longitude.values)],
+                                                attrs=self.data.eastward_velocity.attrs)
+
+        self.northward_velocities = xr.DataArray(data=self.data.northward_velocity.values,
+                                                 coords=[('time', self.data.time.values),
+                                                         ('latitude', self.data.latitude.values),
+                                                         ('longitude', self.data.longitude.values)],
+                                                 attrs=self.data.eastward_velocity.attrs)
+
+        self.speeds = xr.DataArray(data=compute_magnitude(self.eastward_velocities,
+                                                          self.northward_velocities),
+                                   coords=[('time', self.data.time.values),
+                                           ('latitude', self.data.latitude.values),
+                                           ('longitude', self.data.longitude.values)])
+
+        self.directions = xr.DataArray(data=compute_direction(self.eastward_velocities,
+                                                              self.northward_velocities),
+                                       coords=[('time', self.data.time.values),
+                                               ('latitude', self.data.latitude.values),
+                                               ('longitude', self.data.longitude.values)])
 
 
-class ECMWFAtmosphere:
+class Atmosphere:
 
-    ID = "WIND_GLO_WIND_L4_NRT_OBSERVATIONS_012_004"
-    PATH = 'http://icedef.munroelab.ca/data/ECMWF/atm/daily/'
+    ID = None
+    PATH = None
 
-    def __init__(self, date_bounds):
+    def __init__(self, date_bounds, model='NARR'):
 
-        self.dataset = xr.open_mfdataset(get_files(self.ID, self.PATH, date_bounds)).squeeze('depth').rename(
-                                                        {'eastward_wind': 'eastward_wind_velocity',
-                                                         'northward_wind': 'northward_wind_velocity'})
+        if model == 'ECMWF':
 
-        self.eastward_wind_velocities = xr.DataArray(data=self.dataset.eastward_wind_velocity.values,
-                                                     coords=[('time', self.dataset.time.values),
-                                                             ('latitude', self.dataset.latitude.values),
-                                                             ('longitude', self.dataset.longitude.values)],
-                                                     attrs=self.dataset.eastward_wind_velocity.attrs)
+            self.ID = "WIND_GLO_WIND_L4_NRT_OBSERVATIONS_012_004"
+            self.PATH = 'http://icedef.munroelab.ca/data/ECMWF/atm/daily/'
+            self.data = xr.open_mfdataset(get_files(self.ID, self.PATH, date_bounds)).squeeze('depth').rename(
+                {'eastward_wind': 'eastward_velocity',
+                 'northward_wind': 'northward_velocity'})
 
-        self.northward_wind_velocities = xr.DataArray(data=self.dataset.northward_wind_velocity.values,
-                                                      coords=[('time', self.dataset.time.values),
-                                                              ('latitude', self.dataset.latitude.values),
-                                                              ('longitude', self.dataset.longitude.values)],
-                                                      attrs=self.dataset.northward_wind_velocity.attrs)
+        elif model == 'NARR':
 
+            self.ID = "NCEP_North_American_Regional_Reanalysis_NARR"
+            self.PATH = 'http://icedef.munroelab.ca/data/NARR/atm/daily/'
+            self.data = xr.open_mfdataset(get_files(self.ID, self.PATH, date_bounds)).rename(
+                {'uwnd': 'eastward_velocity',
+                 'vwnd': 'northward_velocity',
+                 'lat': 'latitude',
+                 'lon': 'longitude'})
+            self.data['longitude'] = np.mod(self.data.longitude - 180, 360) - 180
 
-class NARRAtmosphere:
+        else:
 
-    ID = "NCEP_North_American_Regional_Reanalysis_NARR"
-    PATH = 'http://icedef.munroelab.ca/data/NARR/atm/daily/'
+            print('Invalid model.')
 
-    def __init__(self, date_bounds):
+        self.eastward_velocities = xr.DataArray(data=self.data.eastward_velocity.values,
+                                                coords=[('time', self.data.time.values),
+                                                        ('latitude', self.data.latitude.values),
+                                                        ('longitude', self.data.longitude.values)],
+                                                attrs=self.data.eastward_velocity.attrs)
 
-        self.dataset = xr.open_mfdataset(get_files(self.ID, self.PATH, date_bounds)).rename(
-                                                        {'uwnd': 'eastward_wind_velocity',
-                                                         'vwnd': 'northward_wind_velocity',
-                                                         'lat': 'latitude',
-                                                         'lon': 'longitude'})
-        self.dataset['longitude'] = np.mod(self.dataset.longitude - 180, 360) - 180
-        self.eastward_wind_velocities = xr.DataArray(data=self.dataset.eastward_wind_velocity.values,
-                                                     coords=[('time', self.dataset.time.values),
-                                                             ('latitude', self.dataset.latitude.values),
-                                                             ('longitude', self.dataset.longitude.values)],
-                                                     attrs=self.dataset.eastward_wind_velocity.attrs)
+        self.northward_velocities = xr.DataArray(data=self.data.northward_velocity.values,
+                                                 coords=[('time', self.data.time.values),
+                                                         ('latitude', self.data.latitude.values),
+                                                         ('longitude', self.data.longitude.values)],
+                                                 attrs=self.data.eastward_velocity.attrs)
 
-        self.northward_wind_velocities = xr.DataArray(data=self.dataset.northward_wind_velocity.values,
-                                                      coords=[('time', self.dataset.time.values),
-                                                              ('latitude', self.dataset.latitude.values),
-                                                              ('longitude', self.dataset.longitude.values)],
-                                                      attrs=self.dataset.northward_wind_velocity.attrs)
+        self.speeds = xr.DataArray(data=compute_magnitude(self.eastward_velocities,
+                                                          self.northward_velocities),
+                                   coords=[('time', self.data.time.values),
+                                           ('latitude', self.data.latitude.values),
+                                           ('longitude', self.data.longitude.values)])
+
+        self.directions = xr.DataArray(data=compute_direction(self.eastward_velocities,
+                                                              self.northward_velocities),
+                                       coords=[('time', self.data.time.values),
+                                               ('latitude', self.data.latitude.values),
+                                               ('longitude', self.data.longitude.values)])
 
 
 def get_files(id_, path, date_bounds, cache=True):
@@ -249,3 +263,13 @@ def get_grid_info(grid_vectors, **kwargs):
         grid_info.append([grid_vector_min, grid_vector_step, grid_vector_max])
 
     return grid_info
+
+
+def compute_magnitude(eastward_component, northward_component):
+
+    return np.sqrt(eastward_component**2 + northward_component**2)
+
+
+def compute_direction(eastward_component, northward_component):
+    # computes angle clockwise from true north
+    return np.rad2deg(np.arctan2(northward_component, eastward_component) - np.pi / 2)
