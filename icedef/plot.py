@@ -11,6 +11,67 @@ import cartopy.crs as ccrs
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 
+def get_stereographic_projection(**kwargs):
+    
+    lon_0 = kwargs.pop('lon_0', -50)
+    lat_0 = kwargs.pop('lon_0', 50)
+    lat_ts = kwargs.pop('lon_0', 45)
+    
+    resolution = kwargs.pop('resolution', 'l')
+    area_thresh = kwargs.pop('area_thresh', 0.1)
+    
+    llcrnrlon = kwargs.pop('llcrnrlon', -60)
+    llcrnrlat = kwargs.pop('llcrnrlat', 40)
+    urcrnrlon = kwargs.pop('urcrnrlon', -40)
+    urcrnrlat = kwargs.pop('urcrnrlat', 60)
+    
+    drawcoastlines = kwargs.pop('drawcoastlines', True)
+    drawstates = kwargs.pop('drawstates', False)
+    drawcountries = kwargs.pop('drawcountries', False)
+    
+    parallels = kwargs.pop('parallels', np.arange(0, 90, 5))
+    meridians = kwargs.pop('meridians', np.arange(0.,360.,10.))
+    
+    xtick_rotation_angle = kwargs.pop('xtick_rotation_angle', 90)
+
+    # create polar stereographic Basemap instance
+    m = Basemap(projection='stere',
+                lon_0=lon_0, lat_0=lat_0, lat_ts=lat_ts,
+                resolution = resolution, area_thresh=area_thresh,
+                llcrnrlon = llcrnrlon,
+                llcrnrlat = llcrnrlat,
+                urcrnrlon = urcrnrlon,
+                urcrnrlat = urcrnrlat)
+
+    if drawcoastlines:
+        m.drawcoastlines()
+    if drawstates:
+        m.drawstates()
+    if drawcountries:
+        m.drawcountries()
+
+    # draw parallels
+    parallels = parallels
+    m.drawparallels(parallels,labels=[1,0,0,0], fontsize=10)
+
+    # draw meridians
+    meridians = meridians
+    meridians = m.drawmeridians(meridians, labels=[0,0,0,1], fontsize=10)
+    
+    if xtick_rotation_angle:
+        
+        # rotate x tick labels
+        for meridian in meridians:
+
+            try:
+                meridians[meridian][1][0].set_rotation(xtick_rotation_angle)
+
+            except IndexError:
+                pass
+
+    return m
+
+
 def plot_iceberg_track(lats, lons, **kwargs):
 
     if isinstance(lats, xr.core.dataarray.DataArray):
