@@ -5,25 +5,19 @@ from icedef.constants import *
 
 def newtonian_drift_wrapper(t, lon, lat, vx, vy, **kwargs):
 
-    current_interpolator = kwargs.pop('current_interpolator')
-    wind_interpolator = kwargs.pop('wind_interpolator')
-
-    vcx, vcy = current_interpolator((t, lat, lon))
-    vwx, vwy = wind_interpolator((t, lat, lon))
-
-    kwargs['Vcx'] = vcx
-    kwargs['Vcy'] = vcy
-    kwargs['Vwx'] = vwx
-    kwargs['Vwy'] = vwy
+    kwargs['Vcx'] = kwargs.pop('eastward_current').interp(time=t, latitude=lat, longitude=lon, assume_sorted=True).values
+    kwargs['Vcy'] = kwargs.pop('northward_current').interp(time=t, latitude=lat, longitude=lon, assume_sorted=True).values
+    kwargs['Vwx'] = kwargs.pop('eastward_wind').interp(time=t, latitude=lat, longitude=lon, assume_sorted=True).values
+    kwargs['Vwy'] = kwargs.pop('northward_wind').interp(time=t, latitude=lat, longitude=lon, assume_sorted=True).values
 
     kwargs['phi'] = lat
 
-    ax, ay = dev_newtonian_drift(vx, vy, **kwargs)
+    ax, ay = newtonian_drift(vx, vy, **kwargs)
 
     return vx, vy, ax, ay
 
 
-def dev_newtonian_drift(Vx, Vy, **kwargs):
+def newtonian_drift(Vx, Vy, **kwargs):
     """Computes instantaneous iceberg acceleration."""
 
     # Constants
@@ -111,7 +105,7 @@ def dev_newtonian_drift(Vx, Vy, **kwargs):
     return ax, ay
 
 
-def newtonian_drift(iceberg_velocity, current_velocity, wind_velocity, **kwargs):
+def dev_newtonian_drift(iceberg_velocity, current_velocity, wind_velocity, **kwargs):
     """Computes instantaneous iceberg acceleration."""
 
     # Override forces with kwargs
