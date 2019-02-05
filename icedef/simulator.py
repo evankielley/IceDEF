@@ -1,3 +1,6 @@
+"""This module sets up and runs iceberg drift simulations and optimizations.
+"""
+
 import numpy as np
 import xarray as xr
 from copy import deepcopy
@@ -8,6 +11,15 @@ from icedef import iceberg, metocean, drift, tools, timesteppers
 class Simulator:
 
     def __init__(self, **kwargs):
+        """This class sets up and runs the components necessary to run an iceberg drift simulation.
+
+        Kwargs:
+            time_step (numpy.timedelta64): Time step in seconds.
+            drift_model (function): The drift model function.
+            time_stepper (function): The numerical integrator function.
+            ocean_model (str): Name of ocean model. Can be ECMWF or HYCOM.
+            atmosphere_model (str): Name of the atmosphere model. Can be ECMWF or NARR.
+        """
 
         self.time_step = kwargs.pop('time_step', np.timedelta64(300, 's'))
         self.drift_model = kwargs.pop('drift_model', drift.newtonian_drift_wrapper)
@@ -17,6 +29,13 @@ class Simulator:
         self.results = {}
 
     def run_simulation(self, start_location, time_frame, store_results_as=None, **kwargs):
+        """This method simulates iceberg drift.
+
+        Args:
+            start_location (tuple of float): The starting latitude, longitude coordinates of the iceberg.
+            time_frame (tuple of numpy.datetime64): The start, end times for the simulation.
+            store_results_as (str): Key by which the results of the simulation will be saved in results attribute.
+        """
 
         kwargs['time_step'] = self.time_step
         kwargs['time_stepper'] = self.time_stepper
@@ -33,7 +52,21 @@ class Simulator:
 
 
 def run_optimization(simulator, keys, x0, bounds, reference_vectors, start_location, time_frame):
-    # reference_vectors is a tuple containing an xr.DataArray for lats and lons
+    """This function optimizes user specified drift simulation parameters using the Scipy minimize function.
+
+    Args:
+        simulator (simulator.Simulator): The pre-configured simulation object.
+        keys (list of str): The names of the drift simulation kwargs to be optimized.
+        x0 (numpy.ndarray): The initial guesses.
+        bounds (list of list of float): The upper and lower bounds for the parameters being optimized.
+        reference_vectors (tuple of xarray.core.dataarray.DataArray): The latitude, longitude vectors to compare to.
+        start_location (tuple of float): The starting latitude, longitude coordinates of the iceberg.
+        time_frame (tuple of numpy.datetime64): The start, end times for the simulation.
+
+    Returns:
+        optimization_result (scipy.optimize.optimize.OptimizeResult): Results from minimization.
+
+    """
 
     optimization_result = minimize(optimization_wrapper, x0=x0, bounds=bounds,
                                    args=(simulator, keys, reference_vectors, start_location, time_frame))
