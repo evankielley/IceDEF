@@ -19,12 +19,12 @@ class Metocean:
     def swap_ocean(self, ocean_model):
 
         self.ocean_model = ocean_model
-        self.ocean = self.Ocean(self.date_bounds, model=ocean_model)
+        self.ocean = self.ocean(self.date_bounds, model=ocean_model)
 
     def swap_atmosphere(self, atmosphere_model):
 
         self.atmosphere_model = atmosphere_model
-        self.atmosphere = self.Atmosphere(self.date_bounds, model=atmosphere_model)
+        self.atmosphere = self.atmosphere(self.date_bounds, model=atmosphere_model)
 
 
 class Ocean:
