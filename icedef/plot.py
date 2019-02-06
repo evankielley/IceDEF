@@ -34,56 +34,56 @@ class Plot:
 
     def get_stereographic_map(self, **kwargs):
 
-        self.lon_0 = kwargs.pop('lon_0', self.lon_0)
-        self.lat_0 = kwargs.pop('lat_0', self.lat_0)
-        self.lat_ts = kwargs.pop('lat_ts', self.lat_ts)
-        self.resolution = kwargs.pop('resolution', self.resolution)
-        self.area_thresh = kwargs.pop('area_thresh', self.area_thresh)
-        self.llcrnrlon = kwargs.pop('llcrnrlon', self.llcrnrlon)
-        self.llcrnrlat = kwargs.pop('llcrnrlat', self.llcrnrlat)
-        self.urcrnrlon = kwargs.pop('urcrnrlon', self.urcrnrlon)
-        self.urcrnrlat = kwargs.pop('urcrnrlat', self.urcrnrlat)
-        self.drawcoastlines = kwargs.pop('drawcoastlines', self.drawcoastlines)
-        self.drawstates = kwargs.pop('drawstates', self.drawstates)
-        self.drawcountries = kwargs.pop('drawcountries', self.drawcountries)
-        self.parallels = kwargs.pop('parallels', self.parallels)
-        self.meridians = kwargs.pop('meridians', self.meridians)
-        self.xtick_rotation_angle = kwargs.pop('xtick_rotation_angle', self.xtick_rotation_angle)
-        self.s = kwargs.pop('s', self.s)
+        lon_0 = kwargs.pop('lon_0', self.lon_0)
+        lat_0 = kwargs.pop('lat_0', self.lat_0)
+        lat_ts = kwargs.pop('lat_ts', self.lat_ts)
+        resolution = kwargs.pop('resolution', self.resolution)
+        area_thresh = kwargs.pop('area_thresh', self.area_thresh)
+        llcrnrlon = kwargs.pop('llcrnrlon', self.llcrnrlon)
+        llcrnrlat = kwargs.pop('llcrnrlat', self.llcrnrlat)
+        urcrnrlon = kwargs.pop('urcrnrlon', self.urcrnrlon)
+        urcrnrlat = kwargs.pop('urcrnrlat', self.urcrnrlat)
+        drawcoastlines = kwargs.pop('drawcoastlines', self.drawcoastlines)
+        drawstates = kwargs.pop('drawstates', self.drawstates)
+        drawcountries = kwargs.pop('drawcountries', self.drawcountries)
+        parallels = kwargs.pop('parallels', self.parallels)
+        meridians = kwargs.pop('meridians', self.meridians)
+        xtick_rotation_angle = kwargs.pop('xtick_rotation_angle', self.xtick_rotation_angle)
+        s = kwargs.pop('s', self.s)
 
         map_ = Basemap(
                 projection='stere',
-                lon_0=self.lon_0,
-                lat_0=self.lat_0,
-                lat_ts=self.lat_ts,
-                resolution=self.resolution,
-                area_thresh=self.area_thresh,
-                llcrnrlon=self.llcrnrlon,
-                llcrnrlat=self.llcrnrlat,
-                urcrnrlon=self.urcrnrlon,
-                urcrnrlat=self.urcrnrlat
+                lon_0=lon_0,
+                lat_0=lat_0,
+                lat_ts=lat_ts,
+                resolution=resolution,
+                area_thresh=area_thresh,
+                llcrnrlon=llcrnrlon,
+                llcrnrlat=llcrnrlat,
+                urcrnrlon=urcrnrlon,
+                urcrnrlat=urcrnrlat
         )
 
-        if self.drawcoastlines:
+        if drawcoastlines:
             map_.drawcoastlines()
-        if self.drawstates:
+        if drawstates:
             map_.drawstates()
-        if self.drawcountries:
+        if drawcountries:
             map_.drawcountries()
 
         # draw parallels
-        map_.drawparallels(self.parallels, labels=[1, 0, 0, 0], fontsize=10)
+        map_.drawparallels(parallels, labels=[1, 0, 0, 0], fontsize=10)
 
         # draw meridians
-        meridians = map_.drawmeridians(self.meridians, labels=[0, 0, 0, 1], fontsize=10)
+        meridians = map_.drawmeridians(meridians, labels=[0, 0, 0, 1], fontsize=10)
 
-        if self.xtick_rotation_angle:
+        if xtick_rotation_angle:
 
             # rotate x tick labels
             for meridian in meridians:
 
                 try:
-                    meridians[meridian][1][0].set_rotation(self.xtick_rotation_angle)
+                    meridians[meridian][1][0].set_rotation(xtick_rotation_angle)
 
                 except IndexError:
                     pass
@@ -119,22 +119,26 @@ class Plot:
         min_lon_padded = min_lon - pad
         max_lon_padded = max_lon + pad
 
-        self.llcrnrlon = kwargs.pop('llcrnrlon', min_lon_padded)
-        self.urcrnrlon = kwargs.pop('urcrnrlon', max_lon_padded)
-        self.llcrnrlat = kwargs.pop('llcrnrlat', min_lat_padded)
-        self.urcrnrlat = kwargs.pop('urcrnrlat', max_lat_padded)
-        self.parallels = kwargs.pop('parallels', np.arange(min_lat_padded, max_lat_padded + pad, pad))
-        self.meridians = kwargs.pop('meridians', np.arange(min_lon_padded, max_lon_padded + pad, pad))
-        self.lon_0 = kwargs.pop('lon_0', (min_lon + max_lon) / 2)
-        self.lat_0 = kwargs.pop('lat_0', (min_lat + max_lat) / 2)
-        self.lat_ts = kwargs.pop('lat_ts', (min_lat + max_lat) / 2)
+        map_kwargs = {
+            'llcrnrlon': kwargs.pop('llcrnrlon', min_lon_padded),
+            'urcrnrlon': kwargs.pop('urcrnrlon', max_lon_padded),
+            'llcrnrlat': kwargs.pop('llcrnrlat', min_lat_padded),
+            'urcrnrlat': kwargs.pop('urcrnrlat', max_lat_padded),
+            'parallels': kwargs.pop('parallels', np.arange(min_lat_padded, max_lat_padded + pad, pad)),
+            'meridians': kwargs.pop('meridians', np.arange(min_lon_padded, max_lon_padded + pad, pad)),
+            'lon_0': kwargs.pop('lon_0', (min_lon + max_lon) / 2),
+            'lat_0': kwargs.pop('lat_0', (min_lat + max_lat) / 2),
+            'lat_ts': kwargs.pop('lat_ts', (min_lat + max_lat) / 2),
+        }
 
-        map_ = self.get_stereographic_map()
+        map_ = self.get_stereographic_map(**map_kwargs)
+
+        s = kwargs.pop('s', 1)
 
         for latlon in latlons:
             lats, lons = latlon
             eastings, northings = map_(lons, lats)
-            plt.scatter(eastings, northings, s=self.s)
+            plt.scatter(eastings, northings, s=s)
 
     def plot_image(self, lats, lons, data, **kwargs):
 
@@ -169,9 +173,7 @@ class Plot:
 
         }
 
-        kwargs.update(map_kwargs)
-
-        map_ = self.get_stereographic_map(**kwargs)
+        map_ = self.get_stereographic_map(**map_kwargs)
 
         x, y = map_(lons, lats)
         map_.pcolormesh(x, y, data)
