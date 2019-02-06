@@ -12,10 +12,10 @@ from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 
 def get_stereographic_projection(**kwargs):
-    
+
     lon_0 = kwargs.pop('lon_0', -50)
-    lat_0 = kwargs.pop('lon_0', 50)
-    lat_ts = kwargs.pop('lon_0', 45)
+    lat_0 = kwargs.pop('lat_0', 50)
+    lat_ts = kwargs.pop('lat_ts', 45)
     
     resolution = kwargs.pop('resolution', 'l')
     area_thresh = kwargs.pop('area_thresh', 0.1)
@@ -37,11 +37,11 @@ def get_stereographic_projection(**kwargs):
     # create polar stereographic Basemap instance
     m = Basemap(projection='stere',
                 lon_0=lon_0, lat_0=lat_0, lat_ts=lat_ts,
-                resolution = resolution, area_thresh=area_thresh,
-                llcrnrlon = llcrnrlon,
-                llcrnrlat = llcrnrlat,
-                urcrnrlon = urcrnrlon,
-                urcrnrlat = urcrnrlat)
+                resolution=resolution, area_thresh=area_thresh,
+                llcrnrlon=llcrnrlon,
+                llcrnrlat=llcrnrlat,
+                urcrnrlon=urcrnrlon,
+                urcrnrlat=urcrnrlat)
 
     if drawcoastlines:
         m.drawcoastlines()
@@ -52,11 +52,11 @@ def get_stereographic_projection(**kwargs):
 
     # draw parallels
     parallels = parallels
-    m.drawparallels(parallels,labels=[1,0,0,0], fontsize=10)
+    m.drawparallels(parallels, labels=[1, 0, 0, 0], fontsize=10)
 
     # draw meridians
     meridians = meridians
-    meridians = m.drawmeridians(meridians, labels=[0,0,0,1], fontsize=10)
+    meridians = m.drawmeridians(meridians, labels=[0, 0, 0, 1], fontsize=10)
     
     if xtick_rotation_angle:
         
