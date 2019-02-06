@@ -11,65 +11,170 @@ import cartopy.crs as ccrs
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 
-def get_stereographic_projection(**kwargs):
+class Plot:
 
-    lon_0 = kwargs.pop('lon_0', -50)
-    lat_0 = kwargs.pop('lat_0', 50)
-    lat_ts = kwargs.pop('lat_ts', 45)
-    
-    resolution = kwargs.pop('resolution', 'l')
-    area_thresh = kwargs.pop('area_thresh', 0.1)
-    
-    llcrnrlon = kwargs.pop('llcrnrlon', -60)
-    llcrnrlat = kwargs.pop('llcrnrlat', 40)
-    urcrnrlon = kwargs.pop('urcrnrlon', -40)
-    urcrnrlat = kwargs.pop('urcrnrlat', 60)
-    
-    drawcoastlines = kwargs.pop('drawcoastlines', True)
-    drawstates = kwargs.pop('drawstates', False)
-    drawcountries = kwargs.pop('drawcountries', False)
-    
-    parallels = kwargs.pop('parallels', np.arange(0, 90, 5))
-    meridians = kwargs.pop('meridians', np.arange(0.,360.,10.))
-    
-    xtick_rotation_angle = kwargs.pop('xtick_rotation_angle', 90)
+    def __init__(self, **kwargs):
 
-    # create polar stereographic Basemap instance
-    m = Basemap(projection='stere',
-                lon_0=lon_0, lat_0=lat_0, lat_ts=lat_ts,
-                resolution=resolution, area_thresh=area_thresh,
-                llcrnrlon=llcrnrlon,
-                llcrnrlat=llcrnrlat,
-                urcrnrlon=urcrnrlon,
-                urcrnrlat=urcrnrlat)
+        self.lon_0 = kwargs.pop('lon_0', -50)
+        self.lat_0 = kwargs.pop('lat_0', 50)
+        self.lat_ts = kwargs.pop('lat_ts', 45)
+        self.resolution = kwargs.pop('resolution', 'l')
+        self.area_thresh = kwargs.pop('area_thresh', 0.1)
+        self.llcrnrlon = kwargs.pop('llcrnrlon', -60)
+        self.llcrnrlat = kwargs.pop('llcrnrlat', 40)
+        self.urcrnrlon = kwargs.pop('urcrnrlon', -40)
+        self.urcrnrlat = kwargs.pop('urcrnrlat', 60)
+        self.drawcoastlines = kwargs.pop('drawcoastlines', True)
+        self.drawstates = kwargs.pop('drawstates', False)
+        self.drawcountries = kwargs.pop('drawcountries', False)
+        self.parallels = kwargs.pop('parallels', np.arange(0, 90, 5))
+        self.meridians = kwargs.pop('meridians', np.arange(0., 360., 10.))
+        self.xtick_rotation_angle = kwargs.pop('xtick_rotation_angle', 90)
+        self.s = kwargs.pop('s', 1)
 
-    if drawcoastlines:
-        m.drawcoastlines()
-    if drawstates:
-        m.drawstates()
-    if drawcountries:
-        m.drawcountries()
+    def get_stereographic_map(self, **kwargs):
 
-    # draw parallels
-    parallels = parallels
-    m.drawparallels(parallels, labels=[1, 0, 0, 0], fontsize=10)
+        self.lon_0 = kwargs.pop('lon_0', self.lon_0)
+        self.lat_0 = kwargs.pop('lat_0', self.lat_0)
+        self.lat_ts = kwargs.pop('lat_ts', self.lat_ts)
+        self.resolution = kwargs.pop('resolution', self.resolution)
+        self.area_thresh = kwargs.pop('area_thresh', self.area_thresh)
+        self.llcrnrlon = kwargs.pop('llcrnrlon', self.llcrnrlon)
+        self.llcrnrlat = kwargs.pop('llcrnrlat', self.llcrnrlat)
+        self.urcrnrlon = kwargs.pop('urcrnrlon', self.urcrnrlon)
+        self.urcrnrlat = kwargs.pop('urcrnrlat', self.urcrnrlat)
+        self.drawcoastlines = kwargs.pop('drawcoastlines', self.drawcoastlines)
+        self.drawstates = kwargs.pop('drawstates', self.drawstates)
+        self.drawcountries = kwargs.pop('drawcountries', self.drawcountries)
+        self.parallels = kwargs.pop('parallels', self.parallels)
+        self.meridians = kwargs.pop('meridians', self.meridians)
+        self.xtick_rotation_angle = kwargs.pop('xtick_rotation_angle', self.xtick_rotation_angle)
+        self.s = kwargs.pop('s', self.s)
 
-    # draw meridians
-    meridians = meridians
-    meridians = m.drawmeridians(meridians, labels=[0, 0, 0, 1], fontsize=10)
-    
-    if xtick_rotation_angle:
-        
-        # rotate x tick labels
-        for meridian in meridians:
+        map_ = Basemap(
+                projection='stere',
+                lon_0=self.lon_0,
+                lat_0=self.lat_0,
+                lat_ts=self.lat_ts,
+                resolution=self.resolution,
+                area_thresh=self.area_thresh,
+                llcrnrlon=self.llcrnrlon,
+                llcrnrlat=self.llcrnrlat,
+                urcrnrlon=self.urcrnrlon,
+                urcrnrlat=self.urcrnrlat
+        )
 
-            try:
-                meridians[meridian][1][0].set_rotation(xtick_rotation_angle)
+        if self.drawcoastlines:
+            map_.drawcoastlines()
+        if self.drawstates:
+            map_.drawstates()
+        if self.drawcountries:
+            map_.drawcountries()
 
-            except IndexError:
-                pass
+        # draw parallels
+        map_.drawparallels(self.parallels, labels=[1, 0, 0, 0], fontsize=10)
 
-    return m
+        # draw meridians
+        meridians = map_.drawmeridians(self.meridians, labels=[0, 0, 0, 1], fontsize=10)
+
+        if self.xtick_rotation_angle:
+
+            # rotate x tick labels
+            for meridian in meridians:
+
+                try:
+                    meridians[meridian][1][0].set_rotation(self.xtick_rotation_angle)
+
+                except IndexError:
+                    pass
+
+        return map_
+
+    def plot_track(self, *latlons, **kwargs):
+
+        min_lat = None
+        min_lon = None
+        max_lat = None
+        max_lon = None
+
+        for latlon in latlons:
+            lats, lons = latlon
+            temp_min_lat = min(lats)
+            temp_min_lon = min(lons)
+            temp_max_lat = max(lats)
+            temp_max_lon = max(lons)
+            if min_lat is None or temp_min_lat < min_lat:
+                min_lat = temp_min_lat
+            if min_lon is None or temp_min_lon < min_lon:
+                min_lon = temp_min_lon
+            if max_lat is None or temp_max_lat > max_lat:
+                max_lat = temp_max_lat
+            if max_lon is None or temp_max_lon > max_lon:
+                max_lon = temp_max_lon
+
+        pad = kwargs.pop('pad', (abs(max_lat - min_lat) + abs(max_lon - min_lon)) / 5)
+
+        min_lat_padded = min_lat - pad
+        max_lat_padded = max_lat + pad
+        min_lon_padded = min_lon - pad
+        max_lon_padded = max_lon + pad
+
+        self.llcrnrlon = kwargs.pop('llcrnrlon', min_lon_padded)
+        self.urcrnrlon = kwargs.pop('urcrnrlon', max_lon_padded)
+        self.llcrnrlat = kwargs.pop('llcrnrlat', min_lat_padded)
+        self.urcrnrlat = kwargs.pop('urcrnrlat', max_lat_padded)
+        self.parallels = kwargs.pop('parallels', np.arange(min_lat_padded, max_lat_padded + pad, pad))
+        self.meridians = kwargs.pop('meridians', np.arange(min_lon_padded, max_lon_padded + pad, pad))
+        self.lon_0 = kwargs.pop('lon_0', (min_lon + max_lon) / 2)
+        self.lat_0 = kwargs.pop('lat_0', (min_lat + max_lat) / 2)
+        self.lat_ts = kwargs.pop('lat_ts', (min_lat + max_lat) / 2)
+
+        map_ = self.get_stereographic_map()
+
+        for latlon in latlons:
+            lats, lons = latlon
+            eastings, northings = map_(lons, lats)
+            plt.scatter(eastings, northings, s=self.s)
+
+    def plot_image(self, lats, lons, data, **kwargs):
+
+        min_lat = min(lats)
+        min_lon = min(lons)
+        max_lat = max(lats)
+        max_lon = max(lons)
+
+        pad = kwargs.pop('pad', (abs(max_lat - min_lat) + abs(max_lon - min_lon)) / 5)
+
+        min_lat_padded = min_lat - pad
+        max_lat_padded = max_lat + pad
+        min_lon_padded = min_lon - pad
+        max_lon_padded = max_lon + pad
+
+        parallels_step = kwargs.pop('parallels_step', (abs(max_lat - min_lat) + abs(max_lon - min_lon)) / 5)
+        meridians_step = kwargs.pop('meridians_step', (abs(max_lat - min_lat) + abs(max_lon - min_lon)) / 5)
+
+        map_kwargs = {
+
+            'llcrnrlon': kwargs.pop('llcrnrlon', min_lon_padded),
+            'urcrnrlon': kwargs.pop('urcrnrlon', max_lon_padded),
+            'llcrnrlat': kwargs.pop('llcrnrlat', min_lat_padded),
+            'urcrnrlat': kwargs.pop('urcrnrlat', max_lat_padded),
+            'parallels': kwargs.pop('parallels',
+                                    np.arange(min_lat_padded, max_lat_padded + parallels_step, parallels_step)),
+            'meridians': kwargs.pop('meridians',
+                                    np.arange(min_lon_padded, max_lon_padded + meridians_step, meridians_step)),
+            'lon_0': kwargs.pop('lon_0', (min_lon + max_lon) / 2),
+            'lat_0': kwargs.pop('lat_0', (min_lat + max_lat) / 2),
+            'lat_ts': kwargs.pop('lat_ts', (min_lat + max_lat) / 2),
+
+        }
+
+        kwargs.update(map_kwargs)
+
+        map_ = self.get_stereographic_map(**kwargs)
+
+        x, y = map_(lons, lats)
+        map_.pcolormesh(x, y, data)
 
 
 def plot_iceberg_track(lats, lons, **kwargs):
