@@ -26,14 +26,28 @@ class Simulator:
         self.time_stepper = kwargs.pop('time_stepper', timesteppers.euler)
         self.ocean_model = kwargs.pop('ocean_model', 'ECMWF')
         self.atmosphere_model = kwargs.pop('atmosphere_model', 'NARR')
+        self.start_latitude = kwargs.pop('start_latitude', None)
+        self.start_longitude = kwargs.pop('start_longitude', None)
+        self._start_location = None
+        self.start_time = kwargs.pop('start_time', None)
+        self.end_time = kwargs.pop('end_time', None)
+        self._time_frame = None
+        self.ocean = metocean.Ocean(self.time_frame, model=self.ocean_model)
+        self.atmosphere = metocean.Atmosphere(self.time_frame, model=self.atmosphere_model)
         self.results = {}
 
-    def run_simulation(self, start_location, time_frame, store_results_as=None, **kwargs):
+    @property
+    def start_location(self):
+        return self.start_latitude, self.start_longitude
+
+    @property
+    def time_frame(self):
+        return self.start_time, self.end_time
+
+    def run_simulation(self, store_results_as=None, **kwargs):
         """This method simulates iceberg drift.
 
         Args:
-            start_location (tuple of float): The starting latitude, longitude coordinates of the iceberg.
-            time_frame (tuple of numpy.datetime64): The start, end times for the simulation.
             store_results_as (str): Key by which the results of the simulation will be saved in results attribute.
         """
 
@@ -43,45 +57,40 @@ class Simulator:
         kwargs['ocean_model'] = self.ocean_model
         kwargs['atmosphere_model'] = self.atmosphere_model
 
-        results = run_simulation(start_location, time_frame, **kwargs)
+        results = run_simulation(self.start_location, self.time_frame, **kwargs)
 
         if store_results_as is not None:
+
             self.results[store_results_as] = results
-        else:
-            return results
 
+        return results
 
-def run_optimization(simulator, keys, x0, bounds, reference_vectors, start_location, time_frame):
-    """This function optimizes user specified drift simulation parameters using the Scipy minimize function.
+    def run_optimization(self, keys, x0, bounds, reference_vectors):
+        """This function optimizes user specified drift simulation parameters using the Scipy minimize function.
 
-    Args:
-        simulator (simulator.Simulator): The pre-configured simulation object.
-        keys (list of str): The names of the drift simulation kwargs to be optimized.
-        x0 (numpy.ndarray): The initial guesses.
-        bounds (list of list of float): The upper and lower bounds for the parameters being optimized.
-        reference_vectors (tuple of xarray.core.dataarray.DataArray): The latitude, longitude vectors to compare to.
-        start_location (tuple of float): The starting latitude, longitude coordinates of the iceberg.
-        time_frame (tuple of numpy.datetime64): The start, end times for the simulation.
+        Args:
+            keys (list of str): The names of the drift simulation kwargs to be optimized.
+            x0 (numpy.ndarray): The initial guesses.
+            bounds (list of list of float): The upper and lower bounds for the parameters being optimized.
+            reference_vectors (tuple of xarray.core.dataarray.DataArray): The latitude, longitude vectors to compare to.
 
-    Returns:
-        optimization_result (scipy.optimize.optimize.OptimizeResult): Results from minimization.
+        Returns:
+            optimization_result (scipy.optimize.optimize.OptimizeResult): Results from minimization.
 
-    """
+        """
 
-    optimization_result = minimize(optimization_wrapper, x0=x0, bounds=bounds,
-                                   args=(simulator, keys, reference_vectors, start_location, time_frame))
+        optimization_result = minimize(self.optimization_wrapper, x0=x0, bounds=bounds, args=(keys, reference_vectors))
 
-    return optimization_result
+        return optimization_result
 
+    def optimization_wrapper(self, values, keys, reference_vectors):
 
-def optimization_wrapper(values, simulator, keys, reference_vectors, start_location, time_frame):
+        kwargs = dict(zip(keys, values))
+        xds = self.run_simulation(**kwargs)
+        simulation_vectors = (xds['latitude'], xds['longitude'])
+        mean_square_errors = compute_mse(simulation_vectors, reference_vectors)
 
-    kwargs = dict(zip(keys, values))
-    xds = simulator.run_simulation(start_location, time_frame, **kwargs)
-    simulation_vectors = (xds['latitude'], xds['longitude'])
-    mse = compute_mse(simulation_vectors, reference_vectors)
-
-    return mse
+        return np.mean(mean_square_errors)
 
 
 def compute_mse(simulation_vectors, reference_vectors):
@@ -89,7 +98,7 @@ def compute_mse(simulation_vectors, reference_vectors):
     sim_lats, sim_lons = simulation_vectors
     ref_lats, ref_lons = reference_vectors
 
-    mean_square_error_list = []
+    mean_square_errors = []
 
     stop_index = np.where(ref_lats['time'].values <= sim_lats['time'].values[-1])[0][-1]
 
@@ -99,9 +108,9 @@ def compute_mse(simulation_vectors, reference_vectors):
         sim_lat = sim_lats.interp(time=time, assume_sorted=True)
         sim_lon = sim_lons.interp(time=time, assume_sorted=True)
         mean_square_error = np.sqrt((sim_lat - ref_lats[i])**2 + (sim_lon - ref_lons[i])**2)
-        mean_square_error_list.append(mean_square_error)
+        mean_square_errors.append(mean_square_error)
 
-    return np.mean(mean_square_error_list)
+    return mean_square_errors
 
 
 def run_simulation(start_location, time_frame, **kwargs):
@@ -126,15 +135,6 @@ def run_simulation(start_location, time_frame, **kwargs):
     ocean = metocean.Ocean(time_frame, model=ocean_model)
     atmosphere = metocean.Atmosphere(time_frame, model=atmosphere_model)
 
-    #ocean_grid = ocean.data.time, ocean.data.latitude, ocean.data.longitude
-    #atmosphere_grid = atmosphere.data.time, atmosphere.data.latitude, atmosphere.data.longitude
-
-    #current_data = ocean.eastward_velocities.values, ocean.northward_current_velocities.values
-    #wind_data = atmosphere.eastward_wind_velocities.values, atmosphere.northward_wind_velocities.values
-
-    #current_velocity_interpolator = metocean.Interpolate(ocean_grid, *current_data)
-    #wind_velocity_interpolator = metocean.Interpolate(atmosphere_grid, *wind_data)
-
     # Initialize arrays
     times = np.zeros(nt, dtype='datetime64[ns]')
     results = {'latitude': np.zeros(nt),
@@ -143,25 +143,6 @@ def run_simulation(start_location, time_frame, **kwargs):
                'northing': np.zeros(nt),
                'iceberg_eastward_velocity': np.zeros(nt),
                'iceberg_northward_velocity': np.zeros(nt)}
-
-    # kwargs = {
-    #     'form_drag_coefficient_in_air': kwargs.pop('Ca', iceberg_.FORM_DRAG_COEFFICIENT_IN_AIR),
-    #     'form_drag_coefficient_in_water': kwargs.pop('Cw', iceberg_.FORM_DRAG_COEFFICIENT_IN_WATER),
-    #     'skin_drag_coefficient_in_air': iceberg_.SKIN_DRAG_COEFFICIENT_IN_AIR,
-    #     'skin_drag_coefficient_in_water': iceberg_.SKIN_DRAG_COEFFICIENT_IN_WATER,
-    #     'sail_area': iceberg_.geometry.sail_area,
-    #     'keel_area': iceberg_.geometry.keel_area,
-    #     'top_area': iceberg_.geometry.waterline_length ** 2,
-    #     'bottom_area': iceberg_.geometry.bottom_area,
-    #     'mass': kwargs.pop('mass', iceberg_.geometry.mass),
-    #     'latitude': iceberg_.latitude,
-    #     'ekman': kwargs.pop('ekman', False),
-    #     'depth_vec': kwargs.pop('depth_vec', np.arange(0, -110, -10)),
-    #     'current_acceleration': (0, 0),
-    #     'current_interpolator': current_velocity_interpolator.interpolate,
-    #     'wind_interpolator': wind_velocity_interpolator.interpolate
-    # }
-
     kwargs = {
         'form_drag_coefficient_in_air': kwargs.pop('Ca', iceberg_.FORM_DRAG_COEFFICIENT_IN_AIR),
         'form_drag_coefficient_in_water': kwargs.pop('Cw', iceberg_.FORM_DRAG_COEFFICIENT_IN_WATER),
