@@ -58,7 +58,7 @@ def newtonian_drift(Vx, Vy, **kwargs):
 
         depth_vec = kwargs.pop('depth_vec', np.arange(0, -110, -10))
 
-        u_vec, v_vec = compute_ekman_spiral(wind_velocity, current_velocity, depth_vec)
+        u_vec, v_vec = compute_ekman_spiral((Vwx, Vwy), (Vcx, Vcy), depth_vec)
 
         for i in range(len(u_vec)):
 
