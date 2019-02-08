@@ -32,8 +32,6 @@ class Simulator:
         self.start_time = kwargs.pop('start_time', None)
         self.end_time = kwargs.pop('end_time', None)
         self._time_frame = None
-        self.ocean = metocean.Ocean(self.time_frame, model=self.ocean_model)
-        self.atmosphere = metocean.Atmosphere(self.time_frame, model=self.atmosphere_model)
         self.results = {}
 
     @property
