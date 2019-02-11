@@ -32,9 +32,22 @@ class Ocean:
     ID = None
     PATH = None
 
-    def __init__(self, date_bounds, model='ECMWF'):
+    def __init__(self, date_bounds, model='ECMWF', constants=None):
 
-        if model == 'ECMWF':
+        if constants is not None:
+
+            self.data = xr.Dataset(
+                {
+                    'eastward_velocity': (('time', 'latitude', 'longitude'), np.full((10, 10, 10), constants[0])),
+                    'northward_velocity': (('time', 'latitude', 'longitude'), np.full((10, 10, 10), constants[1]))
+                },
+                {
+                    'time': [date_bounds[0] + np.timedelta64(i, 'D') for i in range(10)],
+                    'latitude': np.linspace(-90, 90, 10),
+                    'longitude': np.linspace(-90, 90, 10)
+                })
+
+        elif model == 'ECMWF':
 
             self.ID = "GLOBAL_ANALYSIS_FORECAST_PHY_001_024"
             self.PATH = 'http://icedef.munroelab.ca/data/ECMWF/ocean/daily/'
@@ -89,9 +102,22 @@ class Atmosphere:
     ID = None
     PATH = None
 
-    def __init__(self, date_bounds, model='NARR'):
+    def __init__(self, date_bounds, model='NARR', constants=None):
 
-        if model == 'ECMWF':
+        if constants is not None:
+
+            self.data = xr.Dataset(
+                {
+                    'eastward_velocity': (('time', 'latitude', 'longitude'), np.full((10, 10, 10), constants[0])),
+                    'northward_velocity': (('time', 'latitude', 'longitude'), np.full((10, 10, 10), constants[1]))
+                },
+                {
+                    'time': [date_bounds[0] + np.timedelta64(i, 'D') for i in range(10)],
+                    'latitude': np.linspace(-90, 90, 10),
+                    'longitude': np.linspace(-90, 90, 10)
+                })
+
+        elif model == 'ECMWF':
 
             self.ID = "WIND_GLO_WIND_L4_NRT_OBSERVATIONS_012_004"
             self.PATH = 'http://icedef.munroelab.ca/data/ECMWF/atm/daily/'
