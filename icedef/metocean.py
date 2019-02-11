@@ -52,35 +52,36 @@ class Ocean:
 
             print('Invalid model.')
 
-        self.current = self.Current(self.data)
+        self.current = Current(self.data)
 
-    class Current:
 
-        def __init__(self, data):
+class Current:
 
-            self.eastward_velocities = xr.DataArray(data=data.eastward_velocity.values,
-                                                    coords=[('time', data.time.values),
-                                                            ('latitude', data.latitude.values),
-                                                            ('longitude', data.longitude.values)],
-                                                    attrs=data.eastward_velocity.attrs)
+    def __init__(self, data):
 
-            self.northward_velocities = xr.DataArray(data=data.northward_velocity.values,
-                                                     coords=[('time', data.time.values),
-                                                             ('latitude', data.latitude.values),
-                                                             ('longitude', data.longitude.values)],
-                                                     attrs=data.eastward_velocity.attrs)
+        self.eastward_velocities = xr.DataArray(data=data.eastward_velocity.values,
+                                                coords=[('time', data.time.values),
+                                                        ('latitude', data.latitude.values),
+                                                        ('longitude', data.longitude.values)],
+                                                attrs=data.eastward_velocity.attrs)
 
-            self.speeds = xr.DataArray(data=compute_magnitude(self.eastward_velocities,
+        self.northward_velocities = xr.DataArray(data=data.northward_velocity.values,
+                                                 coords=[('time', data.time.values),
+                                                         ('latitude', data.latitude.values),
+                                                         ('longitude', data.longitude.values)],
+                                                 attrs=data.eastward_velocity.attrs)
+
+        self.speeds = xr.DataArray(data=compute_magnitude(self.eastward_velocities,
+                                                          self.northward_velocities),
+                                   coords=[('time', data.time.values),
+                                           ('latitude', data.latitude.values),
+                                           ('longitude', data.longitude.values)])
+
+        self.directions = xr.DataArray(data=compute_direction(self.eastward_velocities,
                                                               self.northward_velocities),
                                        coords=[('time', data.time.values),
                                                ('latitude', data.latitude.values),
                                                ('longitude', data.longitude.values)])
-
-            self.directions = xr.DataArray(data=compute_direction(self.eastward_velocities,
-                                                                  self.northward_velocities),
-                                           coords=[('time', data.time.values),
-                                                   ('latitude', data.latitude.values),
-                                                   ('longitude', data.longitude.values)])
 
 
 class Atmosphere:
@@ -113,35 +114,41 @@ class Atmosphere:
 
             print('Invalid model.')
 
-        self.wind = self.Wind(self.data)
+        self.wind = Wind(self.data)
 
-    class Wind:
 
-        def __init__(self, data):
+class Wind:
 
-            self.eastward_velocities = xr.DataArray(data=data.eastward_velocity.values,
-                                                    coords=[('time', data.time.values),
-                                                            ('latitude', data.latitude.values),
-                                                            ('longitude', data.longitude.values)],
-                                                    attrs=data.eastward_velocity.attrs)
+    def __init__(self, data):
 
-            self.northward_velocities = xr.DataArray(data=data.northward_velocity.values,
-                                                     coords=[('time', data.time.values),
-                                                             ('latitude', data.latitude.values),
-                                                             ('longitude', data.longitude.values)],
-                                                     attrs=data.eastward_velocity.attrs)
+        self.eastward_velocities = xr.DataArray(data=data.eastward_velocity.values,
+                                                coords=[('time', data.time.values),
+                                                        ('latitude', data.latitude.values),
+                                                        ('longitude', data.longitude.values)],
+                                                attrs=data.eastward_velocity.attrs)
 
-            self.speeds = xr.DataArray(data=compute_magnitude(self.eastward_velocities,
+        self.northward_velocities = xr.DataArray(data=data.northward_velocity.values,
+                                                 coords=[('time', data.time.values),
+                                                         ('latitude', data.latitude.values),
+                                                         ('longitude', data.longitude.values)],
+                                                 attrs=data.eastward_velocity.attrs)
+
+        self.speeds = xr.DataArray(data=compute_magnitude(self.eastward_velocities,
+                                                          self.northward_velocities),
+                                   coords=[('time', data.time.values),
+                                           ('latitude', data.latitude.values),
+                                           ('longitude', data.longitude.values)])
+
+        self.directions = xr.DataArray(data=compute_direction(self.eastward_velocities,
                                                               self.northward_velocities),
                                        coords=[('time', data.time.values),
                                                ('latitude', data.latitude.values),
                                                ('longitude', data.longitude.values)])
 
-            self.directions = xr.DataArray(data=compute_direction(self.eastward_velocities,
-                                                                  self.northward_velocities),
-                                           coords=[('time', data.time.values),
-                                                   ('latitude', data.latitude.values),
-                                                   ('longitude', data.longitude.values)])
+
+def fill_data_with_constant_value(data, **kwargs):
+    for key, value in kwargs.items():
+        data[key].values.fill(value)
 
 
 def get_files(id_, path, date_bounds, cache=True):
