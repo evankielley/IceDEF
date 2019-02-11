@@ -8,6 +8,17 @@ from scipy.optimize import minimize
 from icedef import iceberg, metocean, drift, tools, timesteppers
 
 
+from logging import getLogger, FileHandler, DEBUG, Formatter
+from time import gmtime, strftime
+
+
+class DebugFileHandler(FileHandler):
+    def __init__(self, filename='debug.log', mode='w', encoding=None, delay=False):
+        FileHandler.__init__(self, filename, mode, encoding, delay)
+        self.formatter = Formatter('%(message)s')
+        self.setFormatter(self.formatter)
+
+
 class Simulator:
 
     def __init__(self, **kwargs):
@@ -55,7 +66,16 @@ class Simulator:
         kwargs['ocean_model'] = self.ocean_model
         kwargs['atmosphere_model'] = self.atmosphere_model
 
+        log = getLogger('{}'.format(strftime("%Y-%m-%d %H:%M:%S", gmtime())))
+        file_handler = DebugFileHandler()
+        log.addHandler(file_handler)
+        log.setLevel(DEBUG)
+
+        kwargs['log'] = log
+
         results = run_simulation(self.start_location, self.time_frame, **kwargs)
+
+        del log
 
         if store_results_as is not None:
 
@@ -159,6 +179,7 @@ def run_simulation(start_location, time_frame, **kwargs):
         'northward_current': ocean.current.northward_velocities,
         'eastward_wind': atmosphere.wind.eastward_velocities,
         'northward_wind': atmosphere.wind.northward_velocities,
+        'log': kwargs.pop('log', None)
     }
 
     for i in range(nt):
