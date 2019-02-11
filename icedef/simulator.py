@@ -3,7 +3,6 @@
 
 import numpy as np
 import xarray as xr
-from copy import deepcopy
 from scipy.optimize import minimize
 from icedef import iceberg, metocean, drift, tools, timesteppers
 
@@ -150,8 +149,11 @@ def run_simulation(start_location, time_frame, **kwargs):
 
     iceberg_ = iceberg.quickstart(start_time, start_location, velocity=start_velocity, size=size, **kwargs)
 
-    ocean = metocean.Ocean(time_frame, model=ocean_model)
-    atmosphere = metocean.Atmosphere(time_frame, model=atmosphere_model)
+    current_constants = kwargs.pop('current_constants', None)
+    wind_constants = kwargs.pop('wind_constants', None)
+
+    ocean = metocean.Ocean(time_frame, model=ocean_model, constants=current_constants)
+    atmosphere = metocean.Atmosphere(time_frame, model=atmosphere_model, constants=wind_constants)
 
     # Initialize arrays
     times = np.zeros(nt, dtype='datetime64[ns]')
