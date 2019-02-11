@@ -102,6 +102,12 @@ def newtonian_drift(Vx, Vy, **kwargs):
     ax = (Fax + Fwx + Fcx + Fwpx) / (M + 0.5 * M)
     ay = (Fay + Fwy + Fcy + Fwpy) / (M + 0.5 * M)
 
+    log = kwargs.pop('log', None)
+
+    if log is not None:
+        log.info('{:.2f},{:.2f},{:.2f},{:.2f},{:.2f},{:.2f},{:.2f},{:.2f}'.format(
+            Fax, Fay, Fwx, Fwy, Fcx, Fcy, Fwpx, Fwpy))
+
     return ax, ay
 
 
