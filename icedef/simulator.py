@@ -4,7 +4,7 @@
 import numpy as np
 import xarray as xr
 from scipy.optimize import minimize
-from icedef import iceberg, metocean, drift, tools, timesteppers
+from icedef import iceberg, metocean, drift, tools, timesteppers, plot
 
 
 from logging import getLogger, FileHandler, DEBUG, Formatter
@@ -20,7 +20,7 @@ class DebugFileHandler(FileHandler):
 
 class Simulator:
 
-    def __init__(self, **kwargs):
+    def __init__(self, time_frame, start_location, start_velocity=(0, 0), **kwargs):
         """This class sets up and runs the components necessary to run an iceberg drift simulation.
 
         Kwargs:
@@ -31,26 +31,42 @@ class Simulator:
             atmosphere_model (str): Name of the atmosphere model. Can be ECMWF or NARR.
         """
 
+        self.start_location = start_location
+        self.time_frame = time_frame
+        self.start_velocity = start_velocity
+
         self.time_step = kwargs.pop('time_step', np.timedelta64(300, 's'))
         self.drift_model = kwargs.pop('drift_model', drift.newtonian_drift_wrapper)
         self.time_stepper = kwargs.pop('time_stepper', timesteppers.euler)
+
         self.ocean_model = kwargs.pop('ocean_model', 'ECMWF')
         self.atmosphere_model = kwargs.pop('atmosphere_model', 'NARR')
-        self.start_latitude = kwargs.pop('start_latitude', None)
-        self.start_longitude = kwargs.pop('start_longitude', None)
-        self._start_location = None
-        self.start_time = kwargs.pop('start_time', None)
-        self.end_time = kwargs.pop('end_time', None)
-        self._time_frame = None
+
+        self.ocean = metocean.Ocean(self.time_frame, model=self.ocean_model)
+        self.atmosphere = metocean.Atmosphere(self.time_frame, model=self.atmosphere_model)
+
+        self.iceberg_size = kwargs.pop('iceberg_size', 'LG')
+        self.iceberg_shape = kwargs.pop('iceberg_shape', 'TAB')
+        self.iceberg = iceberg.quickstart(self.time_frame[0], self.start_location, velocity=self.start_velocity,
+                                          size=self.iceberg_size, shape=self.iceberg_shape)
+
         self.results = {}
 
-    @property
-    def start_location(self):
-        return self.start_latitude, self.start_longitude
+    def set_constant_currents(self, constants):
+        self.ocean = metocean.Ocean(self.time_frame, model=self.ocean_model, constants=constants)
 
-    @property
-    def time_frame(self):
-        return self.start_time, self.end_time
+    def set_constant_winds(self, constants):
+        self.atmosphere = metocean.Atmosphere(self.time_frame, model=self.ocean_model, constants=constants)
+
+    def reload_ocean(self):
+        self.ocean = metocean.Ocean(self.time_frame, model=self.ocean_model)
+
+    def reload_atmosphere(self):
+        self.atmosphere = metocean.Atmosphere(self.time_frame, model=self.atmosphere_model)
+
+    def reload_iceberg(self):
+        self.iceberg = iceberg.quickstart(self.time_frame[0], self.start_location, velocity=self.start_velocity,
+                                          size=self.iceberg_size, shape=self.iceberg_shape)
 
     def run_simulation(self, store_results_as=None, **kwargs):
         """This method simulates iceberg drift.
@@ -59,11 +75,19 @@ class Simulator:
             store_results_as (str): Key by which the results of the simulation will be saved in results attribute.
         """
 
+        if not self.iceberg.time == self.time_frame[0]:
+            self.reload_iceberg()
+
         kwargs['time_step'] = self.time_step
         kwargs['time_stepper'] = self.time_stepper
         kwargs['drift_model'] = self.drift_model
         kwargs['ocean_model'] = self.ocean_model
         kwargs['atmosphere_model'] = self.atmosphere_model
+
+        kwargs['ocean'] = self.ocean
+        kwargs['atmosphere'] = self.atmosphere
+
+        kwargs['iceberg'] = self.iceberg
 
         log = getLogger('{}'.format(strftime("%Y-%m-%d %H:%M:%S", gmtime())))
         file_handler = DebugFileHandler()
@@ -72,7 +96,7 @@ class Simulator:
 
         kwargs['log'] = log
 
-        results = run_simulation(self.start_location, self.time_frame, **kwargs)
+        results = run_simulation(self.time_frame, self.start_location, self.start_velocity, **kwargs)
 
         del log
 
@@ -104,10 +128,21 @@ class Simulator:
 
         kwargs = dict(zip(keys, values))
         xds = self.run_simulation(**kwargs)
-        simulation_vectors = (xds['latitude'], xds['longitude'])
+        simulation_vectors = (self.time_frame, self.start_location, self.start_velocity, xds['latitude'], xds['longitude'])
         mean_square_errors = compute_mse(simulation_vectors, reference_vectors)
 
         return np.mean(mean_square_errors)
+
+    def plot_track(self, keys, **kwargs):
+
+        tracks = []
+
+        for key in keys:
+
+            track = [self.results[key]['latitude'].values, self.results[key]['longitude'].values]
+            tracks.append(track)
+
+        plot.plot_track(*tracks, **kwargs)
 
 
 def compute_mse(simulation_vectors, reference_vectors):
@@ -130,7 +165,7 @@ def compute_mse(simulation_vectors, reference_vectors):
     return mean_square_errors
 
 
-def run_simulation(start_location, time_frame, **kwargs):
+def run_simulation(time_frame, start_location, start_velocity=(0, 0), **kwargs):
 
     time_step = kwargs.pop('time_step', np.timedelta64(300, 's'))
     time_stepper = kwargs.pop('time_stepper', timesteppers.euler)
@@ -142,18 +177,15 @@ def run_simulation(start_location, time_frame, **kwargs):
     dt = time_step.item().total_seconds()
     nt = int((end_time - start_time).item().total_seconds() / dt)
 
-    waterline_length = kwargs.pop('waterline_length', 160)
-    sail_height = kwargs.pop('sail_height', 60)
-    size = waterline_length, sail_height
-    start_velocity = kwargs.pop('start_velocity', (0, 0))
-
-    iceberg_ = iceberg.quickstart(start_time, start_location, velocity=start_velocity, size=size, **kwargs)
+    size = kwargs.pop('iceberg_size', 'LG')
+    shape = kwargs.pop('iceberg_shape', 'TAB')
+    iceberg_ = kwargs.pop('iceberg', iceberg.quickstart(start_time, start_location, velocity=start_velocity, size=size, shape=shape))
 
     current_constants = kwargs.pop('current_constants', None)
     wind_constants = kwargs.pop('wind_constants', None)
 
-    ocean = metocean.Ocean(time_frame, model=ocean_model, constants=current_constants)
-    atmosphere = metocean.Atmosphere(time_frame, model=atmosphere_model, constants=wind_constants)
+    ocean = kwargs.pop('ocean', metocean.Ocean(time_frame, model=ocean_model, constants=current_constants))
+    atmosphere = kwargs.pop('atmosphere', metocean.Atmosphere(time_frame, model=atmosphere_model, constants=wind_constants))
 
     # Initialize arrays
     times = np.zeros(nt, dtype='datetime64[ns]')
