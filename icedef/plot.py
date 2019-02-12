@@ -99,7 +99,7 @@ def plot_track(*latlons, **kwargs):
 
 def get_map_kwargs(min_lat, min_lon, max_lat, max_lon, **kwargs):
 
-    pads = kwargs.pop('pads', [0.1] * 4)
+    pads = kwargs.pop('pads', [0.01] * 4)
 
     min_lat_padded = min_lat - pads[1]
     max_lat_padded = max_lat + pads[3]
