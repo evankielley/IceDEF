@@ -16,10 +16,12 @@ Attributes:
 
 import numpy as np
 
-WATERLINE_LENGTH_RANGE_BY_SIZE = {'LG': (120, 200)}
-SAIL_HEIGHT_RANGE_BY_SIZE = {'LG': (45, 75)}
-HEIGHT_TO_DRAFT_RATIO_BY_SHAPE = {'TAB': 0.2, 'PIN': 0.5}
-SHAPE_FACTOR_BY_SHAPE = {'TAB': 0.5, 'PIN': 0.25}
+WATERLINE_LENGTH_RANGE_BY_SIZE = {'GR': (0.01, 5), 'BB': (5, 15), 'SM': (15, 60), 'MED': (60, 120),
+                                  'LG': (120, 200), 'VLG': (200, 1000)}
+SAIL_HEIGHT_RANGE_BY_SIZE = {'GR': (0.01, 1), 'BB': (1, 5), 'SM': (5, 15), 'MED': (15, 45),
+                             'LG': (45, 75), 'VLG': (75, 300)}
+HEIGHT_TO_DRAFT_RATIO_BY_SHAPE = {'TAB': 0.2, 'NTAB': 0.2, 'DOM': 0.25, 'PIN': 0.5, 'WDG': 0.2, 'DD': 0.5, 'BLK': 0.2}
+SHAPE_FACTOR_BY_SHAPE = {'TAB': 0.5, 'NTAB': 0.41, 'DOM': 0.41, 'PIN': 0.25, 'WDG': 0.33, 'DD': 0.15, 'BLK': 0.5}
 
 
 class IcebergGeometry:
@@ -159,7 +161,7 @@ class Iceberg:
         self.history['northward_velocity'] = []
 
 
-def quickstart(time, position, **kwargs):
+def quickstart(time, position, velocity=(0, 0), size='LG', shape='TAB'):
     """Creates iceberg object from minimal args.
 
     Args:
@@ -171,9 +173,6 @@ def quickstart(time, position, **kwargs):
 
     """
 
-    velocity = kwargs.get('velocity', (0, 0))
-    size = kwargs.pop('size', 'LG')
-    shape = kwargs.pop('shape', 'TAB')
     geometry = IcebergGeometry(size=size, shape=shape)
     iceberg = Iceberg(time, position, velocity, geometry)
 
