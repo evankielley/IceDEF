@@ -39,13 +39,13 @@ class Ocean:
 
             self.data = xr.Dataset(
                 {
-                    'eastward_velocity': (('time', 'latitude', 'longitude'), np.full((10, 10, 10), constants[0])),
-                    'northward_velocity': (('time', 'latitude', 'longitude'), np.full((10, 10, 10), constants[1]))
+                    'eastward_velocity': (('time', 'latitude', 'longitude'), np.full((100, 100, 100), constants[0])),
+                    'northward_velocity': (('time', 'latitude', 'longitude'), np.full((100, 100, 100), constants[1]))
                 },
                 {
-                    'time': [date_bounds[0] + np.timedelta64(i, 'D') for i in range(10)],
-                    'latitude': np.linspace(-90, 90, 10),
-                    'longitude': np.linspace(-90, 90, 10)
+                    'time': [date_bounds[0] - np.timedelta64(1, 'D') + np.timedelta64(i, 'h') for i in range(100)],
+                    'latitude': np.linspace(-90, 90, 100),
+                    'longitude': np.linspace(-180, 180, 100)
                 })
 
         elif model == 'ECMWF':
@@ -116,13 +116,13 @@ class Atmosphere:
 
             self.data = xr.Dataset(
                 {
-                    'eastward_velocity': (('time', 'latitude', 'longitude'), np.full((10, 10, 10), constants[0])),
-                    'northward_velocity': (('time', 'latitude', 'longitude'), np.full((10, 10, 10), constants[1]))
+                    'eastward_velocity': (('time', 'latitude', 'longitude'), np.full((100, 100, 100), constants[0])),
+                    'northward_velocity': (('time', 'latitude', 'longitude'), np.full((100, 100, 100), constants[1]))
                 },
                 {
-                    'time': [date_bounds[0] + np.timedelta64(i, 'D') for i in range(10)],
-                    'latitude': np.linspace(-90, 90, 10),
-                    'longitude': np.linspace(-90, 90, 10)
+                    'time': [date_bounds[0] - np.timedelta64(1, 'D') + np.timedelta64(i, 'h') for i in range(100)],
+                    'latitude': np.linspace(-90, 90, 100),
+                    'longitude': np.linspace(-180, 180, 100)
                 })
 
         elif model == 'ECMWF':
