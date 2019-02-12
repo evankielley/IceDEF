@@ -4,6 +4,7 @@ import xarray as xr
 from urllib.request import urlretrieve
 from datetime import date, timedelta
 from pandas import Timestamp
+from icedef import plot
 
 
 class Metocean:
@@ -66,6 +67,13 @@ class Ocean:
             print('Invalid model.')
 
         self.current = Current(self.data)
+
+    def animate_field(self):
+
+        u, v = self.current.eastward_velocities, self.current.northward_velocities
+        times, lats, lons = self.data.time.values, self.data.latitude.values, self.data.longitude.values
+
+        return plot.animate_field(lats, lons, times, u, v)
 
 
 class Current:
@@ -141,6 +149,13 @@ class Atmosphere:
             print('Invalid model.')
 
         self.wind = Wind(self.data)
+
+    def animate_field(self):
+
+        u, v = self.wind.eastward_velocities, self.wind.northward_velocities
+        times, lats, lons = self.data.time.values, self.data.latitude.values, self.data.longitude.values
+
+        return plot.animate_field(lats, lons, times, u, v)
 
 
 class Wind:
