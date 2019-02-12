@@ -5,10 +5,32 @@ from icedef.constants import *
 
 def newtonian_drift_wrapper(t, lon, lat, vx, vy, **kwargs):
 
-    kwargs['Vcx'] = kwargs.pop('eastward_current').interp(time=t, latitude=lat, longitude=lon, assume_sorted=True).values
-    kwargs['Vcy'] = kwargs.pop('northward_current').interp(time=t, latitude=lat, longitude=lon, assume_sorted=True).values
-    kwargs['Vwx'] = kwargs.pop('eastward_wind').interp(time=t, latitude=lat, longitude=lon, assume_sorted=True).values
-    kwargs['Vwy'] = kwargs.pop('northward_wind').interp(time=t, latitude=lat, longitude=lon, assume_sorted=True).values
+    dt = kwargs.pop('time_step', np.timedelta64(300, 's'))
+
+    Vcxs = kwargs.pop('eastward_current')
+    Vcys = kwargs.pop('northward_current')
+    Vwxs = kwargs.pop('eastward_wind')
+    Vwys = kwargs.pop('northward_wind')
+
+    Vcx = Vcxs.interp(time=t, latitude=lat, longitude=lon, assume_sorted=True).values
+    Vcy = Vcys.interp(time=t, latitude=lat, longitude=lon, assume_sorted=True).values
+    Vwx = Vwxs.interp(time=t, latitude=lat, longitude=lon, assume_sorted=True).values
+    Vwy = Vwys.interp(time=t, latitude=lat, longitude=lon, assume_sorted=True).values
+
+    kwargs['Vcx'] = Vcx
+    kwargs['Vcy'] = Vcy
+    kwargs['Vwx'] = Vwx
+    kwargs['Vwy'] = Vwy
+
+    Vcx_left = Vcxs.interp(time=t - dt, latitude=lat, longitude=lon, assume_sorted=True).values
+    Vcx_right = Vcxs.interp(time=t + dt, latitude=lat, longitude=lon, assume_sorted=True).values
+    Vcy_left = Vcys.interp(time=t - dt, latitude=lat, longitude=lon, assume_sorted=True).values
+    Vcy_right = Vcys.interp(time=t + dt, latitude=lat, longitude=lon, assume_sorted=True).values
+    Amwx = (Vcx_right - Vcx_left) / (dt.item().total_seconds() * 2)
+    Amwy = (Vcy_right - Vcy_left) / (dt.item().total_seconds() * 2)
+
+    kwargs['Amwx'] = Amwx
+    kwargs['Amwy'] = Amwy
 
     kwargs['phi'] = lat
 
@@ -30,7 +52,9 @@ def newtonian_drift(Vx, Vy, **kwargs):
     Vcx = kwargs.pop('Vcx')
     Vcy = kwargs.pop('Vcy')
 
-    Amwx, Amwy = kwargs.pop('current_acceleration', (0, 0))
+    Amwx = kwargs.pop('Amwx', 0)
+    Amwy = kwargs.pop('Amwy', 0)
+
     Ca = kwargs.pop('form_drag_coefficient_in_air', 1.5)
     Cw = kwargs.pop('form_drag_coefficient_in_water', 1.5)
     Cda = kwargs.pop('skin_drag_coefficient_in_air', 2.5e-4)
