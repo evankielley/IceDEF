@@ -14,6 +14,8 @@ class TestCase:
         self.ref_lons = xr.DataArray(self.ref_berg.history['longitude'], coords=[self.ref_times], dims=['time'])
         self.start_time = np.datetime64(self.df.DataDate_UTC[self.start_index])
         self.end_time = np.datetime64(self.df.DataDate_UTC[self.end_index])
+        self.time_frame = self.start_time, self.end_time
         self.start_latitude = self.df.Latitude[self.start_index]
         self.start_longitude = self.df.Longitude[self.start_index]
+        self.start_location = self.start_latitude, self.start_longitude
         self.start_velocity = sd.get_iceberg_velocity_from_dataframe(self.df, self.start_index, self.start_index + 10)
