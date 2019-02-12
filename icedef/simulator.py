@@ -176,7 +176,7 @@ def run_simulation(start_location, time_frame, **kwargs):
         'latitude': iceberg_.latitude,
         'ekman': kwargs.pop('ekman', False),
         'depth_vec': kwargs.pop('depth_vec', np.arange(0, -110, -10)),
-        'current_acceleration': (0, 0),
+        'time_step': time_step,
         'eastward_current': ocean.current.eastward_velocities,
         'northward_current': ocean.current.northward_velocities,
         'eastward_wind': atmosphere.wind.eastward_velocities,
