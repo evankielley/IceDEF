@@ -1,4 +1,5 @@
 import os
+import warnings
 import numpy as np
 import xarray as xr
 from urllib.request import urlretrieve
@@ -92,17 +93,21 @@ class Current:
                                                          ('longitude', data.longitude.values)],
                                                  attrs=data.eastward_velocity.attrs)
 
-        self.speeds = xr.DataArray(data=compute_magnitude(self.eastward_velocities,
-                                                          self.northward_velocities),
+        self.speeds = xr.DataArray(data=compute_magnitude(self.eastward_velocities.values,
+                                                          self.northward_velocities.values),
                                    coords=[('time', data.time.values),
                                            ('latitude', data.latitude.values),
                                            ('longitude', data.longitude.values)])
 
-        self.directions = xr.DataArray(data=compute_direction(self.eastward_velocities,
-                                                              self.northward_velocities),
+        self.directions = xr.DataArray(data=compute_direction(self.eastward_velocities.values,
+                                                              self.northward_velocities.values),
                                        coords=[('time', data.time.values),
                                                ('latitude', data.latitude.values),
                                                ('longitude', data.longitude.values)])
+
+        self.interpolate = Interpolate((data.time.values, data.latitude.values, data.longitude.values),
+                                       self.eastward_velocities.values,
+                                       self.northward_velocities.values).interpolate
 
 
 class Atmosphere:
@@ -174,17 +179,21 @@ class Wind:
                                                          ('longitude', data.longitude.values)],
                                                  attrs=data.eastward_velocity.attrs)
 
-        self.speeds = xr.DataArray(data=compute_magnitude(self.eastward_velocities,
-                                                          self.northward_velocities),
+        self.speeds = xr.DataArray(data=compute_magnitude(self.eastward_velocities.values,
+                                                          self.northward_velocities.values),
                                    coords=[('time', data.time.values),
                                            ('latitude', data.latitude.values),
                                            ('longitude', data.longitude.values)])
 
-        self.directions = xr.DataArray(data=compute_direction(self.eastward_velocities,
-                                                              self.northward_velocities),
+        self.directions = xr.DataArray(data=compute_direction(self.eastward_velocities.values,
+                                                              self.northward_velocities.values),
                                        coords=[('time', data.time.values),
                                                ('latitude', data.latitude.values),
                                                ('longitude', data.longitude.values)])
+
+        self.interpolate = Interpolate((data.time.values, data.latitude.values, data.longitude.values),
+                                       self.eastward_velocities.values,
+                                       self.northward_velocities.values).interpolate
 
 
 def fill_data_with_constant_value(data, **kwargs):
@@ -326,8 +335,9 @@ def get_grid_info(grid_vectors, **kwargs):
 
 
 def compute_magnitude(eastward_component, northward_component):
-
-    return np.sqrt(eastward_component**2 + northward_component**2)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        return np.sqrt(eastward_component**2 + northward_component**2)
 
 
 def compute_direction(eastward_component, northward_component):
