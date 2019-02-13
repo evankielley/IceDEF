@@ -7,28 +7,42 @@ def newtonian_drift_wrapper(t, lon, lat, vx, vy, **kwargs):
 
     dt = kwargs.pop('time_step', np.timedelta64(300, 's'))
 
-    Vcxs = kwargs.pop('eastward_current')
-    Vcys = kwargs.pop('northward_current')
-    Vwxs = kwargs.pop('eastward_wind')
-    Vwys = kwargs.pop('northward_wind')
+    fast_interpolation = kwargs.pop('fast_interpolation', True)
 
-    Vcx = Vcxs.interp(time=t, latitude=lat, longitude=lon, assume_sorted=True).values
-    Vcy = Vcys.interp(time=t, latitude=lat, longitude=lon, assume_sorted=True).values
-    Vwx = Vwxs.interp(time=t, latitude=lat, longitude=lon, assume_sorted=True).values
-    Vwy = Vwys.interp(time=t, latitude=lat, longitude=lon, assume_sorted=True).values
+    if fast_interpolation:
+
+        current_interpolator = kwargs.pop('current_interpolator')
+        Vcx, Vcy = current_interpolator((t, lat, lon))
+        wind_interpolator = kwargs.pop('wind_interpolator')
+        Vwx, Vwy = wind_interpolator((t, lat, lon))
+
+        Vcx_left, Vcy_left = current_interpolator((t - dt, lat, lon))
+        Vcx_right, Vcy_right = current_interpolator((t + dt, lat, lon))
+
+    else:
+
+        Vcxs = kwargs.pop('eastward_current')
+        Vcys = kwargs.pop('northward_current')
+        Vwxs = kwargs.pop('eastward_wind')
+        Vwys = kwargs.pop('northward_wind')
+
+        Vcx = Vcxs.interp(time=t, latitude=lat, longitude=lon, assume_sorted=True).values
+        Vcy = Vcys.interp(time=t, latitude=lat, longitude=lon, assume_sorted=True).values
+        Vwx = Vwxs.interp(time=t, latitude=lat, longitude=lon, assume_sorted=True).values
+        Vwy = Vwys.interp(time=t, latitude=lat, longitude=lon, assume_sorted=True).values
+
+        Vcx_left = Vcxs.interp(time=t - dt, latitude=lat, longitude=lon, assume_sorted=True).values
+        Vcx_right = Vcxs.interp(time=t + dt, latitude=lat, longitude=lon, assume_sorted=True).values
+        Vcy_left = Vcys.interp(time=t - dt, latitude=lat, longitude=lon, assume_sorted=True).values
+        Vcy_right = Vcys.interp(time=t + dt, latitude=lat, longitude=lon, assume_sorted=True).values
+
+    Amwx = (Vcx_right - Vcx_left) / (dt.item().total_seconds() * 2)
+    Amwy = (Vcy_right - Vcy_left) / (dt.item().total_seconds() * 2)
 
     kwargs['Vcx'] = Vcx
     kwargs['Vcy'] = Vcy
     kwargs['Vwx'] = Vwx
     kwargs['Vwy'] = Vwy
-
-    Vcx_left = Vcxs.interp(time=t - dt, latitude=lat, longitude=lon, assume_sorted=True).values
-    Vcx_right = Vcxs.interp(time=t + dt, latitude=lat, longitude=lon, assume_sorted=True).values
-    Vcy_left = Vcys.interp(time=t - dt, latitude=lat, longitude=lon, assume_sorted=True).values
-    Vcy_right = Vcys.interp(time=t + dt, latitude=lat, longitude=lon, assume_sorted=True).values
-    Amwx = (Vcx_right - Vcx_left) / (dt.item().total_seconds() * 2)
-    Amwy = (Vcy_right - Vcy_left) / (dt.item().total_seconds() * 2)
-
     kwargs['Amwx'] = Amwx
     kwargs['Amwy'] = Amwy
 
