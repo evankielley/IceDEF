@@ -8,6 +8,18 @@ import numpy as np
 import xarray as xr
 from pandas import to_datetime
 
+SMALL_SIZE = 10
+MEDIUM_SIZE = 12
+BIGGER_SIZE = 14
+
+plt.rc('font', size=MEDIUM_SIZE)          # controls default text sizes
+plt.rc('axes', titlesize=BIGGER_SIZE)     # fontsize of the axes title
+plt.rc('axes', labelsize=BIGGER_SIZE)    # fontsize of the x and y labels
+plt.rc('xtick', labelsize=MEDIUM_SIZE)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=MEDIUM_SIZE)    # fontsize of the tick labels
+plt.rc('legend', fontsize=MEDIUM_SIZE)    # legend fontsize
+plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+
 
 def get_map(**kwargs):
 
@@ -21,17 +33,23 @@ def get_map(**kwargs):
     llcrnrlat = kwargs.pop('llcrnrlat', 40)
     urcrnrlon = kwargs.pop('urcrnrlon', -40)
     urcrnrlat = kwargs.pop('urcrnrlat', 60)
+
+    map_ = Basemap(projection=projection,
+                   lon_0=lon_0, lat_0=lat_0, lat_ts=lat_ts,
+                   resolution=resolution, area_thresh=area_thresh,
+                   llcrnrlon=llcrnrlon, llcrnrlat=llcrnrlat, urcrnrlon=urcrnrlon, urcrnrlat=urcrnrlat)
+
+    return map_
+
+
+def draw_map(map_, **kwargs):
+
     drawcoastlines = kwargs.pop('drawcoastlines', True)
     drawstates = kwargs.pop('drawstates', False)
     drawcountries = kwargs.pop('drawcountries', False)
     parallels = kwargs.pop('parallels', np.arange(0, 90, 5))
     meridians = kwargs.pop('meridians', np.arange(0., 360., 10.))
     xtick_rotation_angle = kwargs.pop('xtick_rotation_angle', 90)
-
-    map_ = Basemap(projection=projection,
-                   lon_0=lon_0, lat_0=lat_0, lat_ts=lat_ts,
-                   resolution=resolution, area_thresh=area_thresh,
-                   llcrnrlon=llcrnrlon, llcrnrlat=llcrnrlat, urcrnrlon=urcrnrlon, urcrnrlat=urcrnrlat)
 
     if drawcoastlines:
         map_.drawcoastlines()
@@ -41,10 +59,10 @@ def get_map(**kwargs):
         map_.drawcountries()
 
     # draw parallels
-    map_.drawparallels(parallels, labels=[1, 0, 0, 0], fontsize=10)
+    map_.drawparallels(parallels, labels=[1, 0, 0, 0])
 
     # draw meridians
-    meridians = map_.drawmeridians(meridians, labels=[0, 0, 0, 1], fontsize=10)
+    meridians = map_.drawmeridians(meridians, labels=[0, 0, 0, 1])
 
     if xtick_rotation_angle:
 
@@ -56,8 +74,6 @@ def get_map(**kwargs):
 
             except IndexError:
                 pass
-
-    return map_
 
 
 def plot_track(*latlons, **kwargs):
@@ -86,15 +102,27 @@ def plot_track(*latlons, **kwargs):
     map_kwargs = get_map_kwargs(min_lat, min_lon, max_lat, max_lon, **kwargs)
     kwargs.update(map_kwargs)
 
+    fig, ax = plt.subplots()
     map_ = get_map(**kwargs)
+    draw_map(map_, **kwargs)
 
     s = kwargs.pop('s', 1)
+    labels = kwargs.pop('labels', [''] * 100)
+
+    i = 0
 
     for latlon in latlons:
 
         lats, lons = latlon
         eastings, northings = map_(lons, lats)
-        plt.scatter(eastings, northings, s=s)
+        ax.scatter(eastings, northings, s=s, label=labels[i])
+        i += 1
+
+    title = kwargs.pop('title', '')
+    ax.set_title(title)
+    ax.legend()
+
+    return fig, ax
 
 
 def get_map_kwargs(min_lat, min_lon, max_lat, max_lon, **kwargs):
