@@ -127,8 +127,8 @@ class Simulator:
     def optimization_wrapper(self, values, keys, reference_vectors):
 
         kwargs = dict(zip(keys, values))
-        xds = self.run_simulation(**kwargs)
-        simulation_vectors = (self.time_frame, self.start_location, self.start_velocity, xds['latitude'], xds['longitude'])
+        xds = run_simulation(self.time_frame, self.start_location, **kwargs)
+        simulation_vectors = xds['latitude'], xds['longitude']
         mean_square_errors = compute_mse(simulation_vectors, reference_vectors)
 
         return np.mean(mean_square_errors)
@@ -213,7 +213,9 @@ def run_simulation(time_frame, start_location, start_velocity=(0, 0), **kwargs):
         'northward_current': ocean.current.northward_velocities,
         'eastward_wind': atmosphere.wind.eastward_velocities,
         'northward_wind': atmosphere.wind.northward_velocities,
-        'log': kwargs.pop('log', None)
+        'log': kwargs.pop('log', None),
+        'current_interpolator': ocean.current.interpolate,
+        'wind_interpolator': atmosphere.wind.interpolate
     }
 
     for i in range(nt):
