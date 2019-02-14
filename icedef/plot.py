@@ -14,11 +14,11 @@ BIGGER_SIZE = 14
 
 plt.rc('font', size=MEDIUM_SIZE)          # controls default text sizes
 plt.rc('axes', titlesize=BIGGER_SIZE)     # fontsize of the axes title
-plt.rc('axes', labelsize=BIGGER_SIZE)    # fontsize of the x and y labels
+plt.rc('axes', labelsize=BIGGER_SIZE)     # fontsize of the x and y labels
 plt.rc('xtick', labelsize=MEDIUM_SIZE)    # fontsize of the tick labels
 plt.rc('ytick', labelsize=MEDIUM_SIZE)    # fontsize of the tick labels
 plt.rc('legend', fontsize=MEDIUM_SIZE)    # legend fontsize
-plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+plt.rc('figure', titlesize=BIGGER_SIZE)   # fontsize of the figure title
 
 
 def get_map(**kwargs):
@@ -118,11 +118,49 @@ def plot_track(*latlons, **kwargs):
         ax.scatter(eastings, northings, s=s, label=labels[i])
         i += 1
 
+    vectors = kwargs.pop('vectors', None)
+
+    if vectors is not None:
+
+        ax = plot_quivers(eastings, northings, vectors, ax, **kwargs)
+
     title = kwargs.pop('title', '')
     ax.set_title(title)
     ax.legend()
 
     return fig, ax
+
+
+def plot_quivers(x, y, vectors, ax=None, **kwargs):
+
+    gap = kwargs.pop('gap', 10)
+    arrow_scale = kwargs.pop('arrow_scale', None)
+    arrow_shaftwidth = kwargs.pop('arrow_shaftwidth', 0.0005 * 8)
+    arrow_headlength = kwargs.pop('arrow_headlength', 5)
+    arrow_headwidth = kwargs.pop('arrow_headwidth', 3)
+    arrow_colors = kwargs.pop('arrow_colors', ['black'] * 10)
+    arrow_labels = kwargs.pop('arrow_labels', [''] * 10)
+
+    if ax is None:
+
+        ax = plt.subplot(111)
+
+    i = 0
+
+    for vector_u, vector_v in vectors:
+
+        if isinstance(vector_u, xr.core.dataarray.DataArray):
+            vector_u = vector_u.values
+
+        if isinstance(vector_v, xr.core.dataarray.DataArray):
+            vector_v = vector_v.values
+
+        ax.quiver(x[::gap], y[::gap], vector_u[::gap], vector_v[::gap],
+                   scale=arrow_scale, width=arrow_shaftwidth, headlength=arrow_headlength,
+                   headwidth=arrow_headwidth, color=arrow_colors[i], label=arrow_labels[i])
+        i += 1
+
+    return ax
 
 
 def get_map_kwargs(min_lat, min_lon, max_lat, max_lon, **kwargs):
