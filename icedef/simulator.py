@@ -142,7 +142,9 @@ class Simulator:
             track = [self.results[key]['latitude'].values, self.results[key]['longitude'].values]
             tracks.append(track)
 
-        plot.plot_track(*tracks, **kwargs)
+        fig, ax = plot.plot_track(*tracks, **kwargs)
+
+        return fig, ax
 
 
 def compute_mse(simulation_vectors, reference_vectors):
