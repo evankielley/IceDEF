@@ -6,7 +6,7 @@ from icedef import statoil_arcticnet_data as sd
 class TestCase:
 
     def __init__(self, index_range=(1100, 1120)):
-        self.df = sd.get_df(sd.dir_path + sd.csv_filenames[2])
+        self.df = sd.get_df(sd.beacon_dir_path + sd.beacon_csv_filenames[2])
         self.start_index, self.end_index = index_range
         self.ref_berg = sd.create_ref_berg_from_df(self.df, self.start_index, self.end_index)
         self.ref_times = self.ref_berg.history['time']
