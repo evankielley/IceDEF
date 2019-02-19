@@ -56,3 +56,24 @@ def compute_mse(simulation_point, observation_vectors, reference_time):
     mse = np.sqrt((obs_x - sim_x)**2 + (obs_y - sim_y)**2)
 
     return mse
+
+
+def get_temporal_subset_df(df, time_column_name='time', start_time=None, end_time=None):
+
+    if start_time is None:
+        start_time = df[time_column_name].values[0]
+
+    if end_time is None:
+        end_time = df[time_column_name].values[len(df) - 1]
+
+    if type(end_time) is np.datetime64:
+        df = df.loc[df[time_column_name] >= start_time]
+        df = df.loc[df[time_column_name] <= end_time]
+
+    elif type(end_time) is np.timedelta64:
+        df = df.loc[df[time_column_name] >= start_time]
+        df = df.loc[df[time_column_name] <= start_time + end_time]
+
+    df = df.reset_index(drop=True)
+
+    return df
