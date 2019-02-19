@@ -18,7 +18,7 @@ avos_data_path = root_dir_path + 'AVOS_2015.csv'
 adcp_data_path = root_dir_path + 'Leg1_1501_ADCP/an1501_os150bb.nc'
 
 
-def get_df(path=sample_beacon_data_path):
+def get_beacon_df(path=sample_beacon_data_path, start_time=None, end_time=None):
     """This function returns a pandas dataframe of the beacon data at the specified path.
 
     :param path: location of the data file.
@@ -26,9 +26,13 @@ def get_df(path=sample_beacon_data_path):
     :return df: data file as a pandas dataframe.
     :rtype df: pandas.core.frame.DataFrame
     """
-    
+
+    t_col_name = 'DataDate_UTC'
     df = pd.read_csv(path)
-    df.loc[:, 'DataDate_UTC'] = pd.to_datetime(df['DataDate_UTC'])
+    df.loc[:, t_col_name] = pd.to_datetime(df[t_col_name])
+
+    if start_time is not None or end_time is not None:
+        df = tools.get_temporal_subset_df(df, time_column_name=t_col_name, start_time=start_time, end_time=end_time)
     
     return df
 
@@ -81,7 +85,10 @@ def get_adcp_ds(path=adcp_data_path):
     return ds
 
 
-def create_ref_berg_from_df(df, start_index, end_index):
+def create_ref_berg_from_df(df):
+
+    start_index = 0
+    end_index = len(df) - 1
     
     start_time = np.datetime64(df.DataDate_UTC[start_index])
     start_latitude = df.Latitude[start_index]
@@ -89,7 +96,7 @@ def create_ref_berg_from_df(df, start_index, end_index):
     
     ref_berg = iceberg.quickstart(start_time, (start_latitude, start_longitude))
 
-    for i in range(end_index - start_index + 2):
+    for i in range(end_index - start_index):
 
         if not df.DataDate_UTC[start_index + i] == df.DataDate_UTC[start_index + i + 1]:
             
