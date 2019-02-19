@@ -99,15 +99,24 @@ def plot_track(*latlons, **kwargs):
         if max_lon is None or temp_max_lon > max_lon:
             max_lon = temp_max_lon
 
-    map_kwargs = get_map_kwargs(min_lat, min_lon, max_lat, max_lon, **kwargs)
-    kwargs.update(map_kwargs)
+    scatter_kwargs = kwargs.pop('scatter_kwargs', {})
+    quiver_kwargs = kwargs.pop('quiver_kwargs', {})
+    map_kwargs = kwargs.pop('map_kwargs', {})
+    legend_kwargs = kwargs.pop('legend_kwargs', {})
+
+    new_map_kwargs = get_map_kwargs(min_lat, min_lon, max_lat, max_lon, **map_kwargs)
+    map_kwargs.update(new_map_kwargs)
 
     fig, ax = plt.subplots()
-    map_ = get_map(**kwargs)
-    draw_map(map_, **kwargs)
+    map_ = get_map(**map_kwargs)
+    draw_map(map_, **map_kwargs)
 
-    s = kwargs.pop('s', 1)
-    labels = kwargs.pop('labels', [''] * 100)
+    labels = kwargs.pop('labels', None)
+    if labels is not None:
+        show_legend = True
+    else:
+        show_legend = False
+        labels = [''] * 100
 
     i = 0
 
@@ -115,18 +124,19 @@ def plot_track(*latlons, **kwargs):
 
         lats, lons = latlon
         eastings, northings = map_(lons, lats)
-        ax.scatter(eastings, northings, s=s, label=labels[i])
+        ax.scatter(eastings, northings, label=labels[i], **scatter_kwargs)
         i += 1
 
     vectors = kwargs.pop('vectors', None)
 
     if vectors is not None:
 
-        ax = plot_quivers(eastings, northings, vectors, ax, **kwargs)
+        ax = plot_quivers(eastings, northings, vectors, ax, **quiver_kwargs)
 
     title = kwargs.pop('title', '')
     ax.set_title(title)
-    ax.legend()
+    if show_legend:
+        ax.legend(**legend_kwargs)
 
     return fig, ax
 
