@@ -177,7 +177,7 @@ def run_simulation(time_frame, start_location, start_velocity=(0, 0), **kwargs):
 
     start_time, end_time = time_frame
     dt = time_step.item().total_seconds()
-    nt = int((end_time - start_time).item().total_seconds() / dt)
+    nt = int(np.timedelta64(end_time - start_time, 's').item().total_seconds() / dt)
 
     size = kwargs.pop('iceberg_size', 'LG')
     shape = kwargs.pop('iceberg_shape', 'TAB')
