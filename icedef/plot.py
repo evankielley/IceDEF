@@ -112,11 +112,20 @@ def plot_track(*latlons, **kwargs):
     draw_map(map_, **map_kwargs)
 
     labels = kwargs.pop('labels', None)
+    quiver_labels = quiver_kwargs.get('label', None)
+
     if labels is not None:
         show_legend = True
+        quiver_kwargs['label'] = [''] * 100
+
+    elif quiver_labels is not None:
+        show_legend = True
+        labels = [''] * 100
+
     else:
         show_legend = False
         labels = [''] * 100
+        quiver_kwargs['label'] = [''] * 100
 
     i = 0
 
@@ -144,12 +153,8 @@ def plot_track(*latlons, **kwargs):
 def plot_quivers(x, y, vectors, ax=None, **kwargs):
 
     gap = kwargs.pop('gap', 10)
-    arrow_scale = kwargs.pop('arrow_scale', None)
-    arrow_shaftwidth = kwargs.pop('arrow_shaftwidth', 0.0005 * 8)
-    arrow_headlength = kwargs.pop('arrow_headlength', 5)
-    arrow_headwidth = kwargs.pop('arrow_headwidth', 3)
-    arrow_colors = kwargs.pop('arrow_colors', ['black'] * 10)
-    arrow_labels = kwargs.pop('arrow_labels', [''] * 10)
+    color = kwargs.pop('color', ['black'] * 100)
+    label = kwargs.pop('label', [''] * 100)
 
     if ax is None:
 
@@ -165,9 +170,8 @@ def plot_quivers(x, y, vectors, ax=None, **kwargs):
         if isinstance(vector_v, xr.core.dataarray.DataArray):
             vector_v = vector_v.values
 
-        ax.quiver(x[::gap], y[::gap], vector_u[::gap], vector_v[::gap],
-                   scale=arrow_scale, width=arrow_shaftwidth, headlength=arrow_headlength,
-                   headwidth=arrow_headwidth, color=arrow_colors[i], label=arrow_labels[i])
+        ax.quiver(x[::gap], y[::gap], vector_u[::gap], vector_v[::gap], color=color[i], label=label[i], **kwargs)
+
         i += 1
 
     return ax
