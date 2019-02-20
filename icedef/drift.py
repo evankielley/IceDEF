@@ -1,9 +1,28 @@
+"""This module contains iceberg drift models.
+"""
+
 import cmath
 import numpy as np
 from icedef.constants import *
 
 
 def newtonian_drift_wrapper(t, lon, lat, vx, vy, **kwargs):
+    """This function performs interpolations for current and wind velocities and then runs the drift model.
+
+    Args:
+        t (numpy.datetime64): time.
+        lon (float): longitude.
+        lat (float): latitude.
+        vx (float): x-component of iceberg velocity in m/s.
+        vy (float): y-component of iceberg velocity in m/s.
+        **kwargs: coming soon - see source code for now.
+
+    Returns:
+        vx (float): new x-component of iceberg velocity in m/s.
+        vy (float): new y-component of iceberg velocity in m/s.
+        ax (float): x-component of iceberg acceleration in m/s.
+        ay (float): y-component of iceberg acceleration in m/s.
+    """
 
     dt = kwargs.pop('time_step', np.timedelta64(300, 's'))
 
@@ -54,7 +73,17 @@ def newtonian_drift_wrapper(t, lon, lat, vx, vy, **kwargs):
 
 
 def newtonian_drift(Vx, Vy, **kwargs):
-    """Computes instantaneous iceberg acceleration."""
+    """This function computes iceberg acceleration using a general Newtonian drift model.
+
+    Args:
+        Vx (float): x-component of iceberg velocity in m/s.
+        Vy (float): y-component of iceberg velocity in m/s.
+        **kwargs: coming soon - see source code for now.
+
+    Returns:
+        ax (float): x-component of iceberg acceleration in m/s.
+        ay (float): y-component of iceberg acceleration in m/s.
+    """
 
     # Constants
     Omega = EARTH_ROTATION_RATE
@@ -150,6 +179,18 @@ def newtonian_drift(Vx, Vy, **kwargs):
 
 
 def compute_ekman_velocity(wind, depth, latitude=50):
+    """This function computes Ekman velocity at some depth.
+
+    Args:
+        wind (tuple of float): components (x, y) of wind velocity in m/s.
+        depth (float): depth below the sea surface (down is negative) in m.
+        latitude: latitude.
+
+    Returns:
+        u_ekman (float): x-component of Ekman velocity at specified depth.
+        v_ekman (float): y-component of Ekman velocity at specified depth.
+    """
+
     u_wind, v_wind = wind
     z = depth
     phi = latitude
@@ -180,6 +221,18 @@ def compute_ekman_velocity(wind, depth, latitude=50):
 
 
 def compute_ekman_spiral(wind, surface_current, depth_vec, latitude=50):
+    """This function computes an Ekman spiral.
+
+    Args:
+        wind (tuple of float): components (x, y) of wind velocity in m/s.
+        surface_current (tuple of float): components (x, y) of current velocity at the surface in m/s.
+        depth_vec (list of float): depths in m to compute Ekman velocity at.
+        latitude: latitude.
+
+    Returns:
+        u_current_vec (list of float): x-components of Ekman velocity at all depths specified.
+        v_current_vec (list of float): y-components of Ekman velocity at all depths specified.
+    """
 
     u_ekman_vec = np.zeros(len(depth_vec))
     v_ekman_vec = np.zeros(len(depth_vec))
@@ -200,12 +253,76 @@ def compute_ekman_spiral(wind, surface_current, depth_vec, latitude=50):
     return u_current_vec, v_current_vec
 
 
-def analytical_drift(iceberg_position, current_velocity, wind_velocity, **kwargs):
-    y, x = iceberg_position
-    vau, vav = wind_velocity
-    vwu, vwv = current_velocity
-    l = kwargs.pop('iceberg_length', 160)
-    w = kwargs.pop('iceberg_width', 160)
+def analytical_drift_wrapper(t, lon, lat, **kwargs):
+    """This function performs interpolations for current and wind velocities and then runs the drift model.
+
+    Args:
+        t (numpy.datetime64): time.
+        lon (float): longitude.
+        lat (float): latitude.
+        vx (float): x-component of iceberg velocity in m/s.
+        vy (float): y-component of iceberg velocity in m/s.
+        **kwargs: coming soon - see source code for now.
+
+    Returns:
+        vx (float): new x-component of iceberg velocity in m/s.
+        vy (float): new y-component of iceberg velocity in m/s.
+
+    """
+
+    fast_interpolation = kwargs.pop('fast_interpolation', True)
+
+    if fast_interpolation:
+
+        current_interpolator = kwargs.pop('current_interpolator')
+        wind_interpolator = kwargs.pop('wind_interpolator')
+
+        vwu, vwv = current_interpolator((t, lat, lon))
+        vau, vav = wind_interpolator((t, lat, lon))
+
+    else:
+
+        vwus = kwargs.pop('eastward_current')
+        vwvs = kwargs.pop('northward_current')
+        vaus = kwargs.pop('eastward_wind')
+        vavs = kwargs.pop('northward_wind')
+
+        vwu = vwus.interp(time=t, latitude=lat, longitude=lon, assume_sorted=True).values
+        vwv = vwvs.interp(time=t, latitude=lat, longitude=lon, assume_sorted=True).values
+        vau = vaus.interp(time=t, latitude=lat, longitude=lon, assume_sorted=True).values
+        vav = vavs.interp(time=t, latitude=lat, longitude=lon, assume_sorted=True).values
+
+    kwargs['vwu'] = vwu
+    kwargs['vwv'] = vwv
+    kwargs['vau'] = vau
+    kwargs['vav'] = vav
+
+    vx, vy = analytical_drift(lon, lat, **kwargs)
+
+    return vx, vy
+
+
+def analytical_drift(x, y, **kwargs):
+    """This function computes the velocity of an iceberg using an analytical drift model.
+
+    Args:
+        x (float): longitude
+        y (float): latitude
+        **kwargs: coming soon - see source code for now.
+
+    Returns:
+        viu (float): x-component of iceberg velocity in m/s.
+        viv (float): y-component of iceberg velocity in m/s.
+    """
+
+    vwu = kwargs.pop('vwu')
+    vwv = kwargs.pop('vwv')
+    vau = kwargs.pop('vau')
+    vav = kwargs.pop('vav')
+
+    l = kwargs.pop('waterline_length', 160)
+    w = kwargs.pop('waterline_length', 160)  # note: currently all icebergs are cuboid
+
     Cw = kwargs.pop('form_drag_coefficient_in_water', 0.9)
     Ca = kwargs.pop('form_drag_coefficient_in_air', 1.3)
 
