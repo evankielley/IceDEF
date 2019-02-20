@@ -12,6 +12,8 @@ from time import gmtime, strftime
 
 
 class DebugFileHandler(FileHandler):
+    """This class handles the debugging of iceberg simulations by writing the forces to file.
+    """
     def __init__(self, filename='debug.log', mode='w', encoding=None, delay=False):
         FileHandler.__init__(self, filename, mode, encoding, delay)
         self.formatter = Formatter('%(message)s')
@@ -23,12 +25,19 @@ class Simulator:
     def __init__(self, time_frame, start_location, start_velocity=(0, 0), **kwargs):
         """This class sets up and runs the components necessary to run an iceberg drift simulation.
 
+        Args:
+            time_frame (tuple of numpy.datetime64): start time, end time for the simulation.
+            start_location (tuple of float): starting position (latitude, longitude) for the simulation.
+
         Kwargs:
+            start_velocity (tuple of float): starting velocity (vx, vy) in m/s.
             time_step (numpy.timedelta64): Time step in seconds.
             drift_model (function): The drift model function.
             time_stepper (function): The numerical integrator function.
             ocean_model (str): Name of ocean model. Can be ECMWF or HYCOM.
             atmosphere_model (str): Name of the atmosphere model. Can be ECMWF or NARR.
+            iceberg_size (str or tuple of float): size class for the iceberg or dims (waterline length, sail height).
+            iceberg_shape (str): shape class for the iceberg.
         """
 
         self.start_location = start_location
@@ -52,10 +61,10 @@ class Simulator:
 
         self.results = {}
 
-    def set_constant_currents(self, constants):
+    def set_constant_current(self, constants):
         self.ocean = metocean.Ocean(self.time_frame, model=self.ocean_model, constants=constants)
 
-    def set_constant_winds(self, constants):
+    def set_constant_wind(self, constants):
         self.atmosphere = metocean.Atmosphere(self.time_frame, model=self.ocean_model, constants=constants)
 
     def reload_ocean(self):
