@@ -1,3 +1,6 @@
+"""This module contains functions that serve as helpful tools for other modules in the icedef package and alone.
+"""
+
 import numpy as np
 from icedef.constants import *
 from scipy.interpolate import interp1d
