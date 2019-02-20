@@ -1,3 +1,7 @@
+"""This module reads and instantiates objects that contain ocean current and wind data.
+
+"""
+
 import os
 import warnings
 import numpy as np
@@ -11,6 +15,12 @@ from icedef import plot
 class Metocean:
 
     def __init__(self, date_bounds, **kwargs):
+        """This class instantiates an ocean and atmosphere object.
+
+        Args:
+            date_bounds (tuple of numpy.datetime64): time frame (start, end) for the data.
+            **kwargs: coming soon.
+        """
 
         self.date_bounds = date_bounds
         self.ocean_model = kwargs.pop('ocean_model', 'ECMWF')
@@ -19,11 +29,23 @@ class Metocean:
         self.atmosphere = Atmosphere(date_bounds, model=self.atmosphere_model)
 
     def swap_ocean(self, ocean_model):
+        """This method instantiates a new ocean object according to the ocean model specified."
+
+        Args:
+            ocean_model (str): name of ocean model.
+
+        """
 
         self.ocean_model = ocean_model
         self.ocean = self.ocean(self.date_bounds, model=ocean_model)
 
     def swap_atmosphere(self, atmosphere_model):
+        """This method instantiates a new atmosphere object according to the ocean model specified."
+
+        Args:
+            atmosphere_model (str): name of atmosphere model.
+
+        """
 
         self.atmosphere_model = atmosphere_model
         self.atmosphere = self.atmosphere(self.date_bounds, model=atmosphere_model)
@@ -35,6 +57,13 @@ class Ocean:
     PATH = None
 
     def __init__(self, date_bounds, model='ECMWF', constants=None):
+        """This class creates an object that contains ocean data from an available ocean model or artificially.
+
+        Args:
+            date_bounds (tuple of numpy.datetime64): time frame (start, end) for the data.
+            model (str): name of ocean model.
+            constants (tuple of float): constant velocity component values (x, y) in m/s.
+        """
 
         if constants is not None:
 
@@ -116,6 +145,13 @@ class Atmosphere:
     PATH = None
 
     def __init__(self, date_bounds, model='NARR', constants=None):
+        """This class creates an object that contains atmosphere data from an available atmosphere model or artificially.
+
+        Args:
+            date_bounds (tuple of numpy.datetime64): time frame (start, end) for the data.
+            model (str): name of atmosphere model.
+            constants (tuple of float): constant velocity component values (x, y) in m/s.
+        """
 
         if constants is not None:
 
