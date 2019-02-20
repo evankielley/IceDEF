@@ -22,6 +22,15 @@ plt.rc('figure', titlesize=BIGGER_SIZE)   # fontsize of the figure title
 
 
 def get_map(**kwargs):
+    """This function returns a Basemap map.
+
+    Args:
+        **kwargs: coming soon.
+
+    Returns:
+        map_ (mpl_toolkits.basemap.Basemap): a Basemap map.
+
+    """
 
     projection = kwargs.pop('projection', 'stere')
     lon_0 = kwargs.pop('lon_0', -50)
@@ -43,6 +52,13 @@ def get_map(**kwargs):
 
 
 def draw_map(map_, **kwargs):
+    """This function draws background information like labels, coastlines, and grid lines on a Basemap map.
+
+    Args:
+        map_ (mpl_toolkits.basemap.Basemap): a Basemap map.
+        **kwargs: coming soon.
+
+    """
 
     drawcoastlines = kwargs.pop('drawcoastlines', True)
     drawstates = kwargs.pop('drawstates', False)
@@ -230,106 +246,6 @@ def plot_image(lats, lons, data, **kwargs):
         x0, y0 = map_(min_lon, min_lat)
         x1, y1 = map_(max_lon, max_lat)
         map_.imshow(data, extent=[x0, x1, y0, y1], origin='lower')
-
-
-def plot_iceberg_track(lats, lons, **kwargs):
-
-    if isinstance(lats, xr.core.dataarray.DataArray):
-        lats = lats.values
-
-    if isinstance(lons, xr.core.dataarray.DataArray):
-        lons = lons.values
-
-    show = kwargs.pop('show', True)
-    save = kwargs.pop('save', False)
-    filename = kwargs.pop('filename', 'plot')
-
-    plot_width = kwargs.pop('plot_width', 12)
-    plot_height = kwargs.pop('plot_height', 12)
-    autoscale_figure = kwargs.pop('autoscale_figure', True)
-    figure_scale_factor = kwargs.pop('figure_scale_factor', 1)
-
-    if autoscale_figure:
-        len_x_values = abs(max(lons) - min(lons))
-        len_y_values = abs(max(lats) - min(lats))
-        plot_width = plot_width * (len_x_values / (len_x_values + len_y_values))
-        plot_height = plot_height * (len_y_values / (len_x_values + len_y_values))
-
-    plot_width *= figure_scale_factor
-    plot_height *= figure_scale_factor
-
-    plt.figure(figsize=(plot_width, plot_height))
-
-    xlabel = kwargs.pop('xlabel', 'Longitude')
-    ylabel = kwargs.pop('ylabel', 'Latitude')
-    title = kwargs.pop('title', '')
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.title(title)
-
-    vectors = kwargs.pop('vectors', None)
-    gap = kwargs.pop('gap', 10)
-    track_marker_size = kwargs.pop('track_marker_size', 5)
-    ref_marker_size = kwargs.pop('ref_marker_size', 5)
-    arrow_scale = kwargs.pop('arrow_scale', None)
-    arrow_shaftwidth = kwargs.pop('arrow_shaftwidth', 0.0005 * plot_width)
-    arrow_headlength = kwargs.pop('arrow_headlength', 5)
-    arrow_headwidth = kwargs.pop('arrow_headwidth', 3)
-    arrow_colors = kwargs.pop('arrow_colors', ['black'] * 10)
-    arrow_labels = kwargs.pop('arrow_labels', [''] * 10)
-    ref_track = kwargs.pop('ref_track', None)
-    quiver_ref_track = kwargs.pop('quiver_ref_track', False)
-
-    plt.scatter(lons, lats, s=track_marker_size, label='')
-
-    if vectors is not None:
-
-        i = 0
-
-        for vector_u, vector_v in vectors:
-
-            if isinstance(vector_u, xr.core.dataarray.DataArray):
-                vector_u = vector_u.values
-
-            if isinstance(vector_v, xr.core.dataarray.DataArray):
-                vector_v = vector_v.values
-
-            plt.quiver(lons[::gap], lats[::gap], vector_u[::gap], vector_v[::gap],
-                       scale=arrow_scale, width=arrow_shaftwidth, headlength=arrow_headlength,
-                       headwidth=arrow_headwidth, color=arrow_colors[i], label=arrow_labels[i])
-            i += 1
-
-        if ref_track is not None:
-
-            ref_lats, ref_lons = ref_track
-            plt.scatter(ref_lons, ref_lats, s=ref_marker_size, label='')
-            plt.plot(ref_lons, ref_lats)
-
-            if quiver_ref_track:
-
-                ref_lat_list = []
-                ref_lon_list = []
-
-                for i in np.arange(0, len(vector_u), gap):
-                    ref_lat_list.append(ref_lats.interp(time=vector_u.time[i]))
-                    ref_lon_list.append(ref_lons.interp(time=vector_u.time[i]))
-
-                i = 0
-
-                for vector_u, vector_v in vectors:
-                    plt.quiver(ref_lon_list, ref_lat_list, vector_u[::gap], vector_v[::gap],
-                               scale=arrow_scale, width=arrow_shaftwidth, headlength=arrow_headlength,
-                               headwidth=arrow_headwidth, color=arrow_colors[i], label='')
-                    i += 1
-
-        if arrow_labels[0] is not '':
-            plt.legend()
-
-    if save:
-        plt.savefig(f'{filename}.png')
-
-    if show:
-        plt.show()
 
 
 def animate_field(lats, lons, times, u, v, gap=10, time_format='%Y-%m-%d %H'):
