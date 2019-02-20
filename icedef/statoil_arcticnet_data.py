@@ -19,12 +19,15 @@ adcp_data_path = root_dir_path + 'Leg1_1501_ADCP/an1501_os150bb.nc'
 
 
 def get_beacon_df(path=sample_beacon_data_path, start_time=None, end_time=None):
-    """This function returns a pandas dataframe of the beacon data at the specified path.
+    """This function returns a pandas data frame of the beacon data at the specified path.
 
-    :param path: location of the data file.
-    :type path: str
-    :return df: data file as a pandas dataframe.
-    :rtype df: pandas.core.frame.DataFrame
+    Args:
+        path (str): path to file to read.
+        start_time (numpy.datetime64): start time - if specified, earlier times will not be in data frame.
+        end_time (numpy.datetime64 or numpy.timedelta64): end time - if specified, later times will not be in data frame.
+
+    Returns:
+        df (pandas.core.frame.DataFrame): data frame requested.
     """
 
     t_col_name = 'DataDate_UTC'
@@ -38,6 +41,15 @@ def get_beacon_df(path=sample_beacon_data_path, start_time=None, end_time=None):
 
 
 def get_avos_df(path=avos_data_path, add_components=True):
+    """This function returns a pandas data frame of AVOS data.
+
+    Args:
+        path (str): path to file to read.
+        add_components (bool): if True it will add columns to the data frame that contain wind velocity components.
+
+    Returns:
+        df (pandas.core.frame.DataFrame): data frame requested.
+    """
 
     df = pd.read_csv(path, sep=' ; ')
     bad_rows = np.where((df['Longitude'] > 180) | (df['Longitude'] < -180) |
