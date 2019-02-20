@@ -1,9 +1,21 @@
+"""This module contains time stepping functions.
+
+"""
+
 import numpy as np
 from copy import deepcopy
 from icedef import tools
 
 
 def euler(f, h, *args, **kwargs):
+    """This function follows a forward Euler scheme.
+
+    Args:
+        f: function.
+        h (float): step size.
+        *args: arguments for f.
+        **kwargs: coming soon.
+    """
     return h * np.array(f(*args, **kwargs))
 
 
@@ -96,22 +108,3 @@ def ab3(f, h, *args, **kwargs):
         return h * (23 / 12 * np.array(f(*args2, **kwargs)) -
                     4 / 3 * np.array(f(*args1, **kwargs)) +
                     5 / 12 * np.array(f(*args0, **kwargs)))
-
-
-# def ab3(f, h, *args, **kwargs):
-#
-#     i = len(args[0]) - 1
-#
-#     if i == 0:
-#         args0 = tuple([arg[0] for arg in args])
-#         return euler(f, h, *args0, **kwargs)
-#     elif i == 1:
-#         return ab2(f, h, *args, **kwargs)
-#     else:
-#         args0 = tuple([arg[-3] for arg in args])
-#         args1 = tuple([arg[-2] for arg in args])
-#         args2 = tuple([arg[-1] for arg in args])
-#         return h * (23 / 12 * np.array(f(*args2, **kwargs)) -
-#                     4 / 3 * np.array(f(*args1, **kwargs)) +
-#                     5 / 12 * np.array(f(*args0, **kwargs)))
-
