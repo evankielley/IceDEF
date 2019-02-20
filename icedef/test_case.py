@@ -5,9 +5,11 @@ from icedef import statoil_arcticnet_data as sd
 
 class TestCase:
 
-    def __init__(self, beacon_id='204980', start_time=None, end_time=None):
+    def __init__(self, beacon_id='20498', start_time=None, end_time=None):
 
-        self.df = sd.get_beacon_df(sd.beacon_dir_path + '0' + beacon_id + '0' + '_2015.csv', start_time=start_time, end_time=end_time)
+        self.filename = '0' + beacon_id + '0' + '_2015.csv'
+        self.path = sd.beacon_dir_path
+        self.df = sd.get_beacon_df(self.path + self.filename, start_time=start_time, end_time=end_time)
         self.ref_berg = sd.create_ref_berg_from_df(self.df)
         self.ref_times = self.ref_berg.history['time']
         self.ref_lats = xr.DataArray(self.ref_berg.history['latitude'], coords=[self.ref_times], dims=['time'])
@@ -26,8 +28,6 @@ class TestCaseA(TestCase):
     START_TIME = np.datetime64('2015-05-06T15:27:39')
     END_TIME = np.datetime64('2015-05-07T06:25:51')
     BEACON_ID = '90679'
-    BEACON_CSV_FILE_PATH = sd.beacon_dir_path + '0' + BEACON_ID + '_2015.csv'
 
     def __init__(self):
-
         super().__init__(beacon_id=self.BEACON_ID, start_time=self.START_TIME, end_time=self.END_TIME)
